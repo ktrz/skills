@@ -1,12 +1,21 @@
-# IDE
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.iml
 *.iws
 *.ipr
-
-# OS
 .DS_Store
 Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env*
+
+# Build
+out/
 
 # Logs
 *.log

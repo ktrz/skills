@@ -1,0 +1,48 @@
+# plan-my-day configuration
+# ─────────────────────────
+# Copy this file to config.yaml and update the values for your setup:
+#   cp config.example.yaml config.yaml
+#
+# The skill reads config.yaml at startup. If it's missing, you'll get
+# a clear error pointing you back here.
+
+# ── Personal settings ──────────────────────────────────────────────
+
+# Your branch naming prefix. If your branches look like "jsmith/cpd-123",
+# set this to "jsmith". If you don't use a prefix, set to "".
+branch_prefix: ""
+
+# Jira project keys to scan. The skill fetches tickets assigned to you
+# under these keys. Most setups have one key; add more if your work
+# spans multiple Jira projects.
+jira_keys:
+  - PROJ
+
+# Where to save the daily plan markdown file.
+output_path: ~/Desktop/dayplan
+
+# ── Repositories ───────────────────────────────────────────────────
+#
+# List every repo the skill should scan. Each repo is checked for
+# git worktrees and GitHub PRs. When a Jira ticket (e.g., PROJ-123)
+# matches a branch or PR in a repo, the skill links them together.
+#
+# Fields:
+#   name              - Short label shown in the plan (e.g., "frontend")
+#   path              - Local path to the repo root (worktrees are auto-discovered)
+#   github_repo       - GitHub "org/repo" for PR lookups via `gh`
+#   branch_ticket_format - How ticket keys appear in branch names:
+#       "prefix/key-NNN"  → branches like "jsmith/proj-123"
+#       "key-NNN"         → branches like "proj-123"
+
+repos:
+  - name: my-app
+    path: ~/projects/my-app
+    github_repo: my-org/my-app
+    branch_ticket_format: prefix/key-NNN
+
+  # Add more repos as needed:
+  # - name: my-api
+  #   path: ~/projects/my-api
+  #   github_repo: my-org/my-api
+  #   branch_ticket_format: key-NNN
