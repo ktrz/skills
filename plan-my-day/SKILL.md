@@ -1,4 +1,5 @@
 ---
+version: 1.1.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -16,7 +17,7 @@ allowedTools:
   - Bash(date -v-24H +%s)
   - Bash(date +%Y-%m-%d)
   - Bash(date +%s)
-  - Bash(gh pr list:*)
+  - Bash(gh api graphql:*)
   - Bash(mkdir -p *:*)
   - Write
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
@@ -99,16 +100,76 @@ and the global BRANCH_PREFIX:
 - Skip the bare main worktree.
 - **Tag each worktree with its repo name** (e.g. `repo: "my-repo"`).
 
-**4. GitHub open PRs** — for **each** repo in REPOS (two `gh` commands per repo, all in parallel):
-```bash
-gh pr list --repo <repo.github_repo> --author @me --state open --limit 20 \
-  --json title,url,headRefName,number
+**4. GitHub PRs** — single GraphQL call for **all** repos:
+
+Build one GraphQL query with three aliased `search` blocks per repo. For each
+repo at index `i` (0-based) in REPOS, create aliases `openPRs_repoI`,
+`mergedPRs_repoI`, and `reviewRequested_repoI`.
+
+Query template (repeat the three search blocks for each repo, substituting
+`<github_repo>` from `repo.github_repo` and `<DATE>` from Phase 1):
+
+```graphql
+query {
+  openPRs_repo0: search(
+    query: "repo:<github_repo_0> is:pr author:@me is:open"
+    type: ISSUE
+    first: 20
+  ) {
+    nodes {
+      ... on PullRequest {
+        title
+        url
+        headRefName
+        number
+        reviewRequests(first: 10) {
+          nodes { requestedReviewer { ... on User { login } ... on Team { name } } }
+        }
+      }
+    }
+  }
+  mergedPRs_repo0: search(
+    query: "repo:<github_repo_0> is:pr author:@me is:merged merged:>=<DATE>"
+    type: ISSUE
+    first: 10
+  ) {
+    nodes {
+      ... on PullRequest { title url headRefName number }
+    }
+  }
+  reviewRequested_repo0: search(
+    query: "repo:<github_repo_0> is:pr is:open review-requested:@me"
+    type: ISSUE
+    first: 10
+  ) {
+    nodes {
+      ... on PullRequest { title url headRefName number author { login } }
+    }
+  }
+}
 ```
+
+Execute as a single Bash command:
 ```bash
-gh pr list --repo <repo.github_repo> --author @me --state merged --limit 10 \
-  --search "merged:>=DATE" --json title,url,headRefName,number
+gh api graphql -f query='<constructed query with all repos>'
 ```
-(substitute literal DATE from Phase 1)
+
+If more than 8 repos are configured, split into batches of 8 repos per GraphQL
+call to stay under GitHub's 30 searches/minute secondary rate limit.
+
+**Parsing the response:** The JSON response has structure
+`data.openPRs_repoI.nodes`, `data.mergedPRs_repoI.nodes`, and
+`data.reviewRequested_repoI.nodes`. Map alias suffix `_repoI` back to
+`REPOS[i]` to tag each PR with its repo name.
+
+Collect:
+- **Open PRs** from `openPRs_repoI` — PRs authored by the user that are open.
+  The `reviewRequests` subfield shows who the user has asked to review (useful
+  for knowing if a PR is actively in review).
+- **Merged PRs** from `mergedPRs_repoI` — PRs authored by the user merged
+  since DATE.
+- **Review requests on me** from `reviewRequested_repoI` — PRs by teammates
+  where the user is a requested reviewer. These feed into "Do first".
 
 **Tag each PR with its repo name.**
 
@@ -163,6 +224,10 @@ work happens). If no repo match is found, list the ticket as "unassigned to a re
   by ticket key appearing in the PR title.
 - **Slack mention**: flag if any message in the Slack results references
   any ticket key (case-insensitive) in the past 24h.
+- **Review requests on me**: PRs from `reviewRequested_repoI` results are PRs
+  by teammates that need the user's review. These go into "Do first (people are
+  waiting)" regardless of whether they match a worktree. Display as:
+  `- [ ] **Review PR #NNN** — "<title>" by @author · [repo-name]`
 
 **Classify each worktree:**
 - **Active**: has uncommitted changes (dirty > 0) OR commits ahead of remote
@@ -179,7 +244,7 @@ across any repo. These go in "Jira tickets to pick up". If MULTI_REPO is true
 and the ticket has no repo match, note it as "not yet linked to a repo".
 
 **Sort Active worktrees by priority:**
-1. PRs with review requests pending
+1. PRs with review requests pending (check `reviewRequests` on open PRs — non-empty means the PR is actively in review)
 2. Dirty worktrees (uncommitted changes)
 3. Commits ahead of remote but no open PR
 4. Clean, no commits ahead, but PR is open
@@ -189,6 +254,11 @@ Active if they have recent activity (dirty or ahead), otherwise in Stale.
 
 **If a data source fails**: note it briefly inline (e.g. "⚠ Slack
 unavailable") and continue with what's available.
+
+**GraphQL error handling**: If the `gh api graphql` call fails entirely (e.g.
+network error, auth expired), note "⚠ GitHub unavailable" and skip all PR data.
+If the response contains partial errors (JSON has both `data` and `errors`
+keys), process whatever data is present and note which repos had errors.
 
 ---
 
