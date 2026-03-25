@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.1.0
+version: 1.2.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -97,21 +97,25 @@ After all comments have been processed:
 
 2. **Ask the user to confirm** before posting anything. They might want to adjust a reply or change their mind on something.
 
-3. **Post all replies and resolve all threads** in one pass:
-   - For each thread where a reply is warranted, post the reply:
-     ```bash
-     gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies \
-       -X POST -f body="<concise summary of what was done>"
-     ```
-   - Resolve every addressed thread:
+3. **Post all replies and resolve all threads** in a single batched GraphQL mutation. Use aliases to combine every reply and resolve into one request:
      ```bash
      gh api graphql -f query='
        mutation {
-         resolveReviewThread(input: {threadId: "THREAD_ID"}) {
+         reply0: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_0", body: "Fixed: renamed variable to userCount"}) {
+           comment { id }
+         }
+         resolve0: resolveReviewThread(input: {threadId: "THREAD_ID_0"}) {
+           thread { isResolved }
+         }
+         reply1: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_1", body: "Added null check"}) {
+           comment { id }
+         }
+         resolve1: resolveReviewThread(input: {threadId: "THREAD_ID_1"}) {
            thread { isResolved }
          }
        }'
      ```
+   Build the mutation dynamically — for each thread, add a `replyN: addPullRequestReviewThreadReply(...)` alias if a reply is warranted, and a `resolveN: resolveReviewThread(...)` alias if the thread should be resolved. Use the thread `id` from the fetch query (step 2) directly — these are the same GraphQL node IDs needed by both mutations.
    - Skipped comments are left unresolved and unreplied unless the user says otherwise.
 
 4. **Push the changes** if not already pushed.

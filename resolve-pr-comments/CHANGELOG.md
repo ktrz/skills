@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- Replace mixed REST/GraphQL approach with pure GraphQL — the REST reply endpoint expected numeric database IDs but the GraphQL query returns node IDs, causing mismatches
+- Batch all replies and thread resolutions into a single GraphQL mutation using aliases
+- Use `addPullRequestReviewThreadReply` mutation (takes thread ID directly) instead of REST `/comments/COMMENT_ID/replies`
+
 ## 1.1.0
 
 - Investigate each comment before asking — read the relevant code, understand the reviewer's intent, and present concrete options with specific descriptions of what the fix would look like
