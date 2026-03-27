@@ -1,0 +1,13 @@
+# create-pr configuration
+# ────────────────────────
+# Copy this file to config.yaml and update the values for your setup:
+#   cp config.example.yaml config.yaml
+
+# ── Jira ───────────────────────────────────────────────────────────
+
+# Base URL for Jira issue links (no trailing slash)
+jira_base_url: "https://your-org.atlassian.net/browse"
+
+# Jira project key used to extract ticket numbers from branch names
+# e.g. "CPD" matches branches like "ktrz/cpd-123-some-feature"
+jira_project_key: "PROJ"

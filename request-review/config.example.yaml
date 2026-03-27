@@ -1,0 +1,27 @@
+# request-review configuration
+# ──────────────────────────────
+# Copy this file to config.yaml and update the values for your setup:
+#   cp config.example.yaml config.yaml
+
+# ── Slack ──────────────────────────────────────────────────────────
+
+# Channel ID to post review requests in
+# Find it by right-clicking the channel → "Copy link" — the last segment is the ID
+slack_channel_id: "CXXXXXXXXXX"
+
+# Slack user IDs to @mention as reviewers
+# Find by opening a DM with the person and copying the URL — last segment is the ID
+reviewers:
+  - "UXXXXXXXXXX"  # Reviewer 1
+  - "UXXXXXXXXXX"  # Reviewer 2
+  - "UXXXXXXXXXX"  # Reviewer 3
+
+# ── Jira ───────────────────────────────────────────────────────────
+
+# Atlassian cloud ID (UUID) for your org
+# Get it from: https://your-org.atlassian.net/_edge/tenant_info
+jira_cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Transition ID for "In Review" status
+# Get it via Jira API: GET /rest/api/3/issue/{issueKey}/transitions
+jira_in_review_transition_id: "XX"
