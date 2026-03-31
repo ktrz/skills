@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- Bug comments now use test-first approach: write a failing test that reproduces the bug, confirm it fails, apply the fix, confirm it passes
+- Options presented to user mention the test that would be written for bug fixes
+- Non-bug comments (style nits, design suggestions, etc.) continue to be handled as before
+
 ## 1.2.0
 
 - Replace mixed REST/GraphQL approach with pure GraphQL — the REST reply endpoint expected numeric database IDs but the GraphQL query returns node IDs, causing mismatches
