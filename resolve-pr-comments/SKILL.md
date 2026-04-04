@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.3.0
+version: 1.4.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -52,15 +52,47 @@ gh api graphql -f query='
 
 Extract owner/repo from the git remote. Filter to `isResolved == false`.
 
-### 3. Process each comment one at a time
+### 3. Fetch review-level comments
 
-For each unresolved thread:
+Inline threads don't capture everything — reviewers often include important findings in the **review body** (the top-level summary submitted with a review). These can contain critical issues, items outside the diff, or cross-cutting concerns that don't attach to a specific line.
+
+Fetch review bodies from the same PR:
+
+```bash
+gh api graphql -f query='
+{
+  repository(owner: "OWNER", name: "REPO") {
+    pullRequest(number: PR_NUMBER) {
+      reviews(first: 50) {
+        nodes {
+          id
+          author { login }
+          body
+          state
+          url
+          createdAt
+        }
+      }
+    }
+  }
+}'
+```
+
+Filter to reviews where `body` is non-empty and not just a generic "LGTM" or approval. Focus on reviews with `state` of `CHANGES_REQUESTED` or `COMMENTED` that contain substantive feedback — look for bullet points, code blocks, or paragraphs that raise specific issues.
+
+Parse the review body into individual action items. A single review body often contains multiple distinct points (e.g., a "Critical" section and a "Not in diff but worth noting" section). Split these into separate items so each gets its own investigation and decision, just like inline threads. Use markdown headers, numbered lists, or paragraph breaks as splitting cues.
+
+Present review-body items **before** inline threads — they tend to be higher-priority (cross-cutting concerns, issues outside the diff, critical findings the reviewer chose to highlight at the top level). For each item, note that it came from a review-level comment and link to the review URL.
+
+Since review bodies aren't threads, they can't be resolved via GraphQL. Instead, reply to them with a PR comment at the end (alongside the thread replies), referencing the review URL.
+
+### 4. Process each comment one at a time
+
+Process review-body items first, then inline threads. For each item:
 
 1. **Present the comment** clearly:
-   - File path and line number
-   - Author
-   - The comment body
-   - Any replies in the thread
+   - For inline threads: file path, line number, author, comment body, any replies
+   - For review-body items: author, the specific item extracted from the review, link to the review
 
 2. **Investigate the code** before asking the user anything:
    - Read the relevant file and surrounding context
@@ -97,7 +129,7 @@ For each unresolved thread:
 
 7. **Move to the next comment.**
 
-### 4. Bulk reply and resolve
+### 5. Bulk reply and resolve
 
 After all comments have been processed:
 
@@ -125,6 +157,7 @@ After all comments have been processed:
      ```
    Build the mutation dynamically — for each thread, add a `replyN: addPullRequestReviewThreadReply(...)` alias if a reply is warranted, and a `resolveN: resolveReviewThread(...)` alias if the thread should be resolved. Use the thread `id` from the fetch query (step 2) directly — these are the same GraphQL node IDs needed by both mutations.
    - Skipped comments are left unresolved and unreplied unless the user says otherwise.
+   - For review-body items (which aren't threads), post a single PR comment summarizing what was addressed, using `gh pr comment`. Reference the review URL so the reviewer can find the response.
 
 4. **Push the changes** if not already pushed.
 
@@ -140,3 +173,4 @@ After all comments have been processed:
 - **Defer all GitHub interaction to the end** — no replying or resolving mid-session. This lets the user review everything at once and change their mind before anything goes live.
 - **Concise replies** — keep GitHub replies short and factual. State what was changed, not why the reviewer was right.
 - **Skip your own replies** — when fetching threads, the user's own replies are not actionable comments. Focus on comments from reviewers (including automated reviewers like Copilot).
+- **Deduplicate review-body items against inline threads** — review summaries often mention the same issues that also appear as inline comments. When a review-body item clearly refers to something already covered by an inline thread (same file, same issue), skip the review-body item and note it will be handled when you reach the inline thread. Only process review-body items that raise points *not* covered by any inline thread.
