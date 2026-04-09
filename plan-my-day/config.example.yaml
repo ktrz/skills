@@ -1,10 +1,11 @@
 # plan-my-day configuration
 # ─────────────────────────
-# Copy this file to config.yaml and update the values for your setup:
-#   cp config.example.yaml config.yaml
+# Copy this file to ~/.claude/plan-my-day.yaml and update the values:
+#   cp ~/.claude/skills/plan-my-day/config.example.yaml ~/.claude/plan-my-day.yaml
 #
-# The skill reads config.yaml at startup. If it's missing, you'll get
-# a clear error pointing you back here.
+# Storing the config outside the skill directory keeps it safe when the
+# skill is updated via `npx skills`. The skill reads
+# ~/.claude/plan-my-day.yaml at startup.
 
 # ── Personal settings ──────────────────────────────────────────────
 
@@ -18,8 +19,12 @@ branch_prefix: ""
 jira_keys:
   - PROJ
 
-# Where to save the daily plan markdown file.
+# Where to save the daily plan markdown file (used when day_plan_repo is not set).
 output_path: ~/Desktop/dayplan
+
+# Optional: GitHub repo for daily plan issues (owner/repo format).
+# When set, the skill creates a GitHub issue instead of a local file.
+# day_plan_repo: my-org/day-plan
 
 # ── Repositories ───────────────────────────────────────────────────
 #

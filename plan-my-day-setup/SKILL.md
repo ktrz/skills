@@ -1,4 +1,5 @@
 ---
+version: 1.2.0
 name: plan-my-day-setup
 description: >
   Interactive setup wizard for the plan-my-day skill. Walks users through
@@ -24,7 +25,7 @@ keys, and branch conventions to use.
 
 ## Step 1 — Check for existing config
 
-Read `~/.claude/skills/plan-my-day/config.yaml`.
+Read `~/.claude/plan-my-day.yaml`.
 
 - If it exists, show the user its contents and ask: "You already have a
   config. Would you like to edit it, replace it, or cancel?"
@@ -107,10 +108,10 @@ repos:
     branch_ticket_format: <detected-format>
 ```
 
-Write the file to `~/.claude/skills/plan-my-day/config.yaml`.
+Write the file to `~/.claude/plan-my-day.yaml`.
 
 Show the generated config to the user and confirm:
-> "Config saved to `~/.claude/skills/plan-my-day/config.yaml`. You can now
+> "Config saved to `~/.claude/plan-my-day.yaml`. You can now
 > run `/plan-my-day` to generate your daily plan."
 
 If the user wants to make changes, edit the config accordingly.

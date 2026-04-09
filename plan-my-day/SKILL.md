@@ -1,5 +1,5 @@
 ---
-version: 1.1.0
+version: 1.2.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -19,6 +19,7 @@ allowedTools:
   - Bash(date +%s)
   - Bash(gh api graphql:*)
   - Bash(mkdir -p *:*)
+  - Bash(gh issue create:*)
   - Write
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
   - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
@@ -32,21 +33,23 @@ worktrees, Jira, GitHub PRs, and Slack, then synthesizing into a clear plan.
 
 ## Phase 0 — Load configuration
 
-Read `config.yaml` from this skill's directory (`~/.claude/skills/plan-my-day/config.yaml`).
+Read `~/.claude/plan-my-day.yaml` (stored outside the skill directory so it
+survives skill updates).
 
 If the file does not exist, stop and output:
 
-> No `config.yaml` found. Run `/plan-my-day-setup` to configure, or copy
-> `config.example.yaml` to `config.yaml` and edit it manually:
+> No `~/.claude/plan-my-day.yaml` found. Run `/plan-my-day-setup` to configure,
+> or copy the example config and edit it manually:
 >
 > ```
-> cp ~/.claude/skills/plan-my-day/config.example.yaml ~/.claude/skills/plan-my-day/config.yaml
+> cp ~/.claude/skills/plan-my-day/config.example.yaml ~/.claude/plan-my-day.yaml
 > ```
 
 Extract the following from the config:
 - **BRANCH_PREFIX** — the user's branch naming prefix (may be empty string)
 - **JIRA_KEYS** — list of Jira project keys to scan
 - **OUTPUT_PATH** — where to save the daily plan file
+- **DAY_PLAN_REPO** — optional `owner/repo` for GitHub issue output (may be absent)
 - **REPOS** — list of repos, each with: `name`, `path`, `github_repo`, `branch_ticket_format`
 
 Also determine:
@@ -264,12 +267,8 @@ keys), process whatever data is present and note which repos had errors.
 
 ## Output format
 
-Write the plan to both the conversation AND a markdown file.
-
-**File output**: Save to `OUTPUT_PATH/YYYY-MM-DD-<short-description>.md` where
-`<short-description>` is a 2-4 word kebab-case summary of the main themes
-(e.g. `2026-03-13-v3-migration-and-reviews.md`). Create the directory first
-with `mkdir -p OUTPUT_PATH`.
+Write the plan to the conversation AND persist it (as a GitHub issue or a
+markdown file, depending on config).
 
 Use checkbox syntax (`- [ ]`) for all actionable items so the user can mark
 them done. Sub-bullets with details stay as plain list items (no checkbox).
@@ -284,6 +283,52 @@ repo is configured, omit the prefix.
 
 Group items by urgency rather than by data source. The goal is to make it
 immediately clear what to tackle first versus what can wait.
+
+### If DAY_PLAN_REPO is set — create a GitHub issue
+
+Issue title format: `YYYY-MM-DD — Weekday, Month Day`
+(e.g. `2026-04-09 — Thursday, April 9`)
+
+Issue body:
+
+```markdown
+## Plan
+
+## Do first (people are waiting)
+...
+## Main focus (deep work)
+...
+## If you have time
+...
+## Not today (but don't forget)
+...
+## Cleanup (end of day)
+...
+
+## Standup
+```
+
+The `## Standup` section must always be present but left empty (header only —
+the standup skill fills it in later).
+
+Create the issue:
+```bash
+gh issue create --repo <DAY_PLAN_REPO> --title "<title>" --body "<body>"
+```
+
+After creating, tell the user the issue URL.
+
+**Do not write a local file when DAY_PLAN_REPO is set.**
+
+### If DAY_PLAN_REPO is not set — write a file
+
+Save to `OUTPUT_PATH/YYYY-MM-DD-<short-description>.md` where
+`<short-description>` is a 2-4 word kebab-case summary of the main themes
+(e.g. `2026-03-13-v3-migration-and-reviews.md`). Create the directory first
+with `mkdir -p OUTPUT_PATH`.
+
+The file body uses the same section structure as the issue body above (with
+a top-level heading added):
 
 ```markdown
 # <Day of week>, <Month Day> — Daily Plan
@@ -324,12 +369,15 @@ Good for low-energy time.
 - [ ] Close worktree **branch-name** — <reason: ticket closed / no activity / superseded>
 ```
 
-Rules:
-- Use the friendly date format in the header (e.g. "Friday, March 13").
-- Omit any section that would be empty.
+After writing the file, tell the user where it was saved.
+
+### Shared rules (both outputs)
+
+- Use the friendly date format in headers (e.g. "Friday, March 13").
+- Omit any section that would be empty (except `## Standup` in issue mode —
+  always keep it).
 - Do not show Done-ish worktrees in "Main focus" — move them to "Cleanup".
 - Keep descriptions concise; one line per item plus sub-bullets for detail.
 - Distribute Slack follow-ups into the appropriate urgency section rather than
   grouping them separately (e.g. a review request goes in "Do first", a casual
   discussion thread goes in "If you have time").
-- After writing the file, tell the user where it was saved.
