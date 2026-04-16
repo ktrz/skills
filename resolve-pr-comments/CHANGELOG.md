@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.0
+
+- Split workflow into two phases: collect all decisions first (Phase 1), then implement in batch (Phase 2)
+- Phase 1 accepts shorthand responses ("fix", "defer", "reply", "skip") for faster iteration
+- Running progress counter after each decision
+- Decision summary table presented before implementation begins
+- Deferred items are organized into logical tickets at the end of Phase 1, with auto-detection of issue tracker (GitHub, Linear, Jira)
+- Group related changes into logical commits instead of one commit per comment
+- Recognize batch responses ("fix the next 3", "skip all low-priority nits")
+
+## 1.4.0
+
+- Fetch review-level comments (review body) in addition to inline threads
+- Parse review bodies into individual action items
+- Deduplicate review-body items against inline threads
+- Present review-body items before inline threads (higher priority)
+
 ## 1.3.0
 
 - Bug comments now use test-first approach: write a failing test that reproduces the bug, confirm it fails, apply the fix, confirm it passes

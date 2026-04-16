@@ -1,13 +1,15 @@
 ---
 name: resolve-pr-comments
-version: 1.4.0
+version: 1.5.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
 
 # Resolve PR Review Comments
 
-Walk through unresolved review comments on a GitHub PR. For each comment, investigate the code, present the user with concrete options, then implement their chosen action. After all comments are processed, reply to every thread and resolve them in one batch.
+Walk through unresolved review comments on a GitHub PR in two phases: first collect the user's decisions on every comment (fast, interactive), then implement all changes in a batch (autonomous). Replies and thread resolution happen in bulk at the end.
+
+The two-phase approach lets the user give rapid-fire decisions ("fix", "defer", "skip") without waiting for implementation between each one. This is much faster than alternating between deciding and implementing.
 
 ## Workflow
 
@@ -86,7 +88,9 @@ Present review-body items **before** inline threads — they tend to be higher-p
 
 Since review bodies aren't threads, they can't be resolved via GraphQL. Instead, reply to them with a PR comment at the end (alongside the thread replies), referencing the review URL.
 
-### 4. Process each comment one at a time
+### 4. Phase 1 — Collect decisions (fast, interactive)
+
+This phase is about building a complete decision list. Move quickly — investigate each comment, present options, record the user's call, move on. Do NOT implement anything yet.
 
 Process review-body items first, then inline threads. For each item:
 
@@ -101,43 +105,92 @@ Process review-body items first, then inline threads. For each item:
    - Think about what the fix would actually look like
 
 3. **Present options** — based on your investigation, offer the user concrete choices. Tailor these to the specific comment, but common options include:
-   - **Fix it** — describe the specific change you'd make. For bug comments, mention the test you'd write first (e.g., "I'll add a test that passes `null` to `processUser()` and expects it not to throw, then add the null guard")
-   - **Partially address** — if the comment has multiple parts or you agree with some but not all
-   - **Reply explaining why** — if the current code is correct or the suggestion doesn't apply, draft what you'd say
-   - **Skip** — move on without action
+   - **Fix** — describe the specific change you'd make
+   - **Reply** — if the current code is correct or the suggestion doesn't apply, draft what you'd say
+   - **Defer** — acknowledge the point but handle it in a follow-up (e.g., a separate issue or PR)
+   - **Skip** — move on without action or reply
    - **Something else** — the user always has the option to direct you differently
 
-   The key is specificity: don't just say "fix it?" — say what the fix would be so the user can make an informed decision quickly.
+   The key is specificity: don't just say "fix it?" — say what the fix would be so the user can decide at a glance.
 
-4. **Wait for the user's decision** before acting.
+4. **Record the user's decision** — the user may give a one-word answer ("fix", "defer", "reply", "skip") or provide more specific instructions. Record exactly what they said. If they say something custom (e.g., "fix but use approach X" or "defer, create a Linear issue"), record that too.
 
-5. **Implement the chosen action**:
-   - **If the comment identifies a bug**, use a test-first approach:
-     1. **Write a failing test** that reproduces the bug described in the review comment. The test should target the specific faulty behavior — not a broad integration test, but a focused one that fails because of the bug.
-     2. **Run the test** and confirm it actually fails. If it doesn't fail, reconsider whether the bug is real or whether the test is targeting the right behavior. Adjust the test or discuss with the user.
-     3. **Apply the fix** to make the test pass.
-     4. **Run the test again** to confirm it passes, along with any other related tests to check for regressions.
-     5. Commit the test and fix together with a descriptive message.
-   - **For all other comment types** (style nits, design suggestions, naming, etc.):
-     - Make code changes if applicable
-     - Run typecheck/lint/tests as appropriate to verify
-     - Commit the fix with a descriptive message referencing the ticket if one is apparent from the branch name.
-   - Always review `git diff` before committing.
-   - **Do NOT reply to the comment or resolve the thread yet** — save these for the end.
+5. **Show running progress** after each decision:
+   ```
+   Progress: 5/12 — 3 fix, 1 defer, 1 reply
+   ```
 
-6. **Track what was done** — keep a running list of each thread, what action was taken, and what reply to post. Present this list in a brief summary line after each comment so the user can see progress (e.g., "3/7 done — 2 fixed, 1 skipped").
+6. **Recognize shorthand** — if the user establishes a pattern, let them go faster:
+   - "defer" alone means "add to the relevant deferred issue we've been using"
+   - "fix" alone means "do what you suggested"
+   - "reply" alone means "post the reply you drafted"
+   - The user may also batch responses: "fix the next 3" or "skip all the low-priority nits"
 
-7. **Move to the next comment.**
+7. **Deduplicate as you go** — if a comment is clearly a duplicate of one already discussed (same issue, different thread), note it and ask the user to confirm rather than re-investigating.
 
-### 5. Bulk reply and resolve
+8. **Move to the next comment.** Do not implement anything yet.
 
-After all comments have been processed:
+After all comments have been reviewed, present a **decision summary table**:
 
-1. **Show a summary** of everything that was done — list each comment with the action taken and the proposed reply.
+```
+| #  | File              | Action | Detail                              |
+|----|-------------------|--------|-------------------------------------|
+| 1  | router.ts:42      | Fix    | Add null check before access        |
+| 2  | api-client.ts:88  | Reply  | Retry logic is intentional          |
+| 3  | types.ts:15       | Fix    | Narrow type from string to union    |
+| 4  | schema.ts:7       | Defer  | Needs broader refactor              |
+| ...| ...               | ...    | ...                                 |
+```
 
-2. **Ask the user to confirm** before posting anything. They might want to adjust a reply or change their mind on something.
+**If there are deferred items**, organize them before moving on:
+- Group related deferred comments into logical tickets (e.g., multiple type-safety deferrals might belong in one "improve type coupling" issue)
+- Present the proposed tickets with title, description, and which comments they cover
+- Detect the project's issue tracker from context (Linear, GitHub Issues, Jira, etc.) — check for CLI tools (`linear`, `gh issue`), MCP servers, or project conventions. If unclear, ask the user which tracker to use.
+- The user may adjust grouping, rename tickets, or decide some deferrals don't need a ticket at all
+- Create the agreed-upon tickets
 
-3. **Post all replies and resolve all threads** in a single batched GraphQL mutation. Use aliases to combine every reply and resolve into one request:
+Ask: **"Ready to implement?"** Wait for confirmation before proceeding to Phase 2.
+
+### 5. Phase 2 — Implement all changes (autonomous, batched)
+
+Once the user confirms the decision summary, implement everything. This phase is largely autonomous — the user has already made all the decisions.
+
+**Ordering and grouping:**
+- Group related fixes that touch the same file or concern
+- Do simple fixes first (renames, type narrowing, constant extraction), then larger changes (new tests, error handling rewrites)
+- For bug fixes, use a test-first approach: write the failing test, then apply the fix
+
+**Implementation rules:**
+- **If the comment identifies a bug**, use a test-first approach:
+  1. Write a failing test that reproduces the bug
+  2. Run the test and confirm it fails
+  3. Apply the fix
+  4. Run the test again to confirm it passes
+- **For all other comment types** (style nits, design suggestions, naming, etc.):
+  - Make code changes as applicable
+  - Run typecheck/lint/tests as appropriate to verify
+- Always review `git diff` before committing
+- **Do NOT reply to comments or resolve threads yet** — save these for the end
+
+**Committing:**
+- Group related changes into logical commits rather than one commit per comment
+- A commit message should describe the batch of changes, not reference individual review comments
+- Run the full test suite after all changes are applied, before committing
+
+**Reply-only items:**
+- Draft the reply text. No code changes or commits needed.
+
+After implementation, briefly report what was done — don't re-list every change, just confirm completion and flag anything that diverged from the plan (e.g., "Comment #7 fix required a slightly different approach because X").
+
+### 6. Bulk reply and resolve
+
+After all changes are implemented:
+
+1. **Show a summary** of proposed replies — list each comment with the reply text.
+
+2. **Ask the user to confirm** before posting anything. They might want to adjust a reply.
+
+3. **Post all replies and resolve all threads** in batched GraphQL mutations. Use aliases to combine replies and resolves — batch in groups of 6 to stay within API limits:
      ```bash
      gh api graphql -f query='
        mutation {
@@ -165,11 +218,13 @@ After all comments have been processed:
 
 ## Important behaviors
 
-- **One comment at a time** — don't batch or summarize the investigation phase. Present each comment individually with your analysis and options, then wait for the user's decision.
+- **Two phases, strictly separated** — Phase 1 is for decisions only (no code changes). Phase 2 is for implementation (no new decisions). This separation is what makes the workflow fast — the user can give all their decisions in one sitting, then walk away while implementation happens.
+- **One comment at a time in Phase 1** — don't batch or summarize the investigation phase. Present each comment individually with your analysis and options, then wait for the user's decision.
+- **Accept shorthand** — if the user says "fix", that means "do what you proposed." Don't ask for confirmation. If they say "defer", record it and move on. Keep the conversation moving.
 - **Investigate before asking** — the whole point is that the user shouldn't have to context-switch into the code to decide. Read the code, understand the issue, and present options with enough detail that the user can decide at a glance.
 - **User decides the action** — the user might pick one of your options or tell you something different entirely. Follow their lead.
 - **Always verify before committing** — run `git diff` before staging. Run typecheck/lint/tests as appropriate for the change.
-- **Commit after each fix** — each resolved comment gets its own commit so the history is clear.
+- **Group commits logically** — don't commit after each individual fix. Group related changes (e.g., "all code quality fixes", "error handling improvements", "new tests") into logical commits.
 - **Defer all GitHub interaction to the end** — no replying or resolving mid-session. This lets the user review everything at once and change their mind before anything goes live.
 - **Concise replies** — keep GitHub replies short and factual. State what was changed, not why the reviewer was right.
 - **Skip your own replies** — when fetching threads, the user's own replies are not actionable comments. Focus on comments from reviewers (including automated reviewers like Copilot).
