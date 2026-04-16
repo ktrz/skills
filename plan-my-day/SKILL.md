@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -182,49 +182,54 @@ Collect:
 
 Run everything concurrently:
 
-**For each worktree path** from Phase 2 (fast bash, not sub-agents):
+**Git worktree status** — collect dirty/ahead/age for each worktree path
+from Phase 2.
 
-**Important — sandbox restriction**: Commands inside `$(...)` subshells
-silently fail in the Claude Code sandbox (`git`, `wc`, `awk`, `python3`, `jq`
-are all unavailable inside command substitution). Always redirect to temp files
-and read them with shell builtins instead.
+**Important — sandbox restriction**: The Claude Code sandbox only allows
+**one git command per loop iteration**. Multiple commands in the same
+iteration silently fail (all return empty). Commands like `head`, `tail`,
+`wc`, `awk`, `python3`, and `jq` are also unavailable inside loops.
 
-Run a single Bash call with this loop (substitute the worktree paths from
-Phase 2):
+To work around this, run **three separate single-command loops** (one Bash
+call each, all three in parallel) and merge the results afterward:
 
+**Pass 1 — dirty check:**
 ```bash
-NOW=$(date +%s)
-for path in <space-separated worktree paths>
-do
+for path in <space-separated worktree paths>; do
   git -C "$path" status --short > /tmp/wt_dirty.txt 2>/dev/null
-  git -C "$path" log '@{u}..HEAD' --oneline > /tmp/wt_ahead.txt 2>/dev/null
-  git -C "$path" log -1 --format='%ct' > /tmp/wt_ts.txt 2>/dev/null
-  git -C "$path" log -1 --format='%ar' > /tmp/wt_last.txt 2>/dev/null
-
   [ -s /tmp/wt_dirty.txt ] && dirty=1 || dirty=0
-  [ -s /tmp/wt_ahead.txt ] && ahead=1 || ahead=0
-  read commit_ts </tmp/wt_ts.txt 2>/dev/null
-  read last </tmp/wt_last.txt 2>/dev/null
-  [ -n "$commit_ts" ] && age_days=$(( (NOW - commit_ts) / 86400 )) || age_days=999
-
-  echo "PATH=$path|DIRTY=$dirty|AHEAD=$ahead|LAST=$last|AGE_DAYS=$age_days"
+  echo "$path|DIRTY=$dirty"
 done
 ```
 
-Key principles:
-- No `$(command)` substitution — all commands run at top level of the loop body
-- Redirect to temp files instead of capturing in variables
-- `[ -s file ]` and `read var < file` are shell builtins that work in the sandbox
-- Single-quote `'@{u}'` and `'%ct'`/`'%ar'` to prevent zsh expansion
+**Pass 2 — ahead of remote:**
+```bash
+for path in <space-separated worktree paths>; do
+  git -C "$path" log '@{u}..HEAD' --oneline > /tmp/wt_ahead.txt 2>/dev/null
+  [ -s /tmp/wt_ahead.txt ] && ahead=1 || ahead=0
+  echo "$path|AHEAD=$ahead"
+done
+```
 
-Parse each output line by splitting on `|` to get per-worktree status.
+**Pass 3 — last commit age:**
+```bash
+for path in <space-separated worktree paths>; do
+  git -C "$path" log -1 --format='%ar' > /tmp/wt_last.txt 2>/dev/null
+  read last < /tmp/wt_last.txt 2>/dev/null
+  [ -z "$last" ] && last="unknown"
+  echo "$path|LAST=$last"
+done
+```
+
+Merge the three result sets by path to build per-worktree status
+(dirty, ahead, last commit age).
 
 **Jira** — call `searchJiraIssuesUsingJql` with:
 - cloudId: CLOUD_ID
 - jql: `assignee = currentUser() AND updated >= -7d ORDER BY updated DESC`
   (this covers all JIRA_KEYS since the query is key-agnostic)
-- fields: `key,summary,status,priority`
-- maxResults: 30
+- fields: `["key", "summary", "status", "priority"]` (must be an array of strings)
+- maxResults: `30` (must be a number, not a string)
 
 **Slack — messages from me**: Call `slack_search_public_and_private` with:
 - query: `from:<@SLACK_USER_ID>`
@@ -297,6 +302,19 @@ unavailable") and continue with what's available.
 network error, auth expired), note "⚠ GitHub unavailable" and skip all PR data.
 If the response contains partial errors (JSON has both `data` and `errors`
 keys), process whatever data is present and note which repos had errors.
+
+**Data quality check** — before writing the final output, scan for degraded
+signals and add a warning line at the top of the plan for each:
+- If ALL worktrees show DIRTY=0 AND AHEAD=0 AND LAST=unknown: "⚠ Git status
+  collection failed — worktree data may be incomplete"
+- If Jira returned 0 results: "⚠ Jira returned no results — check
+  connectivity or JQL"
+- If Slack returned 0 results for both queries: "⚠ Slack returned no
+  results — check token or date range"
+- If GitHub GraphQL errored: already handled above
+
+This costs nothing when everything works and surfaces problems without
+guessing root causes.
 
 ---
 
