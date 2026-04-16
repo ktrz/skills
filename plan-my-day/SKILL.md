@@ -1,5 +1,5 @@
 ---
-version: 1.2.0
+version: 1.3.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -184,20 +184,40 @@ Run everything concurrently:
 
 **For each worktree path** from Phase 2 (fast bash, not sub-agents):
 
-```bash
-git -C <path> status --porcelain 2>/dev/null | wc -l
-```
-→ dirty file count
+**Important — sandbox restriction**: Commands inside `$(...)` subshells
+silently fail in the Claude Code sandbox (`git`, `wc`, `awk`, `python3`, `jq`
+are all unavailable inside command substitution). Always redirect to temp files
+and read them with shell builtins instead.
+
+Run a single Bash call with this loop (substitute the worktree paths from
+Phase 2):
 
 ```bash
-git -C <path> log @{u}..HEAD --oneline 2>/dev/null | wc -l
-```
-→ commits ahead of remote (0 if no remote tracking branch)
+NOW=$(date +%s)
+for path in <space-separated worktree paths>
+do
+  git -C "$path" status --short > /tmp/wt_dirty.txt 2>/dev/null
+  git -C "$path" log '@{u}..HEAD' --oneline > /tmp/wt_ahead.txt 2>/dev/null
+  git -C "$path" log -1 --format='%ct' > /tmp/wt_ts.txt 2>/dev/null
+  git -C "$path" log -1 --format='%ar' > /tmp/wt_last.txt 2>/dev/null
 
-```bash
-git -C <path> log -1 --format="%ar" 2>/dev/null
+  [ -s /tmp/wt_dirty.txt ] && dirty=1 || dirty=0
+  [ -s /tmp/wt_ahead.txt ] && ahead=1 || ahead=0
+  read commit_ts </tmp/wt_ts.txt 2>/dev/null
+  read last </tmp/wt_last.txt 2>/dev/null
+  [ -n "$commit_ts" ] && age_days=$(( (NOW - commit_ts) / 86400 )) || age_days=999
+
+  echo "PATH=$path|DIRTY=$dirty|AHEAD=$ahead|LAST=$last|AGE_DAYS=$age_days"
+done
 ```
-→ last commit relative time
+
+Key principles:
+- No `$(command)` substitution — all commands run at top level of the loop body
+- Redirect to temp files instead of capturing in variables
+- `[ -s file ]` and `read var < file` are shell builtins that work in the sandbox
+- Single-quote `'@{u}'` and `'%ct'`/`'%ar'` to prevent zsh expansion
+
+Parse each output line by splitting on `|` to get per-worktree status.
 
 **Jira** — call `searchJiraIssuesUsingJql` with:
 - cloudId: CLOUD_ID
@@ -206,11 +226,26 @@ git -C <path> log -1 --format="%ar" 2>/dev/null
 - fields: `key,summary,status,priority`
 - maxResults: 30
 
-**Slack** — call `slack_search_public_and_private` with:
+**Slack — messages from me**: Call `slack_search_public_and_private` with:
 - query: `from:<@SLACK_USER_ID>`
 - after: UNIX_TS (from Phase 1)
 - limit: 20
 - include_context: true
+
+Check the response's `pagination_info` for a `cursor`. If a cursor is present,
+repeat the same search with that cursor until no more pages are returned.
+Collect all results across every page before moving on.
+
+**Slack — messages mentioning me**: Call `slack_search_public_and_private` with:
+- query: `<@SLACK_USER_ID>`  (mention search — catches threads where teammates
+  ping or bump something)
+- after: UNIX_TS (from Phase 1)
+- limit: 20
+- include_context: true
+
+Paginate the same way (keep fetching while `pagination_info` has a cursor).
+
+**Deduplicate** across both Slack result sets by `message_ts` before proceeding.
 
 ---
 
