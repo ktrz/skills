@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.5.0
+version: 1.6.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -153,34 +153,11 @@ Ask: **"Ready to implement?"** Wait for confirmation before proceeding to Phase 
 
 ### 5. Phase 2 — Implement all changes (autonomous, batched)
 
-Once the user confirms the decision summary, implement everything. This phase is largely autonomous — the user has already made all the decisions.
+Once the user confirms the decision summary, switch into implementation mode. By this point Phase 1 has filled the context with investigation notes and decision chatter, so the rules that govern execution — especially the TDD requirement for bug fixes — need to be reloaded fresh before any code change happens.
 
-**Ordering and grouping:**
-- Group related fixes that touch the same file or concern
-- Do simple fixes first (renames, type narrowing, constant extraction), then larger changes (new tests, error handling rewrites)
-- For bug fixes, use a test-first approach: write the failing test, then apply the fix
+**Before touching any code, read `references/execute.md` in full.** That file is the authoritative playbook for Phase 2: TDD for bug fixes (red → green → suite), ordering, commit grouping, reply-only handling, and the wrap-up report. Treat it as the primary instruction for this phase; this section is just the pointer.
 
-**Implementation rules:**
-- **If the comment identifies a bug**, use a test-first approach:
-  1. Write a failing test that reproduces the bug
-  2. Run the test and confirm it fails
-  3. Apply the fix
-  4. Run the test again to confirm it passes
-- **For all other comment types** (style nits, design suggestions, naming, etc.):
-  - Make code changes as applicable
-  - Run typecheck/lint/tests as appropriate to verify
-- Always review `git diff` before committing
-- **Do NOT reply to comments or resolve threads yet** — save these for the end
-
-**Committing:**
-- Group related changes into logical commits rather than one commit per comment
-- A commit message should describe the batch of changes, not reference individual review comments
-- Run the full test suite after all changes are applied, before committing
-
-**Reply-only items:**
-- Draft the reply text. No code changes or commits needed.
-
-After implementation, briefly report what was done — don't re-list every change, just confirm completion and flag anything that diverged from the plan (e.g., "Comment #7 fix required a slightly different approach because X").
+Do not start editing until you have re-read that file in the current turn.
 
 ### 6. Bulk reply and resolve
 

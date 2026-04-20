@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+
+- Move Phase 2 implementation rules into `references/execute.md` — loaded fresh at the Phase 1 → Phase 2 boundary so TDD and commit guidance stay front-of-context after long decision sessions
+- SKILL.md Phase 2 section now requires reading the reference file before any code changes
+
 ## 1.5.0
 
 - Split workflow into two phases: collect all decisions first (Phase 1), then implement in batch (Phase 2)
