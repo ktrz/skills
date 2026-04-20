@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+
+- Paginate both `reviewThreads` and `reviews` queries via `pageInfo.hasNextPage` + `endCursor`; raise page size from 50 to 100 (GraphQL max)
+- Add a sanity-check print of total/unresolved thread counts after step 2 so the user can cross-check against the GitHub UI before Phase 1 starts
+- Add a post-flight verification step after bulk reply/resolve: re-run the paginated fetch and assert zero unresolved (or match the user's skip set). Catches silent truncation bugs that would otherwise surface only when the user scrolls the PR themselves
+
 ## 1.6.0
 
 - Move Phase 2 implementation rules into `references/execute.md` — loaded fresh at the Phase 1 → Phase 2 boundary so TDD and commit guidance stay front-of-context after long decision sessions

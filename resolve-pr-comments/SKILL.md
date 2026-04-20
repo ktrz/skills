@@ -24,14 +24,14 @@ The two-phase approach lets the user give rapid-fire decisions ("fix", "defer", 
 
 ### 2. Fetch unresolved review threads
 
-Use the GraphQL API to get only unresolved threads:
+Use the GraphQL API to get only unresolved threads. **Paginate** — the GitHub GraphQL API caps `first:` at 100, and PRs with heavy review traffic routinely exceed that. Missing threads is silent: the query succeeds, you just never see the tail, which makes it trivially easy to reply "all resolved!" while threads sit unresolved in the UI. Always loop over `pageInfo.hasNextPage` until it returns false.
 
 ```bash
 gh api graphql -f query='
-{
+query($after: String) {
   repository(owner: "OWNER", name: "REPO") {
     pullRequest(number: PR_NUMBER) {
-      reviewThreads(first: 50) {
+      reviewThreads(first: 100, after: $after) {
         nodes {
           id
           isResolved
@@ -46,26 +46,31 @@ gh api graphql -f query='
             }
           }
         }
+        pageInfo { hasNextPage endCursor }
       }
     }
   }
-}'
+}' -f after=""
 ```
 
+Loop: if `pageInfo.hasNextPage` is true, re-run with `-f after="<endCursor>"` and accumulate `nodes` into a single list. Stop when `hasNextPage` is false.
+
 Extract owner/repo from the git remote. Filter to `isResolved == false`.
+
+**Sanity check:** print the total thread count and unresolved count (e.g., `Total: 55, Unresolved: 9`) so the user can eyeball it against the GitHub UI before you start Phase 1. If the number looks low for the PR in question, suspect pagination — re-run and verify you've drained all pages.
 
 ### 3. Fetch review-level comments
 
 Inline threads don't capture everything — reviewers often include important findings in the **review body** (the top-level summary submitted with a review). These can contain critical issues, items outside the diff, or cross-cutting concerns that don't attach to a specific line.
 
-Fetch review bodies from the same PR:
+Fetch review bodies from the same PR. **Paginate the same way as threads** — same 100-item cap, same silent-truncation risk:
 
 ```bash
 gh api graphql -f query='
-{
+query($after: String) {
   repository(owner: "OWNER", name: "REPO") {
     pullRequest(number: PR_NUMBER) {
-      reviews(first: 50) {
+      reviews(first: 100, after: $after) {
         nodes {
           id
           author { login }
@@ -74,11 +79,14 @@ gh api graphql -f query='
           url
           createdAt
         }
+        pageInfo { hasNextPage endCursor }
       }
     }
   }
-}'
+}' -f after=""
 ```
+
+Loop on `pageInfo.hasNextPage` until false, accumulating `nodes`.
 
 Filter to reviews where `body` is non-empty and not just a generic "LGTM" or approval. Focus on reviews with `state` of `CHANGES_REQUESTED` or `COMMENTED` that contain substantive feedback — look for bullet points, code blocks, or paragraphs that raise specific issues.
 
@@ -191,7 +199,9 @@ After all changes are implemented:
 
 4. **Push the changes** if not already pushed.
 
-5. Let the user know all review comments have been addressed.
+5. **Post-flight verification** — re-run the paginated thread fetch from step 2 and assert the unresolved count is zero (or matches the set the user said to skip). This catches the silent pagination-truncation failure mode: if step 2 missed a page, you'll reply "all resolved" while threads linger in the UI. Always do this before the user walks away — it's one extra API call that surfaces a bug class the user would otherwise only catch by scrolling through the PR themselves.
+
+6. Let the user know all review comments have been addressed.
 
 ## Important behaviors
 
