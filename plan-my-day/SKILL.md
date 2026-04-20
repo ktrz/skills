@@ -1,5 +1,5 @@
 ---
-version: 1.4.0
+version: 1.5.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -13,13 +13,13 @@ allowedTools:
   - Read
   - Bash(git worktree list:*)
   - Bash(git -C *:*)
-  - Bash(date -v-24H +%Y-%m-%d)
-  - Bash(date -v-24H +%s)
-  - Bash(date +%Y-%m-%d)
-  - Bash(date +%s)
+  - Bash(date:*)
+  - Bash(ls:*)
   - Bash(gh api graphql:*)
   - Bash(mkdir -p *:*)
   - Bash(gh issue create:*)
+  - Bash(gh issue list:*)
+  - Bash(gh issue close:*)
   - Write
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
   - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
@@ -57,19 +57,78 @@ Also determine:
 
 ---
 
-## Phase 1 — Compute timestamps (run in parallel, no deps)
+## Phase 1 — Find the last plan and compute the lookback window
 
-Run both commands concurrently:
+The lookback window should cover the gap since the user last ran this skill,
+not a fixed 24h. If the last plan was Friday and today is Monday, a 24h
+window misses the weekend's Slack threads and Friday's PR activity.
+
+### Step 1 — Locate the last plan
+
+**If DAY_PLAN_REPO is set**, list recent daily-plan issues in the repo and
+pick the most recent title matching the date format this skill writes
+(`YYYY-MM-DD — Weekday, Month Day`):
 
 ```bash
-date -v-24H +%Y-%m-%d
+gh issue list --repo <DAY_PLAN_REPO> --state all --limit 10 --json number,title,createdAt,state
 ```
-→ save as DATE (used for GitHub queries)
+
+Filter titles with `^\d{4}-\d{2}-\d{2} — ` and take the one with the
+greatest date prefix. Save:
+- `LAST_PLAN_DATE` — `YYYY-MM-DD` parsed from the title
+- `LAST_PLAN_NUMBER` — issue number
+- `LAST_PLAN_STATE` — `OPEN` or `CLOSED`
+
+**If DAY_PLAN_REPO is not set**, find the most recent daily-plan file:
 
 ```bash
-date -v-24H +%s
+ls -1 <OUTPUT_PATH>/ 2>/dev/null
 ```
-→ save as UNIX_TS (used for Slack `after` param)
+
+Filter entries matching `^\d{4}-\d{2}-\d{2}-.*\.md$`, sort descending, take
+the first. Save its date prefix as `LAST_PLAN_DATE`. (`LAST_PLAN_NUMBER`
+and `LAST_PLAN_STATE` stay unset.)
+
+If no prior plan exists in either mode, leave `LAST_PLAN_DATE` unset and
+skip to Step 3.
+
+### Step 2 — Check the gap
+
+```bash
+date +%Y-%m-%d
+```
+→ save as TODAY.
+
+Compute `DAYS_SINCE` = whole days between `LAST_PLAN_DATE` and `TODAY`:
+
+```bash
+echo $(( ( $(date +%s) - $(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s) ) / 86400 ))
+```
+
+**If `DAYS_SINCE > 3`**, stop and ask the user before continuing:
+
+> Last plan was `<LAST_PLAN_DATE>` (`<DAYS_SINCE>` days ago). Look back
+> that far, or use a shorter window (e.g. 24h, or a date you choose)?
+
+Do not proceed to Phase 2 until the user confirms a window. Use their
+answer to set `LAST_PLAN_DATE` (e.g. yesterday if they pick 24h).
+
+### Step 3 — Set DATE and UNIX_TS
+
+**If `LAST_PLAN_DATE` is set** (and confirmed when needed):
+
+- `DATE` = `LAST_PLAN_DATE` (used for GitHub `merged:>=` queries)
+- `UNIX_TS` = unix timestamp of that date's midnight, local time:
+  ```bash
+  date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s
+  ```
+
+**If no prior plan was found**, fall back to a 24h window:
+
+```bash
+date -v-24H +%Y-%m-%d   # → DATE
+date -v-24H +%s         # → UNIX_TS
+```
 
 ---
 
@@ -369,7 +428,15 @@ Create the issue:
 gh issue create --repo <DAY_PLAN_REPO> --title "<title>" --body "<body>"
 ```
 
-After creating, tell the user the issue URL.
+**Close the previous plan issue** — if Phase 1 found `LAST_PLAN_NUMBER` and
+`LAST_PLAN_STATE` was `OPEN`, close it so the repo's issue list shows only
+today's plan as active:
+
+```bash
+gh issue close <LAST_PLAN_NUMBER> --repo <DAY_PLAN_REPO>
+```
+
+Tell the user the new issue URL.
 
 **Do not write a local file when DAY_PLAN_REPO is set.**
 
