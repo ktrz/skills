@@ -1,5 +1,6 @@
 ---
 name: request-review
+version: 1.0.0
 description: Request a code review by posting to Slack and transitioning the Jira ticket to "In Review". Use this whenever the user asks to request a review, send an LFR, post to Slack for review, or mark a ticket as in review. Posts in the "LFR please" format to the configured Slack channel and transitions the Jira issue automatically.
 model: haiku
 ---
