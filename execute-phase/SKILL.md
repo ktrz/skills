@@ -1,8 +1,8 @@
 ---
 name: execute-phase
-version: 1.0.0
+version: 1.1.0
 model: sonnet
-description: Execute a phase from an implementation plan in an isolated git worktree. Use when the user says "execute phase", "run phase N", "start phase", or wants to kick off implementation of a plan phase in a worktree.
+description: Execute a phase from an implementation plan in an isolated git worktree. Use when the user says "execute phase", "run phase N", "start phase", or wants to kick off implementation of a plan phase in a worktree. Accepts plan paths or ticket keys from any supported tracker (jira, linear, github, clickup) via references/tracker.md.
 ---
 
 # Execute Phase in Worktree
@@ -13,7 +13,7 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 
 `/execute-phase <source> <phase-number> [base-branch]`
 
-- `source` — either a path to a plan file (e.g. `plans/proj-123-example-feature.md`) or a Jira ticket key (e.g. `PROJ-123`)
+- `source` — either a path to a plan file (e.g. `plans/proj-123-example-feature.md`) or a ticket key from the configured tracker (e.g. `PROJ-123`, `ENG-45`, `#567`, clickup id)
 - `phase-number` — which phase to execute (1, 2, 3, etc.)
 - `base-branch` — optional, defaults to `main`. Use a feature branch when phases are stacked.
 
@@ -22,10 +22,10 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 **If source looks like a file path** (contains `/` or ends in `.md`):
 - Use it directly. Verify the file exists.
 
-**If source looks like a Jira ticket key** (matches `[A-Z]+-\d+`):
+**If source looks like a ticket key** (matches any tracker's id regex — see `references/tracker.md` → Ticket ID format):
 - Search for a matching plan file:
   ```bash
-  find plans/ .claude/plans/ -name "*$(echo PROJ-123 | tr '[:upper:]' '[:lower:]')*" -name "*.md" 2>/dev/null
+  find plans/ .claude/plans/ -name "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" -name "*.md" 2>/dev/null
   ```
 - If exactly one match, use it.
 - If multiple matches, list them and ask the user to pick.

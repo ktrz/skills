@@ -1,25 +1,26 @@
 ---
 name: implement-feature
-version: 1.0.0
+version: 1.1.0
 model: sonnet
 description: >
   Execute a multi-phase feature plan using parallel worktree agents, then open PRs. Use when you
   want to go from ticket to code — dispatches parallel execute-phase agents for independent phases
   and chains cohorts with user confirmation between them. Triggers on "implement feature",
   "implement ticket", "/implement-feature PROJ-XXX", "execute the plan", or "run the phases".
-  Invokes plan-feature automatically if no plan file exists yet.
+  Invokes plan-feature automatically if no plan file exists yet. Works with jira, linear, github,
+  or clickup tickets via references/tracker.md.
 ---
 
 # Implement Feature
 
 Pure execution orchestrator: read a multi-phase plan → dispatch parallel worktree agents → open PRs.
-Planning (Jira fetch, grill-me, phase design) is handled by `plan-feature`.
+Planning (ticket fetch, grill-me, phase design) is handled by `plan-feature`.
 
 ## Arguments
 
 `/implement-feature [TICKET-KEY | plan-file-path]`
 
-- `PROJ-123` — find or create a plan for this ticket, then execute
+- `PROJ-123`, `ENG-45`, `#567`, clickup id — find or create a plan for this ticket, then execute
 - `plans.local/<project>/proj-123-example-feature.md` — execute this specific plan
 - (none) — ask what to implement
 
@@ -28,7 +29,7 @@ Planning (Jira fetch, grill-me, phase design) is handled by `plan-feature`.
 Use the first match:
 
 1. Arg looks like a file path (contains `/` or ends in `.md`) → use it directly; verify it exists
-2. Arg looks like a Jira key (`[A-Z]+-\d+`) → search in this order:
+2. Arg looks like a ticket key (matches any tracker's id regex — see `references/tracker.md` → Ticket ID format) → search in this order:
    1. `./plans.local/**/*<lowercased-key>*.md` (preferred — new location, subdirectory per project)
    2. `./plans/*<lowercased-key>*.md` (legacy)
 
