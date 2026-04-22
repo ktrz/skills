@@ -1,26 +1,27 @@
 ---
 name: create-pr
-version: 1.0.0
-description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the JIRA ticket, description, and test scenario from context.
+version: 1.1.0
+description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the ticket reference, description, and test scenario from context.
 model: haiku
 ---
 
 # Create PR
 
-Create a GitHub pull request that follows the project's PR template — JIRA link, description, and test scenario with checkboxes.
+Create a GitHub pull request that follows the project's PR template — ticket link, description, and test scenario with checkboxes.
 
 ## Phase 0 — Load configuration
 
-Read `~/.claude/create-pr.yaml`.
+Read tracker config (see `references/tracker.md` for resolution rules):
 
-If the file does not exist, stop and output:
+1. Look for `tracker:` block in `~/.claude/create-pr.yaml`.
+2. Fall back to `~/.claude/tracker.yaml`.
 
-> No config found. Copy the example and fill in your values:
-> `cp ~/.claude/skills/create-pr/config.example.yaml ~/.claude/create-pr.yaml`
+If neither exists, stop and output:
 
-Load:
-- `jira_base_url` — e.g. `https://your-org.atlassian.net/browse`
-- `jira_project_key` — e.g. `PROJ`
+> No tracker config found. Create `~/.claude/tracker.yaml` from `_shared/tracker.example.yaml`, or add a `tracker:` block to `~/.claude/create-pr.yaml`.
+
+Also load from `~/.claude/create-pr.yaml`:
+- any skill-specific PR template overrides (none required — defaults below work)
 
 ## Step 1: Gather context
 
@@ -58,23 +59,26 @@ git branch --contains $FORK | grep -v "main\|master\|\*"
 
 If the fork point is reachable from a feature branch (not just main), the PR is stacked on that branch. Use `--base <feature-branch>` when creating.
 
-## Step 2: Extract JIRA ticket
+## Step 2: Extract ticket reference
 
-Look for a ticket key in the branch name using `jira_project_key` from config (e.g. if key is `PROJ`, match `proj-340` → `PROJ-340`). If not in the branch, check commit messages.
+Dispatch by `tracker.type` per `references/tracker.md`:
 
-Format the JIRA link using `jira_base_url`:
-```
-[PROJ-XXX](<jira_base_url>/PROJ-XXX) — One-line summary
-```
+- **jira / linear**: match `[A-Za-z][A-Za-z0-9]+-\d+` in the branch (case-insensitive). Uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys`.
+- **github**: match `\b\d+\b` after stripping any user/feature prefix.
+- **clickup**: match `[a-z0-9]{7,9}`.
+
+If nothing matches, check recent commit messages, then ask the user.
+
+Build the link using the URL template for the tracker (see `references/tracker.md` → Link format). Store as `<TICKET_LINK>` for the body.
 
 ## Step 3: Draft the PR body
 
 Use this exact template:
 
 ```
-### JIRA
+### Ticket
 
-[PROJ-XXX](<jira_base_url>/PROJ-XXX) — One-line summary of the ticket
+<TICKET_LINK> — One-line summary of the ticket
 
 ### Description
 
@@ -89,7 +93,15 @@ Use this exact template:
 - [ ] Edge case or error state to test (if applicable)
 ```
 
+`<TICKET_LINK>` is rendered per the link template for the tracker:
+- jira: `[PROJ-123](https://org.atlassian.net/browse/PROJ-123)`
+- linear: `[ENG-45](https://linear.app/acme/issue/ENG-45)`
+- github: `[#567](https://github.com/owner/repo/issues/567)`
+- clickup: `[8669abc12](https://app.clickup.com/t/8669abc12)`
+
 Fill in based on the commit history and branch name. The test scenario should be concrete steps a reviewer can follow to manually verify the feature works — not abstract statements like "verify it works".
+
+If no ticket could be determined (no tracker configured, or user declined to supply one), omit the `### Ticket` section entirely.
 
 ## Step 4: Determine PR title
 
@@ -104,9 +116,9 @@ gh pr create \
   --title "<title>" \
   [--base <feature-branch>]  # only if stacked \
   --body "$(cat <<'EOF'
-### JIRA
+### Ticket
 
-[PROJ-XXX](<jira_base_url>/PROJ-XXX) — Summary
+<TICKET_LINK> — Summary
 
 ### Description
 

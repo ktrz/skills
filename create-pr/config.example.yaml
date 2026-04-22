@@ -1,13 +1,19 @@
 # create-pr configuration
 # ────────────────────────
-# Copy this file to config.yaml and update the values for your setup:
-#   cp config.example.yaml config.yaml
+# Copy this file to ~/.claude/create-pr.yaml and fill in only the fields
+# you want to override for this skill specifically. Most users leave this
+# file empty (or absent) and let create-pr fall back to the shared
+# ~/.claude/tracker.yaml.
+#
+#   cp ~/.claude/skills/create-pr/config.example.yaml ~/.claude/create-pr.yaml
 
-# ── Jira ───────────────────────────────────────────────────────────
+# ── Tracker override (optional) ───────────────────────────────────
+# Uncomment only if create-pr should use a different tracker than the
+# shared ~/.claude/tracker.yaml. See _shared/tracker.example.yaml for
+# the full schema and references/tracker.md for dispatch rules.
 
-# Base URL for Jira issue links (no trailing slash)
-jira_base_url: "https://your-org.atlassian.net/browse"
-
-# Jira project key used to extract ticket numbers from branch names
-# e.g. "PROJ" matches branches like "<username>/proj-123-some-feature"
-jira_project_key: "PROJ"
+# tracker:
+#   type: github
+#   github:
+#     repo: "owner/name"
+#     in_review_label: "in-review"
