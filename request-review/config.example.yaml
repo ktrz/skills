@@ -1,7 +1,10 @@
 # request-review configuration
 # ──────────────────────────────
-# Copy this file to config.yaml and update the values for your setup:
-#   cp config.example.yaml config.yaml
+# Copy to ~/.claude/request-review.yaml and fill in the Slack fields.
+# Tracker settings are read from ~/.claude/tracker.yaml by default;
+# uncomment the tracker block below only if you need to override.
+#
+#   cp ~/.claude/skills/request-review/config.example.yaml ~/.claude/request-review.yaml
 
 # ── Slack ──────────────────────────────────────────────────────────
 
@@ -16,12 +19,13 @@ reviewers:
   - "UXXXXXXXXXX"  # Reviewer 2
   - "UXXXXXXXXXX"  # Reviewer 3
 
-# ── Jira ───────────────────────────────────────────────────────────
+# ── Tracker override (optional) ────────────────────────────────────
+# See _shared/tracker.example.yaml for the full schema. Uncomment only
+# if request-review should use a different tracker than the shared
+# ~/.claude/tracker.yaml.
 
-# Atlassian cloud ID (UUID) for your org
-# Get it from: https://your-org.atlassian.net/_edge/tenant_info
-jira_cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-# Transition ID for "In Review" status
-# Get it via Jira API: GET /rest/api/3/issue/{issueKey}/transitions
-jira_in_review_transition_id: "XX"
+# tracker:
+#   type: jira
+#   jira:
+#     cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+#     in_review_transition_id: "21"

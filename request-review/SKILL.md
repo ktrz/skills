@@ -1,28 +1,31 @@
 ---
 name: request-review
-version: 1.0.0
-description: Request a code review by posting to Slack and transitioning the Jira ticket to "In Review". Use this whenever the user asks to request a review, send an LFR, post to Slack for review, or mark a ticket as in review. Posts in the "LFR please" format to the configured Slack channel and transitions the Jira issue automatically.
+version: 1.1.0
+description: Request a code review by posting to Slack and transitioning the ticket to "In Review". Use this whenever the user asks to request a review, send an LFR, post to Slack for review, or mark a ticket as in review. Posts in the "LFR please" format to the configured Slack channel and transitions the tracker issue automatically.
 model: haiku
 ---
 
 # Request Review
 
-Post a review request to Slack in the standard "LFR please" format, and transition the Jira issue to "In Review".
+Post a review request to Slack in the standard "LFR please" format, and transition the tracker ticket to "In Review".
 
 ## Phase 0 — Load configuration
 
-Read `config.yaml` from this skill's directory (`~/.claude/skills/request-review/config.yaml`).
+Read `~/.claude/request-review.yaml`.
 
 If the file does not exist, stop and output:
 
-> No `config.yaml` found. Copy `config.example.yaml` to `config.yaml` and fill in your values:
-> `cp ~/.claude/skills/request-review/config.example.yaml ~/.claude/skills/request-review/config.yaml`
+> No config found. Copy `~/.claude/skills/request-review/config.example.yaml` to `~/.claude/request-review.yaml` and fill in your values.
 
-Load:
+Load from this file:
 - `slack_channel_id` — channel to post in
 - `reviewers` — list of Slack user IDs to @mention
-- `jira_cloud_id` — Atlassian cloud UUID
-- `jira_in_review_transition_id` — transition ID for "In Review"
+
+Resolve tracker config (see `references/tracker.md`):
+1. `tracker:` block in `~/.claude/request-review.yaml` (override), else
+2. `~/.claude/tracker.yaml` (shared).
+
+If neither defines a tracker, the transition step is skipped (Slack post still happens). Warn the user: "No tracker configured — skipping status transition."
 
 ## Step 1: Gather context
 
@@ -32,11 +35,11 @@ Run in parallel:
 # Get PR URL and title
 gh pr view --json url,title,body
 
-# Get current branch for JIRA key extraction
+# Get current branch for ticket key extraction
 git branch --show-current
 ```
 
-Extract the JIRA issue key from the branch name or PR title (e.g., `ktrz/cpd-340-...` → `CPD-340`).
+Extract the ticket key from the branch name or PR title using the regex for the configured `tracker.type` (see `references/tracker.md` → Extract a ticket key from a git branch name).
 
 ## Step 2: Draft the Slack message
 
@@ -72,15 +75,19 @@ Use `mcp__plugin_slack_slack__slack_send_message` with:
 - `channel_id`: value from config `slack_channel_id`
 - `text`: the drafted message above
 
-## Step 4: Transition the Jira issue to "In Review"
+## Step 4: Transition the ticket to "In Review"
 
-Use `mcp__plugin_atlassian_atlassian__transitionJiraIssue` with:
-- `cloudId`: value from config `jira_cloud_id`
-- `issueKey`: the extracted key (e.g., `CPD-340`)
-- `transitionId`: value from config `jira_in_review_transition_id`
+Dispatch by `tracker.type` per `references/tracker.md` → Transition a ticket to "In Review":
+
+- **jira**: `mcp__plugin_atlassian_atlassian__transitionJiraIssue` with `cloudId`, `issueIdOrKey = <TICKET_KEY>`, `transitionId = tracker.jira.in_review_transition_id`.
+- **linear**: resolve the state id for `tracker.linear.in_review_state_name` via `mcp__linear-server__list_issue_statuses`, then `mcp__linear-server__save_issue` with `id = <TICKET_KEY>`, `stateId`.
+- **github**: `gh issue edit <N> --repo <tracker.github.repo> --add-label <tracker.github.in_review_label>`.
+- **clickup**: `mcp__claude_ai_ClickUp__clickup_update_task` with `taskId = <TICKET_KEY>`, `status = tracker.clickup.in_review_status_name`.
+
+If the ticket key could not be extracted, skip this step and warn the user.
 
 ## Step 5: Confirm
 
 Report back:
 - Slack message sent to the configured channel
-- Jira `PROJ-XXX` transitioned to "In Review"
+- Ticket `<TICKET_KEY>` transitioned to "In Review" (or skipped, with reason)
