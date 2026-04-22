@@ -1,7 +1,7 @@
 ---
 name: commit-message-format
 description: This skill should be used whenever creating, writing, or validating a git commit message. Apply when the user asks to commit, when staged changes are present, or when reviewing a commit message draft.
-version: 1.0.0
+version: 1.1.0
 model: sonnet
 ---
 
@@ -12,7 +12,7 @@ Apply this format for every git commit message on this machine.
 ## Required Format
 
 ```
-type(scope): TICKET-123 short description
+type(scope): TICKET-ID short description
 
 Optional body — explain the "why", not the "what".
 
@@ -26,8 +26,12 @@ Optional footer — BREAKING CHANGE: ..., Closes #n
 
 2. **(scope)** — optional, lowercase noun in parentheses (e.g. `auth`, `api`, `ui`)
 
-3. **TICKET-123** — required Jira ticket, placed immediately after `type(scope): ` and before the description.
-   Format: uppercase project key + hyphen + number (e.g. `PROJ-123`, `ACME-42`).
+3. **TICKET-ID** — required ticket reference from the project's issue tracker, placed immediately after `type(scope): ` and before the description.
+   The exact format depends on the configured tracker — see `references/tracker.md` for the ID regex per backend:
+   - **jira / linear**: uppercase prefix + hyphen + number (e.g. `PROJ-123`, `ENG-45`)
+   - **github**: `#` + number (e.g. `#567`)
+   - **clickup**: opaque 7–9 char id (e.g. `8669abc12`)
+
    If the ticket cannot be determined from the branch name or conversation context, ask the user before committing.
 
 4. **description** — imperative mood, lowercase, no trailing period, kept concise
@@ -38,9 +42,9 @@ Optional footer — BREAKING CHANGE: ..., Closes #n
 
 ```
 feat(auth): PROJ-123 add OAuth2 login with Google
-fix(api): PROJ-456 handle null response from payment gateway
-chore: PROJ-789 upgrade dependencies to latest
-docs(readme): PROJ-101 update setup instructions
+fix(api): ENG-456 handle null response from payment gateway
+chore: #789 upgrade dependencies to latest
+docs(readme): 8669abc12 update setup instructions
 ```
 
 ### Invalid Examples
@@ -63,16 +67,17 @@ feat: PROJ-123 Added login flow
 
 1. Inspect the staged diff (`git diff --cached`) to understand the changes
 2. Infer the appropriate `type` and optional `scope` from the diff
-3. Check the branch name for a Jira ticket (e.g. `feature/PROJ-123-...`); if not found, ask the user
-4. Write a concise imperative description
-5. Add a body only if the change is non-obvious or has a breaking change
+3. Resolve tracker config (`~/.claude/commit-message-format.yaml` → `~/.claude/tracker.yaml`). If neither exists, the ticket requirement is waived for this repo — skip the ticket field and proceed.
+4. Extract the ticket id from the branch name using the regex for the configured `tracker.type` (see `references/tracker.md`). If not found, check recent commit messages, then ask the user.
+5. Write a concise imperative description
+6. Add a body only if the change is non-obvious or has a breaking change
 
 ## Validation Checklist
 
 Before finalising any commit message, verify:
 
 - [ ] type is a valid Conventional Commits type
-- [ ] Jira ticket is present and correctly formatted (e.g. `PROJ-123`)
+- [ ] Ticket id is present and matches the regex for the configured tracker (jira/linear `[A-Z][A-Z0-9]+-\d+`, github `#?\d+`, clickup opaque id) — unless no tracker is configured
 - [ ] Ticket appears after `type(scope): ` and before the description
 - [ ] Description is imperative, lowercase, no trailing period
 - [ ] Body/footer (if present) is separated by a blank line
@@ -80,4 +85,4 @@ Before finalising any commit message, verify:
 ## Hard Rules
 
 - **Never** add a `Co-Authored-By:` line to any commit message
-- **Never** commit without a Jira ticket — ask the user if it is unknown
+- **Never** commit without a ticket id when a tracker is configured — ask the user if it is unknown. If no tracker config exists, omit the ticket and continue.
