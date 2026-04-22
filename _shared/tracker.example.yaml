@@ -1,0 +1,51 @@
+# Shared tracker configuration
+# ─────────────────────────────
+# Copy to ~/.claude/tracker.yaml. Used by any skill that touches an issue
+# tracker (create-pr, request-review, plan-feature, plan-my-day,
+# commit-message-format, etc.).
+#
+# Each skill may override this by putting its own top-level `tracker:`
+# block in its own config file (~/.claude/<skill>.yaml). When a skill
+# config has `tracker:`, the shared file is not consulted for that skill.
+#
+# See <skill>/references/tracker.md for dispatch rules per backend.
+
+tracker:
+  # Pick one: jira | linear | github | clickup
+  type: jira
+
+  # ── Jira ─────────────────────────────────────────────────────────
+  jira:
+    # UUID from https://<your-org>.atlassian.net/_edge/tenant_info
+    cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+    # Project keys used to match branch names (e.g. "PROJ" matches
+    # "user/proj-123-slug").
+    project_keys:
+      - PROJ
+
+    # Browse URL prefix (no trailing slash).
+    base_url: "https://your-org.atlassian.net/browse"
+
+    # Transition id for "In Review". Get via:
+    #   GET /rest/api/3/issue/{issueKey}/transitions
+    in_review_transition_id: "21"
+
+  # ── Linear ───────────────────────────────────────────────────────
+  # linear:
+  #   workspace: "acme"           # URL slug at linear.app/<workspace>
+  #   team_keys:
+  #     - ENG
+  #   in_review_state_name: "In Review"
+
+  # ── GitHub ───────────────────────────────────────────────────────
+  # github:
+  #   repo: "owner/name"
+  #   in_review_label: "in-review"
+
+  # ── ClickUp ──────────────────────────────────────────────────────
+  # clickup:
+  #   team_id: "12345"
+  #   list_ids:
+  #     - "67890"
+  #   in_review_status_name: "in review"
