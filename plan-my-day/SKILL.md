@@ -1,11 +1,12 @@
 ---
-version: 1.5.0
+version: 1.6.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
-  from your configured repositories, matching each branch to its Jira
-  ticket and open PR, layering in Slack activity, and grouping everything
-  into Active worktrees / Jira tickets to pick up / Stale branches.
+  from your configured repositories, matching each branch to its ticket
+  (jira, linear, github, or clickup) and open PR, layering in Slack
+  activity, and grouping everything into Active worktrees / Tickets to
+  pick up / Stale branches.
   Use this skill when the user asks for a daily plan, work items for today,
   what to work on today, a morning brief, or anything about planning the day.
 model: sonnet
@@ -19,17 +20,26 @@ allowedTools:
   - Bash(mkdir -p *:*)
   - Bash(gh issue create:*)
   - Bash(gh issue list:*)
+  - Bash(gh issue view:*)
   - Bash(gh issue close:*)
   - Write
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
   - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
   - mcp__plugin_atlassian_atlassian__getJiraIssue
+  - mcp__linear-server__list_issues
+  - mcp__linear-server__get_issue
+  - mcp__claude_ai_ClickUp__clickup_filter_tasks
+  - mcp__claude_ai_ClickUp__clickup_get_task
   - mcp__plugin_slack_slack__slack_read_user_profile
   - mcp__plugin_slack_slack__slack_search_public_and_private
 ---
 
 Build a prioritized work-item list for today by gathering data from git
-worktrees, Jira, GitHub PRs, and Slack, then synthesizing into a clear plan.
+worktrees, the configured issue tracker, GitHub PRs, and Slack, then
+synthesizing into a clear plan.
+
+Tracker dispatch is handled via `references/tracker.md` — the skill
+works with jira, linear, github, or clickup.
 
 ## Phase 0 — Load configuration
 
@@ -47,10 +57,25 @@ If the file does not exist, stop and output:
 
 Extract the following from the config:
 - **BRANCH_PREFIX** — the user's branch naming prefix (may be empty string)
-- **JIRA_KEYS** — list of Jira project keys to scan
 - **OUTPUT_PATH** — where to save the daily plan file
 - **DAY_PLAN_REPO** — optional `owner/repo` for GitHub issue output (may be absent)
 - **REPOS** — list of repos, each with: `name`, `path`, `github_repo`, `branch_ticket_format`
+
+Resolve tracker config (see `references/tracker.md`):
+1. `tracker:` block in `~/.claude/plan-my-day.yaml` (override), else
+2. `~/.claude/tracker.yaml` (shared).
+
+If neither exists, stop and tell the user to create `~/.claude/tracker.yaml`
+from `_shared/tracker.example.yaml`.
+
+Derive from the resolved tracker:
+- **TRACKER_TYPE** — one of `jira`, `linear`, `github`, `clickup`
+- **TRACKER_KEYS** — keys used for branch-name matching:
+  - jira → `tracker.jira.project_keys`
+  - linear → `tracker.linear.team_keys`
+  - github → `[]` (match by issue number)
+  - clickup → `[]` (match by opaque id)
+- **TICKET_ID_REGEX** — id regex for `TRACKER_TYPE` per `references/tracker.md`
 
 Also determine:
 - **MULTI_REPO** — true if REPOS has more than one entry
@@ -136,8 +161,10 @@ date -v-24H +%s         # → UNIX_TS
 
 Run all of these concurrently using the literal values from Phase 1:
 
-**1. Jira cloudId**: Call `getAccessibleAtlassianResources` and extract the
-`id` field from the first result. Save as CLOUD_ID.
+**1. Tracker auth (only if needed)** —
+- If `TRACKER_TYPE == jira`: call `getAccessibleAtlassianResources` and
+  save the `id` from the first result as `CLOUD_ID`.
+- Otherwise skip — linear, github, and clickup MCPs resolve auth implicitly.
 
 **2. Slack user profile**: Call `slack_read_user_profile` (no args needed for
 current user). Save the user's Slack user ID as SLACK_USER_ID.
@@ -151,16 +178,25 @@ Parse each stanza. Extract:
 - `HEAD <commit>`
 - `branch refs/heads/<branch>`
 
-For each branch, extract the ticket key based on the repo's `branch_ticket_format`
-and the global BRANCH_PREFIX:
-- If `branch_ticket_format` is `prefix/key-NNN`: match branches like
-  `BRANCH_PREFIX/<key>-NNN` (case-insensitive) where `<key>` is any of the
-  JIRA_KEYS. Extract ticket key (e.g. `CPD-123`).
-- If `branch_ticket_format` is `key-NNN`: match branches like `<key>-NNN`
-  (case-insensitive). Extract ticket key.
-- Otherwise, keep the branch name as the label.
-- Skip the bare main worktree.
-- **Tag each worktree with its repo name** (e.g. `repo: "my-repo"`).
+For each branch, extract the ticket key using `TICKET_ID_REGEX` and the
+repo's `branch_ticket_format`:
+
+1. Strip the `BRANCH_PREFIX/` or `<any-prefix>/` leading segment if present
+   (e.g. `user/proj-123-slug` → `proj-123-slug`).
+2. Apply `TICKET_ID_REGEX` (jira/linear: `[A-Za-z][A-Za-z0-9]+-\d+`;
+   github: `\b\d+\b`; clickup: `[a-z0-9]{7,9}`). Take the first match.
+3. Normalise:
+   - jira/linear: uppercase the match. If `TRACKER_KEYS` is non-empty, prefer
+     matches whose prefix appears in `TRACKER_KEYS`.
+   - github: keep numeric form (no `#`).
+   - clickup: keep lowercase form.
+4. If no match, keep the branch name as the label.
+5. Skip the bare main worktree.
+6. **Tag each worktree with its repo name** (e.g. `repo: "my-repo"`).
+
+`branch_ticket_format` is now a hint for the user's typical shape — the
+extraction above works across all supported trackers without needing the
+field, but the field stays in config for documentation.
 
 **4. GitHub PRs** — single GraphQL call for **all** repos:
 
@@ -283,12 +319,28 @@ done
 Merge the three result sets by path to build per-worktree status
 (dirty, ahead, last commit age).
 
-**Jira** — call `searchJiraIssuesUsingJql` with:
-- cloudId: CLOUD_ID
-- jql: `assignee = currentUser() AND updated >= -7d ORDER BY updated DESC`
-  (this covers all JIRA_KEYS since the query is key-agnostic)
-- fields: `["key", "summary", "status", "priority"]` (must be an array of strings)
-- maxResults: `30` (must be a number, not a string)
+**Tracker — list assigned tickets** — dispatch by `TRACKER_TYPE` per
+`references/tracker.md` → "List tickets assigned to the current user":
+
+- **jira**: `searchJiraIssuesUsingJql` with
+  - cloudId: CLOUD_ID
+  - jql: `assignee = currentUser() AND updated >= -7d ORDER BY updated DESC`
+  - fields: `["key", "summary", "status", "priority"]` (must be an array of strings)
+  - maxResults: `30` (must be a number, not a string)
+- **linear**: `mcp__linear-server__list_issues` with
+  - `assignee: "me"`
+  - `state: { type: { nin: ["completed", "canceled"] } }`
+  - `limit: 50`
+- **github**: `gh issue list --assignee @me --repo <tracker.github.repo> --state open --json number,title,url,state,labels,updatedAt --limit 50`
+  (in multi-repo mode, run once per repo listed in REPOS whose `github_repo`
+  matches `tracker.github.repo`, else just the configured single repo)
+- **clickup**: `clickup_filter_tasks` with
+  - `listIds: <tracker.clickup.list_ids>`
+  - `assignees: ["me"]`
+  - statuses excluding done/closed
+
+Normalise each result into `{key, summary, status, priority, url}` so
+downstream matching is tracker-agnostic.
 
 **Slack — messages from me**: Call `slack_search_public_and_private` with:
 - query: `from:<@SLACK_USER_ID>`
@@ -315,13 +367,13 @@ Paginate the same way (keep fetching while `pagination_info` has a cursor).
 
 ## Phase 4 — Synthesize and output
 
-**Match each Jira ticket to a repo** by scanning all repos' worktrees and PRs
+**Match each tracker ticket to a repo** by scanning all repos' worktrees and PRs
 for a branch or PR referencing the ticket key. If a ticket matches a worktree
 in repo A and a PR in repo B, prefer the worktree match (it's where active
 work happens). If no repo match is found, list the ticket as "unassigned to a repo".
 
 **Match each worktree to data:**
-- **Jira ticket**: match by ticket key extracted from branch name.
+- **Ticket**: match by ticket key extracted from branch name in Phase 2.
 - **PR**: match by `headRefName` containing the ticket key (case-insensitive) or
   by ticket key appearing in the PR title.
 - **Slack mention**: flag if any message in the Slack results references
@@ -334,16 +386,20 @@ work happens). If no repo match is found, list the ticket as "unassigned to a re
 **Classify each worktree:**
 - **Active**: has uncommitted changes (dirty > 0) OR commits ahead of remote
   (ahead > 0) OR an open PR exists for this branch.
-- **Done-ish**: Jira ticket status is Closed, Done, or Resolved — even if the
-  worktree has some local state.
+- **Done-ish**: ticket status indicates completion. Map per tracker:
+  - jira: Closed, Done, Resolved
+  - linear: `state.type` in `completed` or `canceled`
+  - github: `state == CLOSED`
+  - clickup: status equals any done/closed status name
 - **Stale**: none of the Active criteria met, AND last commit > 7 days ago.
   Also flag branches whose HEAD matches another worktree's HEAD (e.g. a
   phase0 branch tracking the same commit as its successor).
 
-**Find orphan Jira tickets**: tickets assigned to currentUser, status not
-Done/Closed/Resolved, where the ticket key doesn't match any worktree branch
-across any repo. These go in "Jira tickets to pick up". If MULTI_REPO is true
-and the ticket has no repo match, note it as "not yet linked to a repo".
+**Find orphan tickets**: tickets assigned to the user, not in a done-ish
+status (using the mapping above), where the ticket key doesn't match any
+worktree branch across any repo. These go in "Tickets to pick up". If
+MULTI_REPO is true and the ticket has no repo match, note it as "not yet
+linked to a repo".
 
 **Sort Active worktrees by priority:**
 1. PRs with review requests pending (check `reviewRequests` on open PRs — non-empty means the PR is actively in review)
@@ -366,8 +422,8 @@ keys), process whatever data is present and note which repos had errors.
 signals and add a warning line at the top of the plan for each:
 - If ALL worktrees show DIRTY=0 AND AHEAD=0 AND LAST=unknown: "⚠ Git status
   collection failed — worktree data may be incomplete"
-- If Jira returned 0 results: "⚠ Jira returned no results — check
-  connectivity or JQL"
+- If the tracker query returned 0 results: "⚠ Tracker (<TRACKER_TYPE>)
+  returned no results — check connectivity or query"
 - If Slack returned 0 results for both queries: "⚠ Slack returned no
   results — check token or date range"
 - If GitHub GraphQL errored: already handled above
@@ -386,10 +442,10 @@ Use checkbox syntax (`- [ ]`) for all actionable items so the user can mark
 them done. Sub-bullets with details stay as plain list items (no checkbox).
 
 **Multi-repo display**: When MULTI_REPO is true, prefix each item with the
-repo name in bold brackets: `**[frontend]** CPD-123 — ...`. When only one
+repo name in bold brackets: `**[frontend]** PROJ-123 — ...`. When only one
 repo is configured, omit the prefix.
 
-**Unresolved tickets**: If any Jira tickets could not be matched to a repo
+**Unresolved tickets**: If any tracker tickets could not be matched to a repo
 (only possible in multi-repo mode), group them under a sub-heading
 "Tickets not yet linked to a repo" within the appropriate urgency section.
 
@@ -464,22 +520,22 @@ asking you for something, scheduled meetings to set up.
 ## Main focus (deep work)
 
 The 2-4 most important implementation tasks for the day. Pick from Active
-worktrees with the most recent activity or highest Jira priority.
+worktrees with the most recent activity or highest tracker priority.
 
-- [ ] **CPD-NNN** — <summary> · <dirty/ahead/PR status>
+- [ ] **TICKET-ID** — <summary> · <dirty/ahead/PR status>
 
 ## If you have time
 
-Lower-priority tickets, orphan Jira tickets not yet started, and
+Lower-priority tickets, orphan tickets not yet started, and
 non-urgent follow-ups.
 
-- [ ] **CPD-NNN** — <summary> (<status>) — context
+- [ ] **TICKET-ID** — <summary> (<status>) — context
 
 ## Not today (but don't forget)
 
 Blocked tickets or items that aren't actionable yet but should stay visible.
 
-- [ ] **CPD-NNN** — <reason it's parked>
+- [ ] **TICKET-ID** — <reason it's parked>
 
 ## Cleanup (end of day)
 

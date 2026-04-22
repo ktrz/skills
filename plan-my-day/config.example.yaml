@@ -4,20 +4,19 @@
 #   cp ~/.claude/skills/plan-my-day/config.example.yaml ~/.claude/plan-my-day.yaml
 #
 # Storing the config outside the skill directory keeps it safe when the
-# skill is updated via `npx skills`. The skill reads
-# ~/.claude/plan-my-day.yaml at startup.
+# skill is updated. The skill reads ~/.claude/plan-my-day.yaml at startup.
+#
+# Tracker settings (jira / linear / github / clickup) are read from
+# ~/.claude/tracker.yaml by default. Uncomment the `tracker:` block at the
+# bottom of this file only if you need a different tracker for plan-my-day
+# specifically. See _shared/tracker.example.yaml for the full schema and
+# references/tracker.md for dispatch rules.
 
 # ── Personal settings ──────────────────────────────────────────────
 
-# Your branch naming prefix. If your branches look like "jsmith/cpd-123",
+# Your branch naming prefix. If your branches look like "jsmith/proj-123",
 # set this to "jsmith". If you don't use a prefix, set to "".
 branch_prefix: ""
-
-# Jira project keys to scan. The skill fetches tickets assigned to you
-# under these keys. Most setups have one key; add more if your work
-# spans multiple Jira projects.
-jira_keys:
-  - PROJ
 
 # Where to save the daily plan markdown file (used when day_plan_repo is not set).
 output_path: ~/Desktop/dayplan
@@ -29,16 +28,21 @@ output_path: ~/Desktop/dayplan
 # ── Repositories ───────────────────────────────────────────────────
 #
 # List every repo the skill should scan. Each repo is checked for
-# git worktrees and GitHub PRs. When a Jira ticket (e.g., PROJ-123)
-# matches a branch or PR in a repo, the skill links them together.
+# git worktrees and GitHub PRs. When a ticket key matches a branch or
+# PR in a repo, the skill links them together.
 #
 # Fields:
 #   name              - Short label shown in the plan (e.g., "frontend")
 #   path              - Local path to the repo root (worktrees are auto-discovered)
 #   github_repo       - GitHub "org/repo" for PR lookups via `gh`
-#   branch_ticket_format - How ticket keys appear in branch names:
+#   branch_ticket_format - Documentation hint for how ticket keys appear in
+#     branch names. The skill no longer depends on this field for parsing
+#     (tracker-aware regex handles all shapes), but it helps future-you
+#     remember the convention:
 #       "prefix/key-NNN"  → branches like "jsmith/proj-123"
 #       "key-NNN"         → branches like "proj-123"
+#       "prefix/NNN"      → branches like "jsmith/567"  (github issues)
+#       "NNN"             → branches like "567"          (github issues)
 
 repos:
   - name: my-app
@@ -51,3 +55,15 @@ repos:
   #   path: ~/projects/my-api
   #   github_repo: my-org/my-api
   #   branch_ticket_format: key-NNN
+
+# ── Tracker override (optional) ────────────────────────────────────
+# Uncomment only if plan-my-day should use a different tracker than the
+# shared ~/.claude/tracker.yaml.
+
+# tracker:
+#   type: linear
+#   linear:
+#     workspace: "acme"
+#     team_keys:
+#       - ENG
+#     in_review_state_name: "In Review"
