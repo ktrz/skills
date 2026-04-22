@@ -1,5 +1,6 @@
 ---
 name: create-pr
+version: 1.0.0
 description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the JIRA ticket, description, and test scenario from context.
 model: haiku
 ---
@@ -10,16 +11,16 @@ Create a GitHub pull request that follows the project's PR template — JIRA lin
 
 ## Phase 0 — Load configuration
 
-Read `config.yaml` from this skill's directory (`~/.claude/skills/create-pr/config.yaml`).
+Read `~/.claude/create-pr.yaml`.
 
 If the file does not exist, stop and output:
 
-> No `config.yaml` found. Copy `config.example.yaml` to `config.yaml` and fill in your values:
-> `cp ~/.claude/skills/create-pr/config.example.yaml ~/.claude/skills/create-pr/config.yaml`
+> No config found. Copy the example and fill in your values:
+> `cp ~/.claude/skills/create-pr/config.example.yaml ~/.claude/create-pr.yaml`
 
 Load:
 - `jira_base_url` — e.g. `https://your-org.atlassian.net/browse`
-- `jira_project_key` — e.g. `CPD`
+- `jira_project_key` — e.g. `PROJ`
 
 ## Step 1: Gather context
 
@@ -59,11 +60,11 @@ If the fork point is reachable from a feature branch (not just main), the PR is 
 
 ## Step 2: Extract JIRA ticket
 
-Look for a ticket key in the branch name using `jira_project_key` from config (e.g. if key is `CPD`, match `cpd-340` → `CPD-340`). If not in the branch, check commit messages.
+Look for a ticket key in the branch name using `jira_project_key` from config (e.g. if key is `PROJ`, match `proj-340` → `PROJ-340`). If not in the branch, check commit messages.
 
 Format the JIRA link using `jira_base_url`:
 ```
-[CPD-XXX](<jira_base_url>/CPD-XXX) — One-line summary
+[PROJ-XXX](<jira_base_url>/PROJ-XXX) — One-line summary
 ```
 
 ## Step 3: Draft the PR body

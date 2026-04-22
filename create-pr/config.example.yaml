@@ -9,5 +9,5 @@
 jira_base_url: "https://your-org.atlassian.net/browse"
 
 # Jira project key used to extract ticket numbers from branch names
-# e.g. "CPD" matches branches like "ktrz/cpd-123-some-feature"
+# e.g. "PROJ" matches branches like "<username>/proj-123-some-feature"
 jira_project_key: "PROJ"
