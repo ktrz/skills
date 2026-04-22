@@ -1,15 +1,15 @@
 ---
 name: plan-feature
-version: 1.0.0
+version: 1.1.0
 model: opus[1m]
 description: >
-  Deep-plan a feature from a Jira ticket into a phased, parallelism-annotated implementation plan.
+  Deep-plan a feature from a tracker ticket into a phased, parallelism-annotated implementation plan.
   Use when you want to plan before implementing — fetches the ticket, explores the codebase via a
   subagent, optionally grills you on requirements, then writes the plan to ./plans.local/<subdir>/
-  (preferred) or ./plans/ (legacy). Triggers on "plan feature", "plan from jira",
+  (preferred) or ./plans/ (legacy). Triggers on "plan feature", "plan from ticket",
   "/plan-feature PROJ-XXX", or when /implement-feature needs a plan to be created first. Prefer
   this over /jira-to-plan when you want vertical slices, parallel phases, or grill-me requirement
-  clarification.
+  clarification. Works with jira, linear, github, or clickup tickets — see references/tracker.md.
 ---
 
 # Plan Feature
@@ -21,36 +21,45 @@ Execution is handled separately by `implement-feature`.
 
 `/plan-feature [TICKET-KEY]`
 
-- `PROJ-123` — fetch ticket, explore codebase, plan
+- `PROJ-123` (or `ENG-45`, `#567`, clickup id) — fetch ticket, explore codebase, plan
 - (none) — ask for scope
 
 ## Phase 0: Load configuration
 
-Read `~/.claude/plan-feature.yaml`. If it doesn't exist, stop and output:
+Resolve tracker config (see `references/tracker.md`):
+1. `tracker:` block in `~/.claude/plan-feature.yaml` (override), else
+2. `~/.claude/tracker.yaml` (shared).
 
-> No config found. Copy the example and fill in your values:
-> `cp ~/.claude/skills/plan-feature/config.example.yaml ~/.claude/plan-feature.yaml`
+If neither exists, stop:
 
-Load: `jira_cloud_id`
+> No tracker config found. Copy `_shared/tracker.example.yaml` to `~/.claude/tracker.yaml`, or add a `tracker:` block to `~/.claude/plan-feature.yaml`.
 
 ## Stage 0: Determine scope
 
-1. Parse arg for Jira key (`[A-Z]+-\d+`). If absent, check git branch. If still absent, ask.
+1. Parse arg for a ticket key using the regex for `tracker.type` (see `references/tracker.md` → Ticket ID format). If absent, check git branch. If still absent, ask.
 2. Search both `./plans.local/**/*<lowercased-key>*.md` and `./plans/*<lowercased-key>*.md` for an existing plan. If found, ask: "A plan already exists at `<path>`. Regenerate it?"
 
 ## Stage 1: Data gathering
 
-### Step A — Fetch Jira ticket (first)
+### Step A — Fetch the ticket (first)
 
-Fetch this before doing anything else — the exploration agent needs the real ticket content.
+Fetch before doing anything else — the exploration agent needs the real ticket content.
 
-```
-mcp__plugin_atlassian_atlassian__getJiraIssue
-  cloudId: "<jira_cloud_id from config>"
-  issueIdOrKey: "<TICKET-KEY>"
-  responseContentFormat: "markdown"
-  fields: ["summary", "description", "status", "issuetype", "subtasks", "parent", "priority"]
-```
+Dispatch by `tracker.type` per `references/tracker.md` → Fetch a ticket:
+
+- **jira**:
+  ```
+  mcp__plugin_atlassian_atlassian__getJiraIssue
+    cloudId: <tracker.jira.cloud_id>
+    issueIdOrKey: <TICKET-KEY>
+    responseContentFormat: "markdown"
+    fields: ["summary", "description", "status", "issuetype", "subtasks", "parent", "priority"]
+  ```
+- **linear**: `mcp__linear-server__get_issue` with `id: <TICKET-KEY>`.
+- **github**: `gh issue view <N> --repo <tracker.github.repo> --json number,title,body,state,labels,assignees,url`.
+- **clickup**: `mcp__claude_ai_ClickUp__clickup_get_task` with `taskId: <TICKET-KEY>`.
+
+Extract a normalised `{summary, description, status, priority}` from the response for downstream steps.
 
 ### Steps B + C — Run in parallel once the ticket is in hand
 

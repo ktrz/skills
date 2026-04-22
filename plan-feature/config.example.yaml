@@ -1,8 +1,19 @@
 # plan-feature configuration
 # ──────────────────────────
-# Copy to ~/.claude/skills/plan-feature.yaml and fill in your values:
+# Copy to ~/.claude/plan-feature.yaml. Most users leave this file
+# empty (or absent) and let plan-feature fall back to the shared
+# ~/.claude/tracker.yaml for tracker settings.
+#
 #   cp ~/.claude/skills/plan-feature/config.example.yaml ~/.claude/plan-feature.yaml
 
-# Atlassian cloud ID (UUID) for your org
-# Get it from: https://your-org.atlassian.net/_edge/tenant_info
-jira_cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# ── Tracker override (optional) ───────────────────────────────────
+# See _shared/tracker.example.yaml for the full schema. Uncomment only
+# if plan-feature should use a different tracker than the shared one.
+
+# tracker:
+#   type: linear
+#   linear:
+#     workspace: "acme"
+#     team_keys:
+#       - ENG
+#     in_review_state_name: "In Review"
