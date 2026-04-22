@@ -1,10 +1,12 @@
 ---
-version: 1.2.0
+version: 1.3.0
 name: plan-my-day-setup
 description: >
   Interactive setup wizard for the plan-my-day skill. Walks users through
-  configuring their repositories, branch naming conventions, Jira project
-  keys, and output preferences, then generates a config.yaml file.
+  configuring their repositories, branch naming conventions, issue
+  tracker (jira, linear, github, or clickup), and output preferences,
+  then generates the ~/.claude/plan-my-day.yaml file and optionally
+  seeds ~/.claude/tracker.yaml.
   Use when the user asks to set up or configure plan-my-day, or says
   "set up my daily plan" or "configure plan-my-day".
 model: sonnet
@@ -17,11 +19,18 @@ allowedTools:
   - Bash(ls:*)
   - Bash(gh auth status:*)
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
+  - mcp__linear-server__list_teams
+  - mcp__claude_ai_ClickUp__clickup_get_workspace_hierarchy
 ---
 
-Interactive setup wizard for the `plan-my-day` skill. This generates a
-`config.yaml` file so the daily planning skill knows which repos, Jira
-keys, and branch conventions to use.
+Interactive setup wizard for the `plan-my-day` skill. Generates
+`~/.claude/plan-my-day.yaml` so the daily planning skill knows which
+repos, branch conventions, and tracker to use.
+
+If the user has no shared tracker config, also offers to seed
+`~/.claude/tracker.yaml` from `_shared/tracker.example.yaml`.
+
+See `references/tracker.md` for dispatch rules.
 
 ## Step 1 — Check for existing config
 
@@ -32,6 +41,9 @@ Read `~/.claude/plan-my-day.yaml`.
   - If cancel, stop.
   - If edit/replace, continue to Step 2.
 - If it doesn't exist, tell the user: "Let's set up your daily plan config."
+
+Also check for `~/.claude/tracker.yaml`. Note whether it exists — used in
+Step 3.
 
 ## Step 2 — Gather repository information
 
@@ -55,30 +67,58 @@ For each repo path provided:
    git -C <path> branch --sort=-committerdate --format='%(refname:short)' | head -20
    ```
    Look for patterns:
-   - If branches follow `prefix/key-NNN` pattern (e.g. `jsmith/cpd-123`),
-     suggest `branch_ticket_format: prefix/key-NNN` and extract the prefix.
-   - If branches follow `key-NNN` pattern (e.g. `cpd-123`),
-     suggest `branch_ticket_format: key-NNN`.
-   - Show the detected pattern and a few example branches to the user for
-     confirmation.
+   - `prefix/key-NNN` (e.g. `jsmith/proj-123`) → suggest `branch_ticket_format: prefix/key-NNN`, extract the prefix.
+   - `key-NNN` (e.g. `proj-123`) → suggest `branch_ticket_format: key-NNN`.
+   - `prefix/NNN` (e.g. `jsmith/567`, numeric-only) → suggest `branch_ticket_format: prefix/NNN` (common for github-issues workflows).
+   - `NNN` (e.g. `567`) → suggest `branch_ticket_format: NNN`.
+   - Show the detected pattern and a few example branches to the user for confirmation.
 4. Ask the user for a short name for this repo (suggest one based on the
    directory name, e.g. `my-app`).
 
-## Step 3 — Gather Jira and output settings
+## Step 3 — Gather tracker and output settings
 
-Ask the user:
+### 3a — Pick a tracker
 
-1. **"What Jira project key(s) do you use?"** (e.g. `CPD`, `PROJ`)
-   - Validate by calling `getAccessibleAtlassianResources` to confirm the
-     Jira MCP connection works. If it fails, warn the user but continue
-     (they may set up Jira later).
+If `~/.claude/tracker.yaml` exists, read it and tell the user:
+> "Your shared tracker config is `<TRACKER_TYPE>`. Use that for plan-my-day, or override?"
 
-2. **"Where should I save the daily plan file?"** (default: `~/Desktop/dayplan`)
+If the user overrides, or if no shared config exists, ask:
 
-3. If a branch prefix was detected in Step 2, confirm it:
-   **"Your branches seem to use the prefix 'jsmith'. Is that right?"**
-   - If the user has multiple repos with different prefixes, use the most
-     common one as the global `branch_prefix`.
+> "Which issue tracker do you use? (jira / linear / github / clickup)"
+
+Then ask the type-specific questions:
+
+- **jira**:
+  - "What's your Atlassian cloud ID?" (hint: from `https://<org>.atlassian.net/_edge/tenant_info`)
+  - "What project key(s) do you use?" (e.g. `PROJ`, `ENG`)
+  - "What's your Jira browse base URL?" (e.g. `https://<org>.atlassian.net/browse`)
+  - Validate by calling `getAccessibleAtlassianResources`. If it fails, warn but continue.
+- **linear**:
+  - "What's your Linear workspace slug?" (the `<ws>` in `linear.app/<ws>`)
+  - "What team key(s) do you use?" (e.g. `ENG`)
+  - Validate by calling `mcp__linear-server__list_teams`. If it fails, warn but continue.
+- **github**: no extra fields beyond the repo list from Step 2; assigned
+  issues are scanned per configured repo.
+- **clickup**:
+  - "What's your ClickUp team (workspace) id?"
+  - "Which list ids should I scan for assigned tasks?"
+  - Validate by calling `clickup_get_workspace_hierarchy`. If it fails, warn but continue.
+
+Skip any field the user doesn't know — they can fill it in the config later.
+
+### 3b — Output location
+
+Ask:
+1. **"Where should I save the daily plan file?"** (default: `~/Desktop/dayplan`)
+2. **"Want to publish the daily plan as a GitHub issue instead of a local file? If so, which repo (owner/repo)?"** — optional.
+
+### 3c — Branch prefix
+
+If a branch prefix was detected in Step 2, confirm it:
+> "Your branches seem to use the prefix 'jsmith'. Is that right?"
+
+If the user has multiple repos with different prefixes, use the most
+common one as the global `branch_prefix`.
 
 ## Step 4 — Validate GitHub access
 
@@ -91,16 +131,14 @@ If not authenticated, warn the user:
 > "GitHub CLI isn't authenticated. Run `gh auth login` before using
 > `/plan-my-day`. PR lookups won't work without it."
 
-## Step 5 — Generate and write config
+## Step 5 — Generate and write configs
 
-Assemble the `config.yaml` from all gathered values:
+Assemble `~/.claude/plan-my-day.yaml`:
 
 ```yaml
 branch_prefix: <detected or user-provided>
-jira_keys:
-  - <KEY1>
-  - <KEY2>
 output_path: <user-provided or ~/Desktop/dayplan>
+# day_plan_repo: owner/repo       # only if user opted in
 repos:
   - name: <short-name>
     path: <path>
@@ -108,9 +146,19 @@ repos:
     branch_ticket_format: <detected-format>
 ```
 
-Write the file to `~/.claude/plan-my-day.yaml`.
+If the user chose to override the shared tracker (Step 3a) or no shared
+tracker exists, append a `tracker:` block with the user's inputs from
+Step 3a. Otherwise, leave `tracker:` out — plan-my-day will fall back to
+`~/.claude/tracker.yaml`.
 
-Show the generated config to the user and confirm:
+If there is no shared tracker file at all, also offer:
+> "Save these tracker settings to `~/.claude/tracker.yaml` so other skills
+> (create-pr, request-review, plan-feature) can reuse them?"
+
+If yes, write a `~/.claude/tracker.yaml` with the same `tracker:` block (and
+omit it from `plan-my-day.yaml`).
+
+Show the generated config(s) to the user and confirm:
 > "Config saved to `~/.claude/plan-my-day.yaml`. You can now
 > run `/plan-my-day` to generate your daily plan."
 
