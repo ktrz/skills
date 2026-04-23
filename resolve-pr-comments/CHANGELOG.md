@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+
+- Phase 1 investigation now runs in parallel batches via subagents (default batch size 5, lookahead 1)
+- First batch is synchronous so the user never waits on comment 1; subsequent batches launch in the background as the user starts answering the previous batch
+- New `references/investigate.md` defines the subagent prompt template, structured report format, ordering, and concurrency caps
+- Skips parallelisation for queues under 3 items; cancels background batches when the user issues a blanket decision (e.g. "skip the rest")
+- Two-layer dedup: pre-batch pass collapses obvious duplicates (same file:line, review-body items covered by inline threads, multiple comments on same symbol) before subagent spend; present-time dedup catches non-obvious cases. Collapsed entries carry alias thread IDs so Phase 6 replies/resolves all of them with one decision
+
 ## 1.7.0
 
 - Paginate both `reviewThreads` and `reviews` queries via `pageInfo.hasNextPage` + `endCursor`; raise page size from 50 to 100 (GraphQL max)

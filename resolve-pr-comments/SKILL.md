@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.6.0
+version: 1.8.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -98,45 +98,36 @@ Since review bodies aren't threads, they can't be resolved via GraphQL. Instead,
 
 ### 4. Phase 1 — Collect decisions (fast, interactive)
 
-This phase is about building a complete decision list. Move quickly — investigate each comment, present options, record the user's call, move on. Do NOT implement anything yet.
+This phase builds a complete decision list. Investigation runs in **parallel batches via subagents** so the user is rarely waiting on a single comment to be analysed — by the time they finish answering question N, the report for question N+K is usually already on disk.
 
-Process review-body items first, then inline threads. For each item:
+**Read `references/investigate.md` before launching the first batch.** That file is the authoritative spec for the subagent prompt, the report format, batch sizing, and ordering. The summary below is the orchestration loop only.
 
-1. **Present the comment** clearly:
-   - For inline threads: file path, line number, author, comment body, any replies
-   - For review-body items: author, the specific item extracted from the review, link to the review
+#### Orchestration loop
 
-2. **Investigate the code** before asking the user anything:
-   - Read the relevant file and surrounding context
-   - Understand what the reviewer is asking for
-   - Consider whether the comment is a bug fix, style nit, design suggestion, question, etc.
-   - Think about what the fix would actually look like
+Order: review-body items first, then inline threads in fetch order. Build a single ordered queue, then chunk into batches.
 
-3. **Present options** — based on your investigation, offer the user concrete choices. Tailor these to the specific comment, but common options include:
-   - **Fix** — describe the specific change you'd make
-   - **Reply** — if the current code is correct or the suggestion doesn't apply, draft what you'd say
-   - **Defer** — acknowledge the point but handle it in a follow-up (e.g., a separate issue or PR)
-   - **Skip** — move on without action or reply
-   - **Something else** — the user always has the option to direct you differently
+**Pre-batch dedup pass.** Before chunking, scan the queue for duplicates so subagents don't waste cycles investigating the same thing twice:
 
-   The key is specificity: don't just say "fix it?" — say what the fix would be so the user can decide at a glance.
+- Same `file:line` with near-identical body → collapse into one entry, attach the other thread IDs as aliases.
+- Review-body item that clearly references an issue already covered by an inline thread (same file/function, same concern) → drop the review-body item; the inline thread will handle it.
+- Multiple comments on the same symbol/function raising the same concern → collapse, note all thread IDs.
 
-4. **Record the user's decision** — the user may give a one-word answer ("fix", "defer", "reply", "skip") or provide more specific instructions. Record exactly what they said. If they say something custom (e.g., "fix but use approach X" or "defer, create a Linear issue"), record that too.
+Collapsed entries carry the full list of original thread IDs so Phase 6 can reply/resolve all of them with the same answer. When in doubt, keep separate — present-time dedup (step 3 below) is the fallback for non-obvious dupes.
 
-5. **Show running progress** after each decision:
-   ```
-   Progress: 5/12 — 3 fix, 1 defer, 1 reply
-   ```
+1. **First batch (synchronous).** In one message, spawn N parallel investigation subagents (default N=5) covering queue items 1..N. Each subagent uses the prompt template in `references/investigate.md` and returns the structured report. Wait for all N to finish before talking to the user. Skip parallelisation entirely if the queue has fewer than 3 items — just investigate inline.
 
-6. **Recognize shorthand** — if the user establishes a pattern, let them go faster:
-   - "defer" alone means "add to the relevant deferred issue we've been using"
-   - "fix" alone means "do what you suggested"
-   - "reply" alone means "post the reply you drafted"
-   - The user may also batch responses: "fix the next 3" or "skip all the low-priority nits"
+2. **Background prefetch.** As soon as you start questioning the user on batch K, spawn batch K+1 in the background (`run_in_background: true`). Maintain a lookahead of at least one batch. If the user is unusually fast and catches up, await the in-flight investigation for the next item before presenting.
 
-7. **Deduplicate as you go** — if a comment is clearly a duplicate of one already discussed (same issue, different thread), note it and ask the user to confirm rather than re-investigating.
+3. **For each comment, in queue order:**
+   - **Present** the subagent's condensed report: location, what the code does, what the reviewer wants, the option list with the recommended pick highlighted. Don't dump the raw subagent output — pick the headline and the options.
+   - **Record the user's decision.** Accept shorthand: "fix" = take the recommended option, "reply" = post the drafted reply, "defer" = add to the running deferred bucket, "skip" = no action. Custom instructions ("fix but use approach X", "defer + Linear ticket") are recorded verbatim.
+   - **Show running progress** (`Progress: 5/12 — 3 fix, 1 defer, 1 reply`).
+   - **Batch responses** are fine: "fix the next 3", "skip all low-priority nits". Apply across the queue, then continue.
+   - **Deduplicate as you go** — pre-batch dedup catches obvious cases, but if a subagent's report reveals a non-obvious duplicate of an earlier decision (same root cause, different surface), note it and confirm with the user rather than re-presenting the full report. Carry the new thread ID into the original decision so both threads get the same reply/resolve in Phase 6.
 
-8. **Move to the next comment.** Do not implement anything yet.
+4. **Cancel waste.** If the user says "skip the rest" or "defer everything below priority X", cancel any background batches still investigating items that are now resolved by that blanket decision. Don't burn subagent time on work the user has already triaged away.
+
+Do not implement anything in this phase.
 
 After all comments have been reviewed, present a **decision summary table**:
 
