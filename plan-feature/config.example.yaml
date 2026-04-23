@@ -1,19 +1,11 @@
 # plan-feature configuration
 # ──────────────────────────
-# Copy to ~/.claude/plan-feature.yaml. Most users leave this file
-# empty (or absent) and let plan-feature fall back to the shared
-# ~/.claude/tracker.yaml for tracker settings.
+# Most users don't need this file. Tracker settings no longer live here —
+# they're resolved from <repo>/.claude/tracker.yaml (repo-local, optional)
+# or ~/.claude/tracker.yaml (shared default). See _shared/tracker.example.yaml
+# for the schema.
+#
+# This file only exists for skill-specific, non-tracker overrides (none are
+# required today — plan-feature works without it).
 #
 #   cp ~/.claude/skills/plan-feature/config.example.yaml ~/.claude/plan-feature.yaml
-
-# ── Tracker override (optional) ───────────────────────────────────
-# See _shared/tracker.example.yaml for the full schema. Uncomment only
-# if plan-feature should use a different tracker than the shared one.
-
-# tracker:
-#   type: linear
-#   linear:
-#     workspace: "acme"
-#     team_keys:
-#       - ENG
-#     in_review_state_name: "In Review"

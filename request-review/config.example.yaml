@@ -1,8 +1,9 @@
 # request-review configuration
 # ──────────────────────────────
 # Copy to ~/.claude/request-review.yaml and fill in the Slack fields.
-# Tracker settings are read from ~/.claude/tracker.yaml by default;
-# uncomment the tracker block below only if you need to override.
+# Tracker settings are no longer configured here — they're resolved from
+# <repo>/.claude/tracker.yaml (repo-local, optional) or ~/.claude/tracker.yaml
+# (shared default). See _shared/tracker.example.yaml for the schema.
 #
 #   cp ~/.claude/skills/request-review/config.example.yaml ~/.claude/request-review.yaml
 
@@ -19,13 +20,3 @@ reviewers:
   - "UXXXXXXXXXX"  # Reviewer 2
   - "UXXXXXXXXXX"  # Reviewer 3
 
-# ── Tracker override (optional) ────────────────────────────────────
-# See _shared/tracker.example.yaml for the full schema. Uncomment only
-# if request-review should use a different tracker than the shared
-# ~/.claude/tracker.yaml.
-
-# tracker:
-#   type: jira
-#   jira:
-#     cloud_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-#     in_review_transition_id: "21"

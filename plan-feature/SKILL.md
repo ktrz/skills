@@ -1,6 +1,6 @@
 ---
 name: plan-feature
-version: 1.1.0
+version: 1.2.0
 model: opus[1m]
 description: >
   Deep-plan a feature from a tracker ticket into a phased, parallelism-annotated implementation plan.
@@ -27,12 +27,12 @@ Execution is handled separately by `implement-feature`.
 ## Phase 0: Load configuration
 
 Resolve tracker config (see `references/tracker.md`):
-1. `tracker:` block in `~/.claude/plan-feature.yaml` (override), else
-2. `~/.claude/tracker.yaml` (shared).
+1. `<repo_root>/.claude/tracker.yaml` (repo-local), else
+2. `~/.claude/tracker.yaml` (shared default).
 
 If neither exists, stop:
 
-> No tracker config found. Copy `_shared/tracker.example.yaml` to `~/.claude/tracker.yaml`, or add a `tracker:` block to `~/.claude/plan-feature.yaml`.
+> No tracker config found. Create `<repo_root>/.claude/tracker.yaml` for a per-project tracker, or `~/.claude/tracker.yaml` for a shared default. Copy `_shared/tracker.example.yaml` as a starting point.
 
 ## Stage 0: Determine scope
 

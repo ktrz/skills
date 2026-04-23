@@ -1,6 +1,6 @@
 ---
 name: request-review
-version: 1.1.0
+version: 1.2.0
 description: Request a code review by posting to Slack and transitioning the ticket to "In Review". Use this whenever the user asks to request a review, send an LFR, post to Slack for review, or mark a ticket as in review. Posts in the "LFR please" format to the configured Slack channel and transitions the tracker issue automatically.
 model: haiku
 ---
@@ -22,10 +22,10 @@ Load from this file:
 - `reviewers` — list of Slack user IDs to @mention
 
 Resolve tracker config (see `references/tracker.md`):
-1. `tracker:` block in `~/.claude/request-review.yaml` (override), else
-2. `~/.claude/tracker.yaml` (shared).
+1. `<repo_root>/.claude/tracker.yaml` (repo-local), else
+2. `~/.claude/tracker.yaml` (shared default).
 
-If neither defines a tracker, the transition step is skipped (Slack post still happens). Warn the user: "No tracker configured — skipping status transition."
+If neither exists, the transition step is skipped (Slack post still happens). Warn the user: "No tracker configured — skipping status transition."
 
 ## Step 1: Gather context
 

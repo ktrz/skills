@@ -1,12 +1,25 @@
-# Shared tracker configuration
-# ─────────────────────────────
-# Copy to ~/.claude/tracker.yaml. Used by any skill that touches an issue
-# tracker (create-pr, request-review, plan-feature, plan-my-day,
-# commit-message-format, etc.).
+# Tracker configuration
+# ──────────────────────
+# Used by any skill that touches an issue tracker (create-pr,
+# request-review, plan-feature, plan-my-day, commit-message-format, etc.).
 #
-# Each skill may override this by putting its own top-level `tracker:`
-# block in its own config file (~/.claude/<skill>.yaml). When a skill
-# config has `tracker:`, the shared file is not consulted for that skill.
+# Two install locations, checked in this order (first hit wins):
+#
+#   1. <repo_root>/.claude/tracker.yaml — repo-local, overrides the shared
+#      default when this specific project uses a different backend (e.g.
+#      Jira at work, Linear in a side project). Resolved from
+#      `git rev-parse --show-toplevel`.
+#
+#   2. ~/.claude/tracker.yaml — shared default across all projects that
+#      don't declare their own.
+#
+# The two files share this schema. Whether to commit a repo-local copy or
+# add it to .gitignore is a team call — commit it to share the setup,
+# gitignore it when it carries personal values (cloud IDs, transition IDs).
+#
+# Per-skill config files (~/.claude/<skill>.yaml) exist for non-tracker
+# settings (Slack channel, output paths, etc.) — they no longer carry a
+# `tracker:` block, so every skill running in a repo agrees on the backend.
 #
 # See <skill>/references/tracker.md for dispatch rules per backend.
 

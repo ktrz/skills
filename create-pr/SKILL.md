@@ -1,6 +1,6 @@
 ---
 name: create-pr
-version: 1.1.0
+version: 1.2.0
 description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the ticket reference, description, and test scenario from context.
 model: haiku
 ---
@@ -13,15 +13,15 @@ Create a GitHub pull request that follows the project's PR template — ticket l
 
 Read tracker config (see `references/tracker.md` for resolution rules):
 
-1. Look for `tracker:` block in `~/.claude/create-pr.yaml`.
-2. Fall back to `~/.claude/tracker.yaml`.
+1. `<repo_root>/.claude/tracker.yaml` — repo-local override, resolved from `git rev-parse --show-toplevel`.
+2. `~/.claude/tracker.yaml` — shared default.
 
 If neither exists, stop and output:
 
-> No tracker config found. Create `~/.claude/tracker.yaml` from `_shared/tracker.example.yaml`, or add a `tracker:` block to `~/.claude/create-pr.yaml`.
+> No tracker config found. Create `<repo_root>/.claude/tracker.yaml` for a per-project tracker, or `~/.claude/tracker.yaml` for a shared default. Copy `_shared/tracker.example.yaml` as a starting point.
 
-Also load from `~/.claude/create-pr.yaml`:
-- any skill-specific PR template overrides (none required — defaults below work)
+Also load from `~/.claude/create-pr.yaml` if it exists:
+- any skill-specific PR template overrides (none required — defaults below work). This file no longer carries a `tracker:` block; tracker settings live in the two locations above.
 
 ## Step 1: Gather context
 

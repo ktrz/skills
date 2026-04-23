@@ -1,6 +1,6 @@
 ---
 name: execute-phase
-version: 1.1.0
+version: 1.2.0
 model: sonnet
 description: Execute a phase from an implementation plan in an isolated git worktree. Use when the user says "execute phase", "run phase N", "start phase", or wants to kick off implementation of a plan phase in a worktree. Accepts plan paths or ticket keys from any supported tracker (jira, linear, github, clickup) via references/tracker.md.
 ---

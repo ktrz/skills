@@ -1,7 +1,7 @@
 ---
 name: commit-message-format
 description: This skill should be used whenever creating, writing, or validating a git commit message. Apply when the user asks to commit, when staged changes are present, or when reviewing a commit message draft.
-version: 1.1.0
+version: 1.2.0
 model: sonnet
 ---
 
@@ -67,7 +67,7 @@ feat: PROJ-123 Added login flow
 
 1. Inspect the staged diff (`git diff --cached`) to understand the changes
 2. Infer the appropriate `type` and optional `scope` from the diff
-3. Resolve tracker config (`~/.claude/commit-message-format.yaml` → `~/.claude/tracker.yaml`). If neither exists, the ticket requirement is waived for this repo — skip the ticket field and proceed.
+3. Resolve tracker config (`<repo_root>/.claude/tracker.yaml` → `~/.claude/tracker.yaml`; see `references/tracker.md`). If neither exists, the ticket requirement is waived for this repo — skip the ticket field and proceed.
 4. Extract the ticket id from the branch name using the regex for the configured `tracker.type` (see `references/tracker.md`). If not found, check recent commit messages, then ask the user.
 5. Write a concise imperative description
 6. Add a body only if the change is non-obvious or has a breaking change

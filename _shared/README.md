@@ -5,7 +5,7 @@ Canonical sources for content copied into multiple skills.
 ## Contents
 
 - `references/tracker.md` — issue-tracker dispatch table (jira / linear / github / clickup). Copied into each consumer skill at `<skill>/references/tracker.md`. Edit the canonical file, then run the sync step below.
-- `tracker.example.yaml` — shared tracker config template. Copied to `~/.claude/tracker.yaml` by users.
+- `tracker.example.yaml` — tracker config template. Users copy it to either `~/.claude/tracker.yaml` (shared default) or `<repo>/.claude/tracker.yaml` (per-project override).
 
 ## Consumers of `tracker.md`
 

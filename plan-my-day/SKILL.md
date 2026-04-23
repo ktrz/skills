@@ -1,5 +1,5 @@
 ---
-version: 1.6.1
+version: 1.7.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -62,11 +62,15 @@ Extract the following from the config:
 - **REPOS** — list of repos, each with: `name`, `path`, `github_repo`, `branch_ticket_format`
 
 Resolve tracker config (see `references/tracker.md`):
-1. `tracker:` block in `~/.claude/plan-my-day.yaml` (override), else
-2. `~/.claude/tracker.yaml` (shared).
+1. `<repo_root>/.claude/tracker.yaml` — repo-local override, if cwd is
+   inside a git repo. plan-my-day usually runs from a project root, so
+   this lets the active repo's tracker win when you're in it. Outside a
+   repo (`git rev-parse` fails), skip this step.
+2. `~/.claude/tracker.yaml` — shared default.
 
 If neither exists, stop and tell the user to create `~/.claude/tracker.yaml`
-from `_shared/tracker.example.yaml`.
+from `_shared/tracker.example.yaml` (or a repo-local copy for a
+per-project tracker).
 
 Derive from the resolved tracker:
 - **TRACKER_TYPE** — one of `jira`, `linear`, `github`, `clickup`

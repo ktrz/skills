@@ -7,10 +7,11 @@
 # skill is updated. The skill reads ~/.claude/plan-my-day.yaml at startup.
 #
 # Tracker settings (jira / linear / github / clickup) are read from
-# ~/.claude/tracker.yaml by default. Uncomment the `tracker:` block at the
-# bottom of this file only if you need a different tracker for plan-my-day
-# specifically. See _shared/tracker.example.yaml for the full schema and
-# references/tracker.md for dispatch rules.
+# ~/.claude/tracker.yaml by default, or <repo>/.claude/tracker.yaml when
+# plan-my-day is run from inside a repo that declares its own. This file
+# no longer carries a tracker block — keeping tracker config in one place
+# avoids the case where plan-my-day and create-pr disagree on which
+# backend they're hitting. See _shared/tracker.example.yaml for the schema.
 
 # ── Personal settings ──────────────────────────────────────────────
 
@@ -56,14 +57,3 @@ repos:
   #   github_repo: my-org/my-api
   #   branch_ticket_format: key-NNN
 
-# ── Tracker override (optional) ────────────────────────────────────
-# Uncomment only if plan-my-day should use a different tracker than the
-# shared ~/.claude/tracker.yaml.
-
-# tracker:
-#   type: linear
-#   linear:
-#     workspace: "acme"
-#     team_keys:
-#       - ENG
-#     in_review_state_name: "In Review"

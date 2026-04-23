@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 name: plan-my-day-setup
 description: >
   Interactive setup wizard for the plan-my-day skill. Walks users through
@@ -79,10 +79,16 @@ For each repo path provided:
 
 ### 3a — Pick a tracker
 
-If `~/.claude/tracker.yaml` exists, read it and tell the user:
-> "Your shared tracker config is `<TRACKER_TYPE>`. Use that for plan-my-day, or override?"
+plan-my-day reads tracker config from `~/.claude/tracker.yaml` (shared
+default) or `<repo_root>/.claude/tracker.yaml` when run from inside a
+repo. Since plan-my-day aggregates across many repos, this setup step
+targets the shared file.
 
-If the user overrides, or if no shared config exists, ask:
+If `~/.claude/tracker.yaml` already exists, read it and tell the user:
+> "Your shared tracker config is `<TRACKER_TYPE>`. Keep it as-is, or
+> rewrite?"
+
+If the user wants to rewrite, or if no shared config exists, ask:
 
 > "Which issue tracker do you use? (jira / linear / github / clickup)"
 
@@ -146,17 +152,19 @@ repos:
     branch_ticket_format: <detected-format>
 ```
 
-If the user chose to override the shared tracker (Step 3a) or no shared
-tracker exists, append a `tracker:` block with the user's inputs from
-Step 3a. Otherwise, leave `tracker:` out — plan-my-day will fall back to
-`~/.claude/tracker.yaml`.
+Tracker settings are **never** embedded in `plan-my-day.yaml` any more —
+they live in `~/.claude/tracker.yaml` (shared) so every skill in the
+stack sees the same backend. When Step 3a collected tracker inputs,
+write them to `~/.claude/tracker.yaml`:
 
-If there is no shared tracker file at all, also offer:
-> "Save these tracker settings to `~/.claude/tracker.yaml` so other skills
-> (create-pr, request-review, plan-feature) can reuse them?"
+- If that file doesn't exist: create it with the collected `tracker:` block.
+- If it exists and the user chose "rewrite" in Step 3a: overwrite it
+  after confirming once more ("Overwrite `~/.claude/tracker.yaml`?").
+- If the user chose "keep as-is": leave `~/.claude/tracker.yaml` alone.
 
-If yes, write a `~/.claude/tracker.yaml` with the same `tracker:` block (and
-omit it from `plan-my-day.yaml`).
+Per-project overrides (`<repo>/.claude/tracker.yaml`) are out of scope
+for this wizard — users who need them can copy
+`_shared/tracker.example.yaml` into a given repo and edit by hand.
 
 Show the generated config(s) to the user and confirm:
 > "Config saved to `~/.claude/plan-my-day.yaml`. You can now

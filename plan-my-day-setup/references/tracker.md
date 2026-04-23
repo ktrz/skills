@@ -6,14 +6,22 @@ Supported backends: **jira**, **linear**, **github**, **clickup**.
 
 ## Config resolution
 
-Two config locations, checked in this order:
+Two config locations, checked in this order (first hit wins — no merging):
 
-1. **Skill-specific config** — `~/.claude/<skill>.yaml`. If it has a top-level `tracker:` block, use it as-is (no merging with shared).
-2. **Shared config** — `~/.claude/tracker.yaml`. Used when the skill config has no `tracker:` block.
+1. **Repo-local config** — `<repo_root>/.claude/tracker.yaml`, resolved from `git rev-parse --show-toplevel`. Right when this specific project uses a different backend than your default (e.g. Jira at work, Linear in a side project). Lets a single machine serve projects on different trackers without editing a global file every time you switch repos.
+2. **Shared config** — `~/.claude/tracker.yaml`. The default when a repo doesn't declare its own.
 
 If neither exists, stop and tell the user:
 
-> No tracker config found. Create `~/.claude/tracker.yaml` (shared across skills) or add a `tracker:` block to this skill's config. See `<skill>/references/tracker.md` for the schema.
+> No tracker config found. Either:
+> - create `<repo_root>/.claude/tracker.yaml` for a per-project tracker, or
+> - create `~/.claude/tracker.yaml` for a shared default across projects.
+>
+> See `<skill>/references/tracker.md` for the schema.
+
+Both files use the same `tracker:` block schema. Whether to commit the repo-local file depends on the team: commit it so teammates inherit the setup, or gitignore it when it carries personal values (cloud IDs, transition IDs, etc.).
+
+**Per-skill config files** (`~/.claude/<skill>.yaml`) still exist for non-tracker settings — Slack channel, output paths, GitHub day-plan repo, and so on. They no longer carry a `tracker:` block; tracker settings live only in the two locations above so skills running in the same repo always agree on which backend they're hitting.
 
 ## Config schema
 
@@ -43,10 +51,6 @@ tracker:
     list_ids: ["67890"]                 # lists to search for assigned tasks
     in_review_status_name: "in review"  # case-insensitive match against ClickUp statuses
 ```
-
-## Per-skill override
-
-A skill's own config (`~/.claude/<skill>.yaml`) may declare its own `tracker:` block. When present, it **replaces** the shared config wholesale for that skill — no field-level merging. Use this when one skill needs a different backend (e.g. `plan-my-day` scans Linear workspace A, `create-pr` links GitHub issues on a fork).
 
 ## Ticket ID format
 

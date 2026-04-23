@@ -1,19 +1,12 @@
 # create-pr configuration
 # ────────────────────────
-# Copy this file to ~/.claude/create-pr.yaml and fill in only the fields
-# you want to override for this skill specifically. Most users leave this
-# file empty (or absent) and let create-pr fall back to the shared
-# ~/.claude/tracker.yaml.
+# Most users don't need this file. Tracker settings no longer live here —
+# they're resolved from <repo>/.claude/tracker.yaml (repo-local, optional)
+# or ~/.claude/tracker.yaml (shared default). See _shared/tracker.example.yaml
+# for the schema.
+#
+# This file only exists for skill-specific, non-tracker overrides (none are
+# required today — create-pr works without it). Keep it around if you want
+# a place to pin PR template tweaks in the future.
 #
 #   cp ~/.claude/skills/create-pr/config.example.yaml ~/.claude/create-pr.yaml
-
-# ── Tracker override (optional) ───────────────────────────────────
-# Uncomment only if create-pr should use a different tracker than the
-# shared ~/.claude/tracker.yaml. See _shared/tracker.example.yaml for
-# the full schema and references/tracker.md for dispatch rules.
-
-# tracker:
-#   type: github
-#   github:
-#     repo: "owner/name"
-#     in_review_label: "in-review"
