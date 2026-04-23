@@ -43,10 +43,20 @@ Each top-level directory is a self-contained skill (`SKILL.md` + optional `refer
 
 ## Installation
 
-These are personal skills, not a published plugin. To use one:
+Install via [`skills`](https://github.com/vercel-labs/skills) — the open agent skills CLI:
 
 ```bash
-ln -s "$(pwd)/<skill-name>" ~/.claude/skills/<skill-name>
+# all skills, this project only
+npx skills add ktrz/skills
+
+# all skills, globally available to every project
+npx skills add ktrz/skills -g
+
+# pick specific skills
+npx skills add ktrz/skills --skill resolve-pr-comments plan-my-day
+
+# target a specific agent (defaults to auto-detect)
+npx skills add ktrz/skills --agent claude-code
 ```
 
-Or vendor the directory into your own skills repo. Skills that depend on `_shared/references/tracker.md` need that file copied in too — see the sync block in [`_shared/README.md`](_shared/README.md).
+The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/skills/`). Skills that consume `_shared/references/tracker.md` already ship with their copy bundled — no extra step.
