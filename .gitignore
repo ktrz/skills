@@ -25,3 +25,6 @@ yarn-error.log*
 
 # Skill personal config (use config.example.yaml as template)
 **/config.yaml
+
+# Local plans symlink → ~/projects/plans
+plans.local
