@@ -1,5 +1,5 @@
 ---
-version: 1.6.0
+version: 1.6.1
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -280,44 +280,51 @@ Run everything concurrently:
 **Git worktree status** — collect dirty/ahead/age for each worktree path
 from Phase 2.
 
-**Important — sandbox restriction**: The Claude Code sandbox only allows
-**one git command per loop iteration**. Multiple commands in the same
-iteration silently fail (all return empty). Commands like `head`, `tail`,
-`wc`, `awk`, `python3`, and `jq` are also unavailable inside loops.
+**Important — sandbox restriction**: The Claude Code sandbox blocks the
+loop-based shortcut that earlier versions of this skill used. Any shell
+loop that runs multiple `git` invocations (or mixes `git` with `wc`,
+`head`, `awk`, `python3`, `jq`, etc.) silently returns empty output for
+every iteration, so the plan ends up with all worktrees showing
+`DIRTY=0 AHEAD=0 LAST=unknown`. That was the "Git status collection
+failed" warning people were seeing.
 
-To work around this, run **three separate single-command loops** (one Bash
-call each, all three in parallel) and merge the results afterward:
+**Do not loop over worktrees in bash.** Instead, for **each worktree
+path** issue three independent `git -C <path> …` commands as separate
+Bash tool calls, and fan them out in parallel (multiple Bash tool blocks
+in a single turn). Parse each stdout directly — no `/tmp` files, no
+pipelines.
 
-**Pass 1 — dirty check:**
+For worktree path `<P>`, emit:
+
 ```bash
-for path in <space-separated worktree paths>; do
-  git -C "$path" status --short > /tmp/wt_dirty.txt 2>/dev/null
-  [ -s /tmp/wt_dirty.txt ] && dirty=1 || dirty=0
-  echo "$path|DIRTY=$dirty"
-done
+git -C <P> status --short
 ```
+Empty stdout → `dirty=0`, any output → `dirty=1`.
 
-**Pass 2 — ahead of remote:**
 ```bash
-for path in <space-separated worktree paths>; do
-  git -C "$path" log '@{u}..HEAD' --oneline > /tmp/wt_ahead.txt 2>/dev/null
-  [ -s /tmp/wt_ahead.txt ] && ahead=1 || ahead=0
-  echo "$path|AHEAD=$ahead"
-done
+git -C <P> log '@{u}..HEAD' --oneline
 ```
+Empty stdout → `ahead=0`, any output → `ahead=1`. If the branch has no
+upstream, stderr warns and stdout is empty — treat as `ahead=0`.
 
-**Pass 3 — last commit age:**
 ```bash
-for path in <space-separated worktree paths>; do
-  git -C "$path" log -1 --format='%ar' > /tmp/wt_last.txt 2>/dev/null
-  read last < /tmp/wt_last.txt 2>/dev/null
-  [ -z "$last" ] && last="unknown"
-  echo "$path|LAST=$last"
-done
+git -C <P> log -1 --format=%ar
 ```
+Stdout is the relative age (e.g. `3 days ago`). Empty → `unknown`.
 
-Merge the three result sets by path to build per-worktree status
-(dirty, ahead, last commit age).
+Run all `3 × N` calls concurrently where `N` is the worktree count. For
+the typical handful of worktrees this is cheap; if a config has dozens of
+worktrees, batch in chunks of ~20 calls per turn to stay comfortable.
+Collect the parsed results into a per-worktree record
+`{path, dirty, ahead, last}`.
+
+Why per-path calls instead of a loop: the sandbox permits many `git`
+invocations in a single turn as long as each is its own shell command.
+The previous loop approach tried to amortise that by writing to
+`/tmp/wt_*.txt` inside a `for` body, but the sandbox denies the second
+git call in the loop and the intermediate file ends up empty, which then
+cascades into `dirty=0 ahead=0 last=unknown` for every entry. Fanning
+out one command per tool call sidesteps the restriction entirely.
 
 **Tracker — list assigned tickets** — dispatch by `TRACKER_TYPE` per
 `references/tracker.md` → "List tickets assigned to the current user":
