@@ -21,10 +21,16 @@ Canonical sources for content copied into multiple skills.
 
 ## Consumers of `prompt-injection-defense.md`
 
+- execute-review-decisions
+- investigate-pr-comments
+- plan-feature
 - plan-my-day
+- plan-my-day-setup
+- request-review
 - resolve-pr-comments
+- review-pr
 
-(Phases 2/3/4 of the prompt-injection-defense plan will extend this list as more skills are audited. Phase 5 retires this hand-maintained list in favour of a manifest + sync script.)
+(Phase 5 retires this hand-maintained list in favour of a manifest + sync script.)
 
 ## Sync
 
@@ -40,7 +46,7 @@ done
 After editing `_shared/references/prompt-injection-defense.md`, copy to every consumer:
 
 ```bash
-for d in plan-my-day resolve-pr-comments; do
+for d in execute-review-decisions investigate-pr-comments plan-feature plan-my-day plan-my-day-setup request-review resolve-pr-comments review-pr; do
   mkdir -p "$d/references"
   cp _shared/references/prompt-injection-defense.md "$d/references/prompt-injection-defense.md"
 done

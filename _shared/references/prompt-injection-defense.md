@@ -114,9 +114,13 @@ When auditing or writing a skill that touches external content, work through thi
 
 ## Skills covered
 
-| Skill               | Audited    |
-| ------------------- | ---------- |
-| plan-my-day         | 2026-04-27 |
-| resolve-pr-comments | 2026-04-27 |
-
-(Phase 4 of the prompt-injection-defense plan will append further entries here as each consumer skill ships its audit.)
+| Skill                    | Audited    |
+| ------------------------ | ---------- |
+| plan-my-day              | 2026-04-27 |
+| resolve-pr-comments      | 2026-04-27 |
+| plan-feature             | 2026-04-27 |
+| request-review           | 2026-04-27 |
+| review-pr                | 2026-04-27 |
+| investigate-pr-comments  | 2026-04-27 |
+| execute-review-decisions | 2026-04-27 |
+| plan-my-day-setup        | 2026-04-27 |
