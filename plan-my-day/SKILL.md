@@ -119,19 +119,25 @@ Also determine:
 
 ## Phase M — Monthly review (idempotent)
 
-If `DAY_PLAN_REPO` is unset, skip this phase entirely (both modes).
+If `DAY_PLAN_REPO` is unset, skip this phase entirely (all modes).
 
 Otherwise dispatch to `references/monthly-review.md`. The reference handles:
 
-- Resolving the current `YYYY-MM`.
-- Looking up an issue titled `<YYYY-MM> — Monthly review` in any state.
-- Creating it with the seeded section structure if missing.
+- Resolving `PREVIOUS_MONTH` (the just-ended month) — not the current
+  month. The retro summarises the month that just ended.
+- Looking up an issue titled `<PREVIOUS_MONTH> — Monthly review` in any
+  state.
+- If missing, drafting a retro body **from the previous month's
+  daily-plan issues** (Highlights / Shipped / Stalled or blocked /
+  Patterns observed / Levers to try next month) and creating the issue.
+  If the previous month had zero daily-plan issues, no retro is created
+  — that's an intentional gap.
 - Returning `MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`, and
-  `MONTHLY_REVIEW_STATE`.
+  `MONTHLY_REVIEW_STATE` (same vars as before).
 
 Run this phase before Phase 1 (daily mode) or before the close-day flow
-(close mode). The reference itself never modifies an existing review's
-body — that's user-curated content.
+(close mode). The reference never modifies an existing retro's body —
+that's user-curated content after the one-shot draft at creation.
 
 In **standup mode**, continue with `references/standup.md`. In **close
 mode**, continue with `references/close-day.md`. Either way, do not run
