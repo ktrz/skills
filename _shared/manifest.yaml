@@ -1,0 +1,19 @@
+references:
+  tracker.md:
+    - commit-message-format
+    - create-pr
+    - execute-phase
+    - implement-feature
+    - plan-feature
+    - plan-my-day
+    - plan-my-day-setup
+    - request-review
+  prompt-injection-defense.md:
+    - execute-review-decisions
+    - investigate-pr-comments
+    - plan-feature
+    - plan-my-day
+    - plan-my-day-setup
+    - request-review
+    - resolve-pr-comments
+    - review-pr
