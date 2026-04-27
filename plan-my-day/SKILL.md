@@ -1,14 +1,18 @@
 ---
-version: 1.7.0
+version: 1.8.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
   from your configured repositories, matching each branch to its ticket
   (jira, linear, github, or clickup) and open PR, layering in Slack
   activity, and grouping everything into Active worktrees / Tickets to
-  pick up / Stale branches.
+  pick up / Stale branches. Also handles standup snapshots
+  (`/plan-my-day standup`, run twice daily for async/off-TZ teams),
+  "close my day" hygiene (`/plan-my-day close`), and maintains a
+  per-month review issue that feeds a posture hint into each daily plan.
   Use this skill when the user asks for a daily plan, work items for today,
-  what to work on today, a morning brief, or anything about planning the day.
+  what to work on today, a morning brief, an async standup snapshot,
+  anything about planning the day, or asks to close out the day's plan.
 model: sonnet
 allowedTools:
   - Read
@@ -22,6 +26,7 @@ allowedTools:
   - Bash(gh issue list:*)
   - Bash(gh issue view:*)
   - Bash(gh issue close:*)
+  - Bash(gh issue edit:*)
   - Write
   - mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources
   - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
@@ -41,6 +46,28 @@ synthesizing into a clear plan.
 Tracker dispatch is handled via `references/tracker.md` — the skill
 works with jira, linear, github, or clickup.
 
+## Modes
+
+The skill has three entry points; pick based on the invocation argument:
+
+- **default** (no arg, or anything that isn't a recognised mode) —
+  generate today's daily plan. Runs Phase 0 → Phase M → Phase 1 →
+  Phase 4 below.
+- **standup** (`/plan-my-day standup`) — fill or refresh the
+  `## Standup — <date>` section of today's open day-plan issue, then
+  echo it for copy-paste. Designed to be run twice daily (mid-morning +
+  late afternoon) before close. Runs Phase 0 → Phase M (idempotent) →
+  flow in `references/standup.md`. Skips Phases 1–4.
+- **close** (`/plan-my-day close`) — close today's existing daily-plan
+  issue, ticking shipped items and confirming abandoned ones. Runs
+  Phase 0 → Phase M (idempotent) → flow in `references/close-day.md`.
+  Close-day internally calls Phases S1–S3 of the standup ref to refresh
+  the Standup section before closing. Skips Phases 1–4.
+
+All three modes share Phase 0 (config) and Phase M (monthly review).
+Daily, standup, and close-day logic are intentionally kept in separate
+code paths so they can evolve independently — do not blend them.
+
 ## Phase 0 — Load configuration
 
 Read `~/.claude/plan-my-day.yaml` (stored outside the skill directory so it
@@ -56,12 +83,14 @@ If the file does not exist, stop and output:
 > ```
 
 Extract the following from the config:
+
 - **BRANCH_PREFIX** — the user's branch naming prefix (may be empty string)
 - **OUTPUT_PATH** — where to save the daily plan file
 - **DAY_PLAN_REPO** — optional `owner/repo` for GitHub issue output (may be absent)
 - **REPOS** — list of repos, each with: `name`, `path`, `github_repo`, `branch_ticket_format`
 
 Resolve tracker config (see `references/tracker.md`):
+
 1. `<repo_root>/.claude/tracker.yaml` — repo-local override, if cwd is
    inside a git repo. plan-my-day usually runs from a project root, so
    this lets the active repo's tracker win when you're in it. Outside a
@@ -73,6 +102,7 @@ from `_shared/tracker.example.yaml` (or a repo-local copy for a
 per-project tracker).
 
 Derive from the resolved tracker:
+
 - **TRACKER_TYPE** — one of `jira`, `linear`, `github`, `clickup`
 - **TRACKER_KEYS** — keys used for branch-name matching:
   - jira → `tracker.jira.project_keys`
@@ -82,11 +112,36 @@ Derive from the resolved tracker:
 - **TICKET_ID_REGEX** — id regex for `TRACKER_TYPE` per `references/tracker.md`
 
 Also determine:
+
 - **MULTI_REPO** — true if REPOS has more than one entry
 
 ---
 
+## Phase M — Monthly review (idempotent)
+
+If `DAY_PLAN_REPO` is unset, skip this phase entirely (both modes).
+
+Otherwise dispatch to `references/monthly-review.md`. The reference handles:
+
+- Resolving the current `YYYY-MM`.
+- Looking up an issue titled `<YYYY-MM> — Monthly review` in any state.
+- Creating it with the seeded section structure if missing.
+- Returning `MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`, and
+  `MONTHLY_REVIEW_STATE`.
+
+Run this phase before Phase 1 (daily mode) or before the close-day flow
+(close mode). The reference itself never modifies an existing review's
+body — that's user-curated content.
+
+In **standup mode**, continue with `references/standup.md`. In **close
+mode**, continue with `references/close-day.md`. Either way, do not run
+Phases 1–4.
+
+---
+
 ## Phase 1 — Find the last plan and compute the lookback window
+
+> Daily mode only. Close mode skipped this and went to `references/close-day.md`.
 
 The lookback window should cover the gap since the user last ran this skill,
 not a fixed 24h. If the last plan was Friday and today is Monday, a 24h
@@ -104,6 +159,7 @@ gh issue list --repo <DAY_PLAN_REPO> --state all --limit 10 --json number,title,
 
 Filter titles with `^\d{4}-\d{2}-\d{2} — ` and take the one with the
 greatest date prefix. Save:
+
 - `LAST_PLAN_DATE` — `YYYY-MM-DD` parsed from the title
 - `LAST_PLAN_NUMBER` — issue number
 - `LAST_PLAN_STATE` — `OPEN` or `CLOSED`
@@ -126,6 +182,7 @@ skip to Step 3.
 ```bash
 date +%Y-%m-%d
 ```
+
 → save as TODAY.
 
 Compute `DAYS_SINCE` = whole days between `LAST_PLAN_DATE` and `TODAY`:
@@ -166,6 +223,7 @@ date -v-24H +%s         # → UNIX_TS
 Run all of these concurrently using the literal values from Phase 1:
 
 **1. Tracker auth (only if needed)** —
+
 - If `TRACKER_TYPE == jira`: call `getAccessibleAtlassianResources` and
   save the `id` from the first result as `CLOUD_ID`.
 - Otherwise skip — linear, github, and clickup MCPs resolve auth implicitly.
@@ -174,10 +232,13 @@ Run all of these concurrently using the literal values from Phase 1:
 current user). Save the user's Slack user ID as SLACK_USER_ID.
 
 **3. Git worktrees** — for **each** repo in REPOS:
+
 ```bash
 git -C <repo.path> worktree list --porcelain
 ```
+
 Parse each stanza. Extract:
+
 - `worktree <path>`
 - `HEAD <commit>`
 - `branch refs/heads/<branch>`
@@ -213,11 +274,7 @@ Query template (repeat the three search blocks for each repo, substituting
 
 ```graphql
 query {
-  openPRs_repo0: search(
-    query: "repo:<github_repo_0> is:pr author:@me is:open"
-    type: ISSUE
-    first: 20
-  ) {
+  openPRs_repo0: search(query: "repo:<github_repo_0> is:pr author:@me is:open", type: ISSUE, first: 20) {
     nodes {
       ... on PullRequest {
         title
@@ -225,7 +282,16 @@ query {
         headRefName
         number
         reviewRequests(first: 10) {
-          nodes { requestedReviewer { ... on User { login } ... on Team { name } } }
+          nodes {
+            requestedReviewer {
+              ... on User {
+                login
+              }
+              ... on Team {
+                name
+              }
+            }
+          }
         }
       }
     }
@@ -236,7 +302,12 @@ query {
     first: 10
   ) {
     nodes {
-      ... on PullRequest { title url headRefName number }
+      ... on PullRequest {
+        title
+        url
+        headRefName
+        number
+      }
     }
   }
   reviewRequested_repo0: search(
@@ -245,13 +316,22 @@ query {
     first: 10
   ) {
     nodes {
-      ... on PullRequest { title url headRefName number author { login } }
+      ... on PullRequest {
+        title
+        url
+        headRefName
+        number
+        author {
+          login
+        }
+      }
     }
   }
 }
 ```
 
 Execute as a single Bash command:
+
 ```bash
 gh api graphql -f query='<constructed query with all repos>'
 ```
@@ -265,6 +345,7 @@ call to stay under GitHub's 30 searches/minute secondary rate limit.
 `REPOS[i]` to tag each PR with its repo name.
 
 Collect:
+
 - **Open PRs** from `openPRs_repoI` — PRs authored by the user that are open.
   The `reviewRequests` subfield shows who the user has asked to review (useful
   for knowing if a PR is actively in review).
@@ -303,17 +384,20 @@ For worktree path `<P>`, emit:
 ```bash
 git -C <P> status --short
 ```
+
 Empty stdout → `dirty=0`, any output → `dirty=1`.
 
 ```bash
 git -C <P> log '@{u}..HEAD' --oneline
 ```
+
 Empty stdout → `ahead=0`, any output → `ahead=1`. If the branch has no
 upstream, stderr warns and stdout is empty — treat as `ahead=0`.
 
 ```bash
 git -C <P> log -1 --format=%ar
 ```
+
 Stdout is the relative age (e.g. `3 days ago`). Empty → `unknown`.
 
 Run all `3 × N` calls concurrently where `N` is the worktree count. For
@@ -354,6 +438,7 @@ Normalise each result into `{key, summary, status, priority, url}` so
 downstream matching is tracker-agnostic.
 
 **Slack — messages from me**: Call `slack_search_public_and_private` with:
+
 - query: `from:<@SLACK_USER_ID>`
 - after: UNIX_TS (from Phase 1)
 - limit: 20
@@ -364,7 +449,8 @@ repeat the same search with that cursor until no more pages are returned.
 Collect all results across every page before moving on.
 
 **Slack — messages mentioning me**: Call `slack_search_public_and_private` with:
-- query: `<@SLACK_USER_ID>`  (mention search — catches threads where teammates
+
+- query: `<@SLACK_USER_ID>` (mention search — catches threads where teammates
   ping or bump something)
 - after: UNIX_TS (from Phase 1)
 - limit: 20
@@ -384,6 +470,7 @@ in repo A and a PR in repo B, prefer the worktree match (it's where active
 work happens). If no repo match is found, list the ticket as "unassigned to a repo".
 
 **Match each worktree to data:**
+
 - **Ticket**: match by ticket key extracted from branch name in Phase 2.
 - **PR**: match by `headRefName` containing the ticket key (case-insensitive) or
   by ticket key appearing in the PR title.
@@ -395,6 +482,7 @@ work happens). If no repo match is found, list the ticket as "unassigned to a re
   `- [ ] **Review PR #NNN** — "<title>" by @author · [repo-name]`
 
 **Classify each worktree:**
+
 - **Active**: has uncommitted changes (dirty > 0) OR commits ahead of remote
   (ahead > 0) OR an open PR exists for this branch.
 - **Done-ish**: ticket status indicates completion. Map per tracker:
@@ -413,6 +501,7 @@ MULTI_REPO is true and the ticket has no repo match, note it as "not yet
 linked to a repo".
 
 **Sort Active worktrees by priority:**
+
 1. PRs with review requests pending (check `reviewRequests` on open PRs — non-empty means the PR is actively in review)
 2. Dirty worktrees (uncommitted changes)
 3. Commits ahead of remote but no open PR
@@ -431,6 +520,7 @@ keys), process whatever data is present and note which repos had errors.
 
 **Data quality check** — before writing the final output, scan for degraded
 signals and add a warning line at the top of the plan for each:
+
 - If ALL worktrees show DIRTY=0 AND AHEAD=0 AND LAST=unknown: "⚠ Git status
   collection failed — worktree data may be incomplete"
 - If the tracker query returned 0 results: "⚠ Tracker (<TRACKER_TYPE>)
@@ -441,6 +531,17 @@ signals and add a warning line at the top of the plan for each:
 
 This costs nothing when everything works and surfaces problems without
 guessing root causes.
+
+**Posture hint** — when `MONTHLY_REVIEW_NUMBER` is set and the review is
+`OPEN`, dispatch to `references/monthly-review.md` Phase M2 to derive a
+`POSTURE_HINT` string from the review's "Patterns observed" / "Levers to
+try next month" sections. If the reference returns a string, insert it
+verbatim under the `## Plan` header in the issue body (one line, no
+preamble). If both sections are empty, or no monthly review exists yet
+(first run of the month is allowed to skip), omit the hint rather than
+falling back to a hardcoded default. Day-of-week scheduling tilts must
+trace back to the user-curated review — never hardcode them in this
+skill.
 
 ---
 
@@ -473,24 +574,59 @@ Issue body:
 ```markdown
 ## Plan
 
-## Do first (people are waiting)
-...
-## Main focus (deep work)
-...
-## If you have time
-...
-## Not today (but don't forget)
-...
-## Cleanup (end of day)
-...
+<POSTURE_HINT line, only when set>
 
-## Standup
+## Do first (people are waiting)
+
+- [ ] **<Item>** — <context, PRs, deadlines>
+
+## Main focus (deep work)
+
+- [ ] **[<repo>] <TICKET>** — <description> · <worktree state> · <PR link>
+
+## If you have time
+
+- [ ] **<Item>**
+
+## Not today (but don't forget)
+
+- [ ] **<Ticket>** — <why parked/blocked>
+
+## Cleanup (end of day)
+
+- [ ] Close worktree **<branch>** — <reason>
+- [ ] <tracker hygiene item>
+
+## Bonus (off-plan, shipped today)
+
+- [x] **<PR>** — <description> — merged <UTC time>
+
+## Standup — <YYYY-MM-DD>
+
+### Done
+
+### In Progress
+
+### Blockers
 ```
 
-The `## Standup` section must always be present but left empty (header only —
-the standup skill fills it in later).
+Section rules:
+
+- `## Plan` is the header only; if `POSTURE_HINT` is set, place it as a
+  single italicised line directly underneath, otherwise leave the section
+  empty.
+- `## Bonus (off-plan, shipped today)` is created empty — the close-day
+  flow (or the user) appends shipped-but-unplanned items here through the
+  day. Skip the section entirely if there's nothing to seed.
+- `## Standup — <YYYY-MM-DD>` always present with the three subsections
+  (`### Done`, `### In Progress`, `### Blockers`) as empty headers.
+  Standup mode (`/plan-my-day standup`) fills them from live data; the
+  user can run it twice daily (mid-morning + late afternoon). Close-day
+  refreshes them one final time before closing the issue. See
+  `references/standup.md`.
 
 Create the issue:
+
 ```bash
 gh issue create --repo <DAY_PLAN_REPO> --title "<title>" --body "<body>"
 ```
@@ -561,10 +697,13 @@ After writing the file, tell the user where it was saved.
 ### Shared rules (both outputs)
 
 - Use the friendly date format in headers (e.g. "Friday, March 13").
-- Omit any section that would be empty (except `## Standup` in issue mode —
-  always keep it).
+- Omit any section that would be empty (except `## Standup — <date>` in
+  issue mode — always keep it with its three subsections as headers).
 - Do not show Done-ish worktrees in "Main focus" — move them to "Cleanup".
 - Keep descriptions concise; one line per item plus sub-bullets for detail.
 - Distribute Slack follow-ups into the appropriate urgency section rather than
   grouping them separately (e.g. a review request goes in "Do first", a casual
   discussion thread goes in "If you have time").
+- Close mode (`/plan-my-day close`) and the monthly review only operate
+  when `DAY_PLAN_REPO` is set. File-mode plans don't carry standup or a
+  monthly review, so the posture hint is omitted there.
