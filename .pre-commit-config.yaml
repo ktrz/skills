@@ -4,3 +4,20 @@ repos:
     hooks:
       - id: prettier
         types_or: [markdown, yaml, json]
+
+  - repo: local
+    hooks:
+      - id: sync-shared-refs
+        name: sync _shared/references → consumers
+        entry: bash _shared/sync.sh
+        language: system
+        pass_filenames: false
+        files: ^_shared/(references/|manifest\.yaml$)
+
+      - id: warn-new-skill-defense
+        name: warn if new SKILL.md missing defense doc
+        entry: bash _shared/check-new-skill-defense.sh
+        language: system
+        pass_filenames: true
+        files: SKILL\.md$
+        stages: [pre-commit]

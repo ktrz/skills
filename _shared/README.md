@@ -8,48 +8,22 @@ Canonical sources for content copied into multiple skills.
 - `references/prompt-injection-defense.md` — canonical playbook every external-fetching skill cites. Copied into each consumer skill at `<skill>/references/prompt-injection-defense.md`. Edit the canonical file, then run the sync step below.
 - `tracker.example.yaml` — tracker config template. Users copy it to either `~/.claude/tracker.yaml` (shared default) or `<repo>/.claude/tracker.yaml` (per-project override).
 
-## Consumers of `tracker.md`
+## Consumers
 
-- commit-message-format
-- create-pr
-- execute-phase
-- implement-feature
-- plan-feature
-- plan-my-day
-- plan-my-day-setup
-- request-review
-
-## Consumers of `prompt-injection-defense.md`
-
-- execute-review-decisions
-- investigate-pr-comments
-- plan-feature
-- plan-my-day
-- plan-my-day-setup
-- request-review
-- resolve-pr-comments
-- review-pr
-
-(Phase 5 retires this hand-maintained list in favour of a manifest + sync script.)
+Consumers and copies are managed by [`manifest.yaml`](manifest.yaml) + [`sync.sh`](sync.sh).
+To see which skills consume a given reference, read `manifest.yaml` directly.
 
 ## Sync
 
-After editing `_shared/references/tracker.md`, copy to every consumer:
+Edit the canonical file in `_shared/references/`, then commit — the `sync-shared-refs` pre-commit hook
+runs `sync.sh` automatically and stages the updated consumer copies.
+
+To sync manually (e.g. after adding a new consumer to `manifest.yaml`):
 
 ```bash
-for d in commit-message-format create-pr execute-phase implement-feature plan-feature plan-my-day plan-my-day-setup request-review; do
-  mkdir -p "$d/references"
-  cp _shared/references/tracker.md "$d/references/tracker.md"
-done
+bash _shared/sync.sh
 ```
 
-After editing `_shared/references/prompt-injection-defense.md`, copy to every consumer:
+The CI drift check (`shared-refs-drift.yml`) enforces that consumer copies never diverge from canonical on any PR or push.
 
-```bash
-for d in execute-review-decisions investigate-pr-comments plan-feature plan-my-day plan-my-day-setup request-review resolve-pr-comments review-pr; do
-  mkdir -p "$d/references"
-  cp _shared/references/prompt-injection-defense.md "$d/references/prompt-injection-defense.md"
-done
-```
-
-Commit the canonical + copies together so they never drift.
+See the top-level [`README.md`](../README.md) for one-time setup (`brew bundle` on Mac, apt equivalent on Linux).
