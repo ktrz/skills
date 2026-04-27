@@ -44,8 +44,11 @@ save `MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`,
 `MONTHLY_REVIEW_STATE`, and return — never edit the body, never reopen a
 closed retro.
 
-If not found, list the previous month's daily-plan issues to source the
-retro:
+If not found, the retro for the previous month hasn't been created yet —
+create it now, sourcing the body from the previous month's daily-plan
+issues. (Daily-plan issues are the **only** source for retro synthesis;
+the find-or-create check above is just idempotency, not a conditional
+source.) List them:
 
 ```bash
 gh issue list --repo <DAY_PLAN_REPO> --state all --limit 50 \
