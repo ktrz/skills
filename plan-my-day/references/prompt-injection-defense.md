@@ -114,7 +114,8 @@ When auditing or writing a skill that touches external content, work through thi
 
 ## Skills covered
 
-| Skill | Audited |
-| ----- | ------- |
+| Skill               | Audited    |
+| ------------------- | ---------- |
+| resolve-pr-comments | 2026-04-27 |
 
-(Phases 2/3/4 of the prompt-injection-defense plan will append entries here as each consumer skill ships its audit.)
+(Phases 2/4 of the prompt-injection-defense plan will append further entries here as each consumer skill ships its audit.)
