@@ -7,6 +7,7 @@
 - Opt-in: skipped silently when `.claude/review.yaml` is absent (logged as a retrospective note)
 - Hand-off is async: the skill does not wait for the user to triage the doc before moving to the next PR or Step 6
 - Updated frontmatter description to mention the review pipeline so it surfaces in skill triggers
+- Document Step 4 PR-title rule: omit orchestration scaffolding like `(Plan N)` / `(Phase N)` from titles
 
 ## 1.2.0
 

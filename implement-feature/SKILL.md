@@ -102,6 +102,7 @@ Tell the user which phases are now running and their expected worktree paths (`w
 When a background agent completes (notified automatically):
 
 1. Invoke `create-pr` for that worktree branch. The branch already has incremental commits from the agent. Report the PR URL immediately.
+   - **PR titles describe the change, not the orchestration.** Do not include `(Plan N)`, `(Phase N)`, or similar scaffolding in the title — reviewers don't have that context. Reference the plan path inside the PR body if useful. Example: ✅ `feat(skills): decouple PR review pipeline` / ❌ `feat(skills): decouple PR review pipeline (Plan 1)`.
 2. Report: files changed, test status, any unchecked items in the progress file.
 3. Identify which blocked phases are now unblocked.
 4. Ask: "Phase N complete — PR at <url>. Ready to dispatch Phase M (and Phase P in parallel)?"
