@@ -1,8 +1,8 @@
 ---
 name: resolve-pr-comments
-version: 1.8.0
+version: 1.9.0
 model: sonnet
-description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
+description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Also supports `--from-doc <file>` mode for processing only `[d]`-flagged items from a review handover document produced by `investigate-pr-comments`. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
 
 # Resolve PR Review Comments
@@ -10,6 +10,31 @@ description: Walk through unresolved PR review comments one at a time, investiga
 Walk through unresolved review comments on a GitHub PR in two phases: first collect the user's decisions on every comment (fast, interactive), then implement all changes in a batch (autonomous). Replies and thread resolution happen in bulk at the end.
 
 The two-phase approach lets the user give rapid-fire decisions ("fix", "defer", "skip") without waiting for implementation between each one. This is much faster than alternating between deciding and implementing.
+
+## Entry points
+
+This skill has two entry points. They share the same Phase 1 interactive loop but differ on where the queue comes from and what happens after each decision.
+
+**A) `/resolve-pr-comments [PR]`** — the original flow. Fetch unresolved threads + review-body items from GitHub, investigate each, present options, collect decisions, implement, then bulk-post replies + resolve threads at the end. This is the right entry point when reviewing **someone else's** PR feedback on **your** PR, or any time you want to handle the full set of review comments in one sitting. Continue with [Workflow](#workflow) below.
+
+**B) `/resolve-pr-comments --from-doc <file>`** — load only items marked `[d]` (discuss) from a review handover document produced by `investigate-pr-comments`. Skip the GitHub fetch entirely. Run investigation subagents only for those items. Proceed with the existing Phase 1 interactive loop. **After each user decision, write the resolution back into the document** (update the item's status marker + Resolution note in place) rather than implementing immediately. When all `[d]` items have been processed, exit with:
+
+> Decisions written back to `<file>`. Run `/execute-review-decisions <file>` when ready.
+
+This entry point is for the automated review pipeline (`implement-feature` → `review-pr` → `investigate-pr-comments` → handover doc) when the user has flagged items as needing interactive discussion. The doc remains the single source of truth — `execute-review-decisions` reads `[x]`/`[~]` items including the ones you just resolved here.
+
+When invoked via `--from-doc`:
+
+- Status marker rewriting: `[d]` → `[x]` if user picks the recommended option, `[d]` → `[~]` if user gives a custom instruction or edits, `[d]` → `[-]` if user skips, leave `[d]` if user defers further.
+- Resolution note: write `fix (a)`, `fix (b)`, the custom instruction verbatim, or `reply: <text>` per the schema in `investigate-pr-comments/references/handover-format.md`.
+- Do **not** implement code, do **not** post to GitHub, do **not** resolve threads. That is `execute-review-decisions`'s job after the user reviews the updated doc.
+- Skip the dedup pass against GitHub threads — the handover doc already deduped at write time.
+
+Three usage paths in one place:
+
+- **Automated (own PRs):** `implement-feature` runs `review-pr` → `investigate-pr-comments` → produces handover doc → user edits → `execute-review-decisions <file>`.
+- **Discuss flagged items only:** `/resolve-pr-comments --from-doc <file>` (this entry point B).
+- **Manual interactive (others' PRs / any time):** `/resolve-pr-comments [PR]` (entry point A — full flow below).
 
 ## Workflow
 
@@ -142,6 +167,7 @@ After all comments have been reviewed, present a **decision summary table**:
 ```
 
 **If there are deferred items**, organize them before moving on:
+
 - Group related deferred comments into logical tickets (e.g., multiple type-safety deferrals might belong in one "improve type coupling" issue)
 - Present the proposed tickets with title, description, and which comments they cover
 - Detect the project's issue tracker from context (Linear, GitHub Issues, Jira, etc.) — check for CLI tools (`linear`, `gh issue`), MCP servers, or project conventions. If unclear, ask the user which tracker to use.
@@ -167,23 +193,25 @@ After all changes are implemented:
 2. **Ask the user to confirm** before posting anything. They might want to adjust a reply.
 
 3. **Post all replies and resolve all threads** in batched GraphQL mutations. Use aliases to combine replies and resolves — batch in groups of 6 to stay within API limits:
-     ```bash
-     gh api graphql -f query='
-       mutation {
-         reply0: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_0", body: "Fixed: renamed variable to userCount"}) {
-           comment { id }
-         }
-         resolve0: resolveReviewThread(input: {threadId: "THREAD_ID_0"}) {
-           thread { isResolved }
-         }
-         reply1: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_1", body: "Added null check"}) {
-           comment { id }
-         }
-         resolve1: resolveReviewThread(input: {threadId: "THREAD_ID_1"}) {
-           thread { isResolved }
-         }
-       }'
-     ```
+
+   ```bash
+   gh api graphql -f query='
+     mutation {
+       reply0: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_0", body: "Fixed: renamed variable to userCount"}) {
+         comment { id }
+       }
+       resolve0: resolveReviewThread(input: {threadId: "THREAD_ID_0"}) {
+         thread { isResolved }
+       }
+       reply1: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "THREAD_ID_1", body: "Added null check"}) {
+         comment { id }
+       }
+       resolve1: resolveReviewThread(input: {threadId: "THREAD_ID_1"}) {
+         thread { isResolved }
+       }
+     }'
+   ```
+
    Build the mutation dynamically — for each thread, add a `replyN: addPullRequestReviewThreadReply(...)` alias if a reply is warranted, and a `resolveN: resolveReviewThread(...)` alias if the thread should be resolved. Use the thread `id` from the fetch query (step 2) directly — these are the same GraphQL node IDs needed by both mutations.
    - Skipped comments are left unresolved and unreplied unless the user says otherwise.
    - For review-body items (which aren't threads), post a single PR comment summarizing what was addressed, using `gh pr comment`. Reference the review URL so the reviewer can find the response.
@@ -206,4 +234,4 @@ After all changes are implemented:
 - **Defer all GitHub interaction to the end** — no replying or resolving mid-session. This lets the user review everything at once and change their mind before anything goes live.
 - **Concise replies** — keep GitHub replies short and factual. State what was changed, not why the reviewer was right.
 - **Skip your own replies** — when fetching threads, the user's own replies are not actionable comments. Focus on comments from reviewers (including automated reviewers like Copilot).
-- **Deduplicate review-body items against inline threads** — review summaries often mention the same issues that also appear as inline comments. When a review-body item clearly refers to something already covered by an inline thread (same file, same issue), skip the review-body item and note it will be handled when you reach the inline thread. Only process review-body items that raise points *not* covered by any inline thread.
+- **Deduplicate review-body items against inline threads** — review summaries often mention the same issues that also appear as inline comments. When a review-body item clearly refers to something already covered by an inline thread (same file, same issue), skip the review-body item and note it will be handled when you reach the inline thread. Only process review-body items that raise points _not_ covered by any inline thread.

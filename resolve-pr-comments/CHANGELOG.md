@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0
+
+- Add `--from-doc <file>` second entry point for the automated review pipeline: loads only `[d]` (discuss) items from a handover document produced by `investigate-pr-comments`, skips the GitHub fetch, runs investigation subagents on just those items, then writes resolutions back into the document instead of implementing
+- Status marker rewriting on `--from-doc`: `[d]` → `[x]` for recommended option, `[d]` → `[~]` for custom instructions or edits, `[d]` → `[-]` for skip, `[d]` stays for further deferral
+- Updated description and added an "Entry points" section at the top of `SKILL.md` clarifying the three usage paths (automated own PRs, discuss flagged items, manual interactive)
+- No changes to existing flow A (`/resolve-pr-comments [PR]`) — backward compatible
+
 ## 1.8.0
 
 - Phase 1 investigation now runs in parallel batches via subagents (default batch size 5, lookahead 1)
