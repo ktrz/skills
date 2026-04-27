@@ -1,0 +1,26 @@
+# Review configuration for ktrz/skills repo.
+# Schema: _shared/review.example.yaml
+#
+# Repo is markdown-only skills (no compiled output, no tests). CI / hooks
+# cover prettier formatting, frontmatter parse-validity, and (after Plan 2
+# Phase 5) _shared/ sync drift. Reviewers focus on the eight judgement
+# areas in .claude/review-guidelines.md.
+
+guidelines:
+  - .claude/review-guidelines.md
+
+# Default sub-agent dispatch (all 6 pr-review-toolkit specialists with
+# graceful fallback). Override here if a future PR needs a narrower set.
+
+# Prepend the guidelines block to every specialist prompt. Repo is small
+# and the guidelines stay well under 5KB.
+guidelines_mode: shared
+
+# Surface the categories most often missed by generic specialists.
+# Loose hint — specialists may still flag anything important.
+focus:
+  - description-triggers
+  - cross-skill-contracts
+  - workflow-integrity
+  - hooks-safety
+  - skill-scope-creep
