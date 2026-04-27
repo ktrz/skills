@@ -1,14 +1,16 @@
 ---
 name: implement-feature
-version: 1.2.0
+version: 1.3.0
 model: sonnet
 description: >
   Execute a multi-phase feature plan using parallel worktree agents, then open PRs. Use when you
   want to go from ticket to code — dispatches parallel execute-phase agents for independent phases
   and chains cohorts with user confirmation between them. Triggers on "implement feature",
   "implement ticket", "/implement-feature PROJ-XXX", "execute the plan", or "run the phases".
-  Invokes plan-feature automatically if no plan file exists yet. Works with jira, linear, github,
-  or clickup tickets via references/tracker.md.
+  Invokes plan-feature automatically if no plan file exists yet. After PRs are opened, runs the
+  automated review pipeline (`review-pr` → `investigate-pr-comments`) per PR to produce a handover
+  doc the user can triage offline. Works with jira, linear, github, or clickup tickets via
+  references/tracker.md.
 ---
 
 # Implement Feature
@@ -34,6 +36,7 @@ Use the first match:
    2. `./plans/*<lowercased-key>*.md` (legacy)
 
    First hit wins. If multiple hits at the same precedence level, ask the user which to use.
+
 3. No arg → ask: "Which ticket or plan should I implement?"
 
 **If no plan file is found:** invoke `plan-feature` with the ticket key. After `plan-feature` completes and the plan file exists, continue from Step 2 — do not stop.
@@ -41,6 +44,7 @@ Use the first match:
 ## Step 2: Parse the plan
 
 Read the plan file. Extract:
+
 - All `## Phase N` sections (title and content)
 - The `## Execution Order` section — which phases are parallel, which are sequential
 - Dependencies: "Phases 2 and 3 can run in parallel after Phase 1 lands" → Phase 2 and 3 depend on Phase 1
@@ -87,6 +91,7 @@ uncommitted until the end.
 ```
 
 Base branch:
+
 - Phase depends only on `main` → `main`
 - Phase depends on a completed prior phase → that phase's worktree branch (stacked PR)
 
@@ -108,12 +113,32 @@ Pausing between cohorts gives the user a review checkpoint before the next wave.
 
 When all phases are done:
 
-| Phase | Branch | PR |
-|-------|--------|----|
+| Phase   | Branch                   | PR                     |
+| ------- | ------------------------ | ---------------------- |
 | Phase 1 | `<username>/...-phase-1` | https://github.com/... |
 | Phase 2 | `<username>/...-phase-2` | https://github.com/... |
 
 Flag any phases with unchecked progress items that need manual attention.
+
+## Step 5a: Automated review pipeline (per PR)
+
+After the summary table and before the retrospective, run the automated review pipeline once per PR opened in Step 4. For multi-PR runs, complete the full pipeline for one PR before moving to the next, and complete all PRs before the retrospective.
+
+**Skip condition.** If `.claude/review.yaml` does not exist (in the repo root or `~/.claude/`), skip Step 5a entirely and note in the retrospective: "review-pr not configured — create `.claude/review.yaml` to enable the automated review pipeline." This makes the pipeline opt-in: existing users without config see no behaviour change.
+
+For each PR `<N>` from Step 5's table, in PR-number order:
+
+1. **Invoke `review-pr` in pipeline mode.** Set the `PIPELINE=1` env so the skill runs in auto mode (writes findings to a file, does not post to GitHub). Pass the PR number explicitly. Wait for completion. Capture the auto-review file path it prints (default: `plans.local/<repo>/pr-<N>-auto-review.md`).
+
+2. **Invoke `investigate-pr-comments`.** Pass the PR number and `--auto-review-file <path>` from step 1. The skill fetches human reviewer comments from GitHub, merges them with the auto-review findings, runs investigation subagents in parallel, and writes the handover document to `plans.local/<repo>/pr-<N>-review-decisions.md`. Wait for completion.
+
+3. **Report.** One line per PR:
+
+   > Review pipeline complete for PR `<N>`. Decisions file: `<path>`. Edit and run `/execute-review-decisions <path>` when ready. For flagged items: `/resolve-pr-comments --from-doc <path>`.
+
+Do **not** wait for the user to triage the file before proceeding to the next PR or to Step 6. The handover doc is the async hand-off — the user reads it on their own time. The pipeline's job is to land the findings file, not to drive triage.
+
+If `review-pr` reports that it skipped silently (pipeline mode without config), surface that as a Step 5a friction note and continue.
 
 ## Step 6: Retrospective
 
