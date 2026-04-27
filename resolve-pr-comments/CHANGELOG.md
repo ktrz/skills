@@ -1,17 +1,11 @@
 # Changelog
 
-## 1.10.0
-
-- Investigation batching changed from one-subagent-per-comment to one-subagent-per-batch-of-comments (default 5 per subagent)
-- For a 20-comment queue at the default batch size, the orchestrator now spawns 4 subagents instead of 20 — fewer agents doing more work each beats many agents doing one thing
-- Subagent prompt template extended to handle a list of comments and return one structured report per comment in input order
-- 1.8.0 wording in the prior changelog entry was ambiguous about per-batch parallelism — that previous phrasing has been corrected by this release
-
 ## 1.9.0
 
 - Add `--from-doc <file>` second entry point for the automated review pipeline: loads only `[d]` (discuss) items from a handover document produced by `investigate-pr-comments`, skips the GitHub fetch, runs investigation subagents on just those items, then writes resolutions back into the document instead of implementing
 - Status marker rewriting on `--from-doc`: `[d]` → `[x]` for recommended option, `[d]` → `[~]` for custom instructions or edits, `[d]` → `[-]` for skip, `[d]` stays for further deferral
 - Updated description and added an "Entry points" section at the top of `SKILL.md` clarifying the three usage paths (automated own PRs, discuss flagged items, manual interactive)
+- Investigation batching corrected: subagents now investigate a _batch_ of comments rather than one each. A 20-comment queue at the default size = 4 subagents (5 comments each), not 20. Fewer agents doing more work each beats many agents doing one thing. Supersedes the ambiguous 1.8.0 phrasing
 - No changes to existing flow A (`/resolve-pr-comments [PR]`) — backward compatible
 
 ## 1.8.0

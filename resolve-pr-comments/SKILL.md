@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.10.0
+version: 1.9.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Also supports `--from-doc <file>` mode for processing only `[d]`-flagged items from a review handover document produced by `investigate-pr-comments`. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
