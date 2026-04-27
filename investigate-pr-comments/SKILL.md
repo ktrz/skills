@@ -90,18 +90,24 @@ land on the same `(file, line)`:
 
 ### Step 3: Investigate in parallel
 
-Spawn one investigation subagent per queue item, following
-`resolve-pr-comments/references/investigate.md` verbatim:
+Spawn investigation subagents over the queue, following
+`resolve-pr-comments/references/investigate.md` verbatim. Each
+subagent investigates a **batch of items**, not a single item.
 
-- Default batch size: 5. Launch the first batch synchronously; launch
-  subsequent batches in the background (`run_in_background: true`) as
-  the user advances through prior items.
-- Each subagent receives: repo path (absolute), PR number, the item's
-  metadata (author, location, body verbatim, any reply chain), and the
-  explicit instruction that this is **investigation only** — no edits,
-  no commits, no GitHub interaction.
-- Subagent returns the structured report format defined in
-  `resolve-pr-comments/references/investigate.md`.
+- Default batch size: 5 items per subagent. For a queue of N items,
+  spawn `ceil(N / 5)` subagents (a 20-item queue = 4 subagents, not
+  20). The batching reference owns the rationale and prompt template.
+- Launch the first batch synchronously; the doc-write step needs all
+  results before it can run, so unlike `resolve-pr-comments` (which
+  has an interactive Phase 1 absorbing latency), `investigate-pr-comments`
+  benefits less from background prefetch — but spawning later batches
+  in parallel is still fine because they don't depend on each other.
+- Each subagent receives: repo path (absolute), PR number, and a
+  numbered list of items in its batch. Each item carries author,
+  location, body verbatim, any reply chain, and `source: "auto-review"`
+  or `"reviewer: @<login>"`.
+- Subagent returns one structured report per item in input order, per
+  the format defined in `resolve-pr-comments/references/investigate.md`.
 - Collect all results before writing the handover document.
 
 ### Step 4: Write the handover document

@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.9.0
+version: 1.10.0
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Also supports `--from-doc <file>` mode for processing only `[d]`-flagged items from a review handover document produced by `investigate-pr-comments`. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -139,9 +139,9 @@ Order: review-body items first, then inline threads in fetch order. Build a sing
 
 Collapsed entries carry the full list of original thread IDs so Phase 6 can reply/resolve all of them with the same answer. When in doubt, keep separate — present-time dedup (step 3 below) is the fallback for non-obvious dupes.
 
-1. **First batch (synchronous).** In one message, spawn N parallel investigation subagents (default N=5) covering queue items 1..N. Each subagent uses the prompt template in `references/investigate.md` and returns the structured report. Wait for all N to finish before talking to the user. Skip parallelisation entirely if the queue has fewer than 3 items — just investigate inline.
+1. **First batch (synchronous).** Chunk the queue into batches of B comments (default B=5). Spawn ONE subagent for batch 1 (covering queue items 1..B), pass the multi-comment prompt template from `references/investigate.md`, and wait for it to return per-comment reports for the whole batch. Total subagents across the run = `ceil(queue_size / B)`, NOT `queue_size`. A 20-comment queue at B=5 = 4 subagents, not 20. Skip subagents entirely if the queue has fewer than 3 items — just investigate inline.
 
-2. **Background prefetch.** As soon as you start questioning the user on batch K, spawn batch K+1 in the background (`run_in_background: true`). Maintain a lookahead of at least one batch. If the user is unusually fast and catches up, await the in-flight investigation for the next item before presenting.
+2. **Background prefetch.** As soon as you start questioning the user on batch K, spawn batch K+1's subagent in the background (`run_in_background: true`) — one subagent for the next B comments, not B subagents. Maintain a lookahead of at least one batch. If the user is unusually fast and catches up, await the in-flight subagent before presenting.
 
 3. **For each comment, in queue order:**
    - **Present** the subagent's condensed report: location, what the code does, what the reviewer wants, the option list with the recommended pick highlighted. Don't dump the raw subagent output — pick the headline and the options.
