@@ -31,9 +31,28 @@ Each top-level directory is a self-contained skill (`SKILL.md` + optional `refer
 | [request-review](request-review/SKILL.md)               | Post an LFR to Slack and transition the tracker ticket to "In Review".                                                                                       |
 | [resolve-pr-comments](resolve-pr-comments/SKILL.md)     | Two-phase PR review walk-through: collect decisions on every unresolved comment via parallel investigation subagents, then implement and bulk-reply/resolve. |
 
+## Setup
+
+**Mac:**
+
+```bash
+brew bundle          # installs git, gh, yq, pre-commit (see Brewfile)
+pre-commit install   # wires the pre-commit hooks
+```
+
+**Linux (Debian/Ubuntu):**
+
+```bash
+sudo apt install git gh yq
+pip install pre-commit
+pre-commit install
+```
+
+The [`Brewfile`](Brewfile) is the canonical tool list. The pre-commit hooks (`sync-shared-refs` and `warn-new-skill-defense`) run automatically on every commit once installed.
+
 ## Conventions
 
-- **Tracker dispatch.** Skills that touch a tracker (jira / linear / github / clickup) read `~/.claude/tracker.yaml` (shared default) or `<repo>/.claude/tracker.yaml` (per-project override). Template at [`_shared/tracker.example.yaml`](_shared/tracker.example.yaml). Each consumer skill ships a copy of [`_shared/references/tracker.md`](_shared/references/tracker.md) — see [`_shared/README.md`](_shared/README.md) for the sync procedure when the canonical version changes.
+- **Tracker dispatch.** Skills that touch a tracker (jira / linear / github / clickup) read `~/.claude/tracker.yaml` (shared default) or `<repo>/.claude/tracker.yaml` (per-project override). Template at [`_shared/tracker.example.yaml`](_shared/tracker.example.yaml). Each consumer skill ships a copy of [`_shared/references/tracker.md`](_shared/references/tracker.md). See [`_shared/README.md`](_shared/README.md) for the sync procedure and [`_shared/manifest.yaml`](_shared/manifest.yaml) for the full consumer list.
 - **Plans.** Plans live in `./plans.local/<project>/` (gitignored — typically a symlink to `~/projects/plans`). Legacy plans may live in `./plans/`.
 - **Versioning.** SKILL.md frontmatter uses semver. Bump the minor on feature additions; bump major only for breaking workflow changes. Each skill keeps its own `CHANGELOG.md`.
 - **Progressive disclosure.** SKILL.md stays small; long-form spec lives in `references/*.md` and is loaded only when the skill needs it.
