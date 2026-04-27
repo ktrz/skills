@@ -25,7 +25,7 @@ is the async hand-off between fast machine work and human triage.
 
 ## Args
 
-```
+```text
 /investigate-pr-comments [PR] [--auto-review-file <path>]
 ```
 
@@ -85,8 +85,10 @@ land on the same `(file, line)`:
 
 - Keep both as separate queue entries (do not merge — merging risks
   dropping signal from one framing).
-- Add `**Note:** also flagged by @<login> (see next item)` to the
-  auto-review entry so the user can pick the framing they prefer.
+- Add `**Note:** also flagged by @<login> (see related item)` to the
+  auto-review entry so the user can pick the framing they prefer. Use
+  "related item", not "next item" — the merged ordering doesn't
+  guarantee the human-correlated entry sits adjacent.
 
 ### Step 3: Investigate in parallel
 
@@ -137,7 +139,7 @@ Write the document conforming to
 
 Print to stdout:
 
-```
+```text
 Handover document written to <path>
   Auto-review: <N> items (<N> critical, <N> important, <N> suggestion/nit)
   Human comments: <N> items
@@ -159,10 +161,10 @@ their own pace.
 - **Source dedup is conservative** — auto and human items on the same
   location are kept separate. The user decides which framing to act on;
   automatic merging risks silent signal loss.
-- **Investigation is always parallel** — even for small queues (< 3
-  items), investigation subagents run in parallel. The synchronous
-  first-batch wait is bounded; background batches ensure low latency for
-  the rest.
+- **Investigation follows the shared batching rules** — the policy in
+  `resolve-pr-comments/references/investigate.md` is authoritative,
+  including its small-queue inline-investigation threshold (< 3 items
+  skip subagents entirely). Do not contradict it here.
 - **Subagent logic is not duplicated** — investigation prompt, batch
   sizing, and ordering rules all live in
   `resolve-pr-comments/references/investigate.md`. This skill follows
