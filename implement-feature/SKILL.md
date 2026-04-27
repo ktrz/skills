@@ -101,7 +101,8 @@ Tell the user which phases are now running and their expected worktree paths (`w
 
 When a background agent completes (notified automatically):
 
-1. Invoke `create-pr` for that worktree branch. The branch already has incremental commits from the agent. Report the PR URL immediately.
+1. Invoke `create-pr` with `--draft` for that worktree branch. The branch already has incremental commits from the agent. Report the PR URL immediately.
+   - **Draft is mandatory here.** The automated review pipeline runs in Step 5a — the PR should not be visible-for-review until self-review findings are triaged. `execute-review-decisions` will offer to mark the PR ready once findings are resolved.
    - **PR titles describe the change, not the orchestration.** Do not include `(Plan N)`, `(Phase N)`, or similar scaffolding in the title — reviewers don't have that context. Reference the plan path inside the PR body if useful. Example: ✅ `feat(skills): decouple PR review pipeline` / ❌ `feat(skills): decouple PR review pipeline (Plan 1)`.
 2. Report: files changed, test status, any unchecked items in the progress file.
 3. Identify which blocked phases are now unblocked.
@@ -135,7 +136,7 @@ For each PR `<N>` from Step 5's table, in PR-number order:
 
 3. **Report.** One line per PR:
 
-   > Review pipeline complete for PR `<N>`. Decisions file: `<path>`. Edit and run `/execute-review-decisions <path>` when ready. For flagged items: `/resolve-pr-comments --from-doc <path>`.
+   > Review pipeline complete for PR `<N>` (draft). Decisions file: `<path>`. Edit and run `/execute-review-decisions <path>` when ready — that step will offer to mark PR `<N>` ready for review once findings are resolved. For flagged items: `/resolve-pr-comments --from-doc <path>`.
 
 Do **not** wait for the user to triage the file before proceeding to the next PR or to Step 6. The handover doc is the async hand-off — the user reads it on their own time. The pipeline's job is to land the findings file, not to drive triage.
 

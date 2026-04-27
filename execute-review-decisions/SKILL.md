@@ -314,6 +314,26 @@ needed a different approach because of a typing constraint), call it
 out in the wrap-up so the user can spot-check before the reviewer
 re-engages.
 
+### Step 5: Offer to mark draft PR ready
+
+After the report, check whether the PR is currently draft:
+
+```bash
+gh pr view <N> --json isDraft -q .isDraft
+```
+
+If `true` AND post-flight verification passed (`unresolved_count == len(skip) + len(discuss)`), prompt:
+
+> All auto-findings resolved. Mark PR `<N>` ready for review? [y/N]
+
+On `y`: `gh pr ready <N>`. Print confirmation.
+
+On `N` or no response: print "Leaving PR `<N>` as draft. Run `gh pr ready <N>` when ready." and exit.
+
+If the PR is not draft, skip this step entirely.
+
+If post-flight failed, do **not** offer to mark ready — the discrepancy must be resolved first.
+
 ## Important behaviours
 
 - **The doc is authoritative; do not re-investigate.** If a status

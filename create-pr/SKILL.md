@@ -1,7 +1,7 @@
 ---
 name: create-pr
-version: 1.2.0
-description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the ticket reference, description, and test scenario from context.
+version: 1.3.0
+description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the ticket reference, description, and test scenario from context. Pass `--draft` to open the PR as a draft.
 model: haiku
 ---
 
@@ -21,6 +21,7 @@ If neither exists, stop and output:
 > No tracker config found. Create `<repo_root>/.claude/tracker.yaml` for a per-project tracker, or `~/.claude/tracker.yaml` for a shared default. Copy `_shared/tracker.example.yaml` as a starting point.
 
 Also load from `~/.claude/create-pr.yaml` if it exists:
+
 - any skill-specific PR template overrides (none required — defaults below work). This file no longer carries a `tracker:` block; tracker settings live in the two locations above.
 
 ## Step 1: Gather context
@@ -39,18 +40,21 @@ git merge-base --fork-point main HEAD || git log --oneline origin/main..HEAD | t
 ```
 
 Also run:
+
 ```bash
 # Detect base branch (stacked PR detection)
 git log --oneline --decorate | head -20
 ```
 
 **Detecting a stacked branch:** If the branch diverged from another feature branch (not main/master), that feature branch is the base. Check with:
+
 ```bash
 git log --oneline $(git merge-base HEAD main)..HEAD
 # If commits are few and tightly scoped, confirm base branch by checking what the branch was created from
 ```
 
 A reliable way to detect stacking:
+
 ```bash
 # List branches that contain the fork point commit (other than main)
 FORK=$(git merge-base HEAD main)
@@ -94,6 +98,7 @@ Use this exact template:
 ```
 
 `<TICKET_LINK>` is rendered per the link template for the tracker:
+
 - jira: `[PROJ-123](https://org.atlassian.net/browse/PROJ-123)`
 - linear: `[ENG-45](https://linear.app/acme/issue/ENG-45)`
 - github: `[#567](https://github.com/owner/repo/issues/567)`
@@ -111,9 +116,12 @@ Common types: `feat`, `fix`, `refactor`, `chore`. Scope is the affected area (e.
 
 ## Step 5: Create the PR
 
+If the user passed `--draft` (or the invoking skill requested a draft PR), add `--draft` to the `gh pr create` command. Use draft for self-review-pending PRs so reviewers know not to look yet.
+
 ```bash
 gh pr create \
   --title "<title>" \
+  [--draft]  # if --draft requested \
   [--base <feature-branch>]  # only if stacked \
   --body "$(cat <<'EOF'
 ### Ticket
@@ -138,6 +146,8 @@ EOF
 Print the PR URL so the user can open it.
 
 If the PR is stacked, note: "This PR is stacked on `<base-branch>`. Merge that one first."
+
+If the PR was opened as draft, note: "Opened as draft. Mark ready with `gh pr ready <N>` when self-review is complete."
 
 ## Notes
 
