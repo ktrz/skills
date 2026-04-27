@@ -1,0 +1,128 @@
+# Review configuration
+# ─────────────────────
+# Used by `review-pr` (and downstream skills in the automated review
+# pipeline: `investigate-pr-comments`, `execute-review-decisions`,
+# `resolve-pr-comments --from-doc`).
+#
+# Two install locations, checked in this order (first hit wins):
+#
+#   1. <repo_root>/.claude/review.yaml — repo-local, overrides the shared
+#      default when this specific project ships its own coding guidelines
+#      or wants different sub-agent dispatch. Resolved from
+#      `git rev-parse --show-toplevel`.
+#
+#   2. ~/.claude/review.yaml — shared default across all projects that
+#      don't declare their own.
+#
+# An empty file is valid — the skill runs the default sub-agent dispatch
+# with no project guidelines.
+#
+# ── Pipeline vs standalone ─────────────────────────────────────────
+#
+# The pipeline (`implement-feature` Step 5a) requires a config file to
+# exist (either location). If neither file is present, pipeline mode
+# skips silently — auto-invocation should not run unwanted reviews
+# against the user's PRs.
+#
+# Standalone modes (`/review-pr`, `/review-pr --deep`) work with no
+# config file and use the defaults below.
+
+# ── Project guidelines ─────────────────────────────────────────────
+#
+# Paths to review-guideline documents (markdown). All listed files are
+# concatenated and threaded through to sub-agents per `guidelines_mode`
+# below. Paths are resolved relative to the repo root.
+guidelines:
+  - docs/engineering/code-review-guidelines.md
+
+# ── Output directory ───────────────────────────────────────────────
+#
+# Where `review-pr` writes the auto-mode findings file
+# (`pr-<N>-auto-review.md`). Default: `plans.local/<repo>/`. Tilde and
+# absolute paths are honoured; the directory is created if missing.
+# output_dir: ~/projects/plans/
+
+# ── Severity threshold ─────────────────────────────────────────────
+#
+# Drop findings whose severity ranks below this floor before posting or
+# writing. Applied per-finding, before grouping. Default: suggestion
+# (include everything).
+#
+# Order:  critical > important > suggestion (== nit)
+# severity_threshold: critical
+
+# ── Focus hint ─────────────────────────────────────────────────────
+#
+# Loose hint surfaced to every sub-agent prompt. Not a strict filter —
+# agents may still report findings outside the listed aspects when they
+# spot something important.
+# focus:
+#   - correctness
+#   - tests
+#   - error-handling
+#   - types
+#   - simplification
+
+# ── Sub-agent dispatch ─────────────────────────────────────────────
+#
+# Controls which specialised sub-agents `review-pr` runs in parallel.
+#
+# - omitted (default) → all 6 pr-review-toolkit agents (graceful
+#   fallback to single-pass review if the plugin isn't installed):
+#     pr-review-toolkit:code-reviewer
+#     pr-review-toolkit:comment-analyzer
+#     pr-review-toolkit:silent-failure-hunter
+#     pr-review-toolkit:pr-test-analyzer
+#     pr-review-toolkit:type-design-analyzer
+#     pr-review-toolkit:code-simplifier
+#
+# - literal list → use exactly these. Each entry is tried as a Task
+#   `subagent_type` (when it contains `:` or has no `/`/`.`) or treated
+#   as a path to a custom agent `.md` file. Unresolvable entries are
+#   skipped with a one-line warning. If all entries fail to resolve,
+#   `review-pr` falls back to single-pass review.
+#
+# - empty list (`agents: []`) → force single-pass review (never
+#   dispatch sub-agents). Useful for cheap repos or smoke-testing.
+#
+# Override examples:
+#
+# agents:
+#   - pr-review-toolkit:code-reviewer
+#   - pr-review-toolkit:silent-failure-hunter
+#   - .claude/agents/my-custom-style-checker.md   # path = custom agent
+#
+# Disable sub-agents entirely:
+# agents: []
+
+# ── Guidelines distribution ────────────────────────────────────────
+#
+# How project guidelines flow to sub-agents.
+#
+# - `shared` (default) — prepend full guidelines block to every
+#   dispatched sub-agent prompt. Best contextual findings, fine while
+#   guidelines stay under ~5KB.
+# - `dedicated` — keep specialist prompts pure; run a separate
+#   guidelines-compliance agent (prompt: `references/guidelines-agent.md`)
+#   alongside specialists.
+# - `both` — prepend to specialists AND run the dedicated agent.
+#   Highest coverage, highest token cost.
+guidelines_mode: shared
+
+# ── Finding overlap handling ───────────────────────────────────────
+#
+# How to handle multiple agents flagging the same code.
+#
+# Exact-duplicate dedup (normalised description hash matches on the
+# same `(file, line)`) always runs — duplicates are merged into one
+# entry whose `reported_by` array unions the contributing agents.
+#
+# - `group` (default) — keep all distinct findings on the same
+#   `(file, line)` as separate entries. Visually grouped at output
+#   time; severity / threshold / bot-skim still applied per finding.
+#   No signal loss.
+# - `merge` — after exact dedup, run an LLM judge over remaining
+#   same-line collisions and collapse near-duplicates. Cheaper output,
+#   risks losing nuance when two agents flag distinct concerns on the
+#   same line.
+finding_overlap: group
