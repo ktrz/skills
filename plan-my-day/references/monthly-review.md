@@ -1,32 +1,37 @@
 # Monthly review
 
-A separate GitHub issue per calendar month, kept distinct from daily-plan
-issues. Acts as a slow-moving log of patterns and levers that the daily
-flow can read to colour today's posture.
+A retrospective GitHub issue per calendar month, kept distinct from
+daily-plan issues. The issue summarises the **just-ended** month — at the
+start of a new month, the skill drafts a retro of the previous month from
+that month's daily-plan issues. The retro then feeds a posture hint into
+each daily plan.
 
 This phase only runs when `DAY_PLAN_REPO` is set.
 
-## Phase M0 — Resolve the current month
+## Phase M0 — Resolve current and previous month
+
+Resolve both the current calendar month (for context) and the previous
+month (the one being summarised). Use a BSD/GNU `date` fallback so this
+works on macOS and Linux:
 
 ```bash
-date +%Y-%m
+CURRENT_MONTH=$(date +%Y-%m)
+PREVIOUS_MONTH=$(date -v-1m +%Y-%m 2>/dev/null || date -d "1 month ago" +%Y-%m)
+PREVIOUS_LABEL=$(date -v-1m +"%B %Y" 2>/dev/null || date -d "1 month ago" +"%B %Y")
 ```
 
-→ `CURRENT_MONTH` (e.g. `2026-05`).
+→ `CURRENT_MONTH` (e.g. `2026-05`), `PREVIOUS_MONTH` (e.g. `2026-04`),
+`PREVIOUS_LABEL` (e.g. `April 2026`). Year boundary is handled by `date`
+itself — January resolves to December of the prior year.
 
-```bash
-date +"%B %Y"
-```
+`MONTHLY_TITLE` = `<PREVIOUS_MONTH> — Monthly review` (e.g.
+`2026-04 — Monthly review`). The retro is **about** the previous month,
+even though it's created during the current month.
 
-→ `MONTH_LABEL` (e.g. `May 2026`).
-
-`MONTHLY_TITLE` = `<CURRENT_MONTH> — Monthly review` (e.g.
-`2026-05 — Monthly review`).
-
-## Phase M1 — Find or create
+## Phase M1 — Find or create the previous-month retro
 
 Search the day-plan repo for a matching issue. Check both `open` and
-`closed` so a manually-closed review isn't recreated:
+`closed` so a manually-closed retro isn't recreated:
 
 ```bash
 gh issue list --repo <DAY_PLAN_REPO> --state all --limit 20 \
@@ -34,48 +39,100 @@ gh issue list --repo <DAY_PLAN_REPO> --state all --limit 20 \
   --json number,title,state,url
 ```
 
-Pick the result whose title equals `MONTHLY_TITLE` exactly. If found, save
-`MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`, `MONTHLY_REVIEW_STATE`, and
-return — never edit the body during creation, never reopen a closed one.
+Pick the result whose title equals `MONTHLY_TITLE` exactly. If found,
+save `MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`,
+`MONTHLY_REVIEW_STATE`, and return — never edit the body, never reopen a
+closed retro.
 
-If not found, create with the seed body below:
+If not found, the retro for the previous month hasn't been created yet —
+create it now, sourcing the body from the previous month's daily-plan
+issues. (Daily-plan issues are the **only** source for retro synthesis;
+the find-or-create check above is just idempotency, not a conditional
+source.) List them:
 
 ```bash
-gh issue create --repo <DAY_PLAN_REPO> --title "<MONTHLY_TITLE>" \
-  --body "<seed body>"
+gh issue list --repo <DAY_PLAN_REPO> --state all --limit 50 \
+  --search "<PREVIOUS_MONTH>- in:title" \
+  --json number,title,body,state,closedAt
 ```
 
-Seed body:
+Filter to titles matching `^<PREVIOUS_MONTH>-\d{2} — ` (the daily-plan
+title format). If the filtered list is **empty**, skip retro creation
+entirely — leave `MONTHLY_REVIEW_NUMBER` unset and return. This is an
+intentional gap (first-ever run, or a month with no daily plans). Do not
+create a placeholder.
+
+If at least one daily-plan issue exists, synthesise a retro body from
+their bodies. Synthesis runs in-conversation (the assistant reads the
+daily issue bodies and drafts the retro directly) — there's no external
+LLM call. Pull from the bodies:
+
+- **Highlights** — meaningful wins. Look at any close-day "Highlights"
+  notes the user appended and significant completed items.
+- **Shipped** — completed `- [x]` items across the month, deduped.
+  Reference issue or ticket numbers where possible (`PROJ-123`).
+- **Stalled or blocked** — unchecked items that recurred across multiple
+  days, plus blocker mentions in close-day notes.
+- **Patterns observed** — cross-day repetition. Look for weekday-keyed
+  drift (e.g. "Mondays heavy on reviews"), WIP creep, recurring stale
+  branches, ticket pickup vs. close ratio.
+- **Levers to try next month** — actionable counters to the patterns.
+  E.g. pattern "Wednesdays drift on reviews" → lever "block Wed AM for
+  deep work, batch reviews after lunch."
+
+Body shape:
 
 ```markdown
-## <MONTH_LABEL> review
+## <PREVIOUS_LABEL> review
 
 ### Highlights
 
+- <synthesised bullet>
+
 ### Shipped
+
+- <synthesised bullet>
 
 ### Stalled or blocked
 
+- <synthesised bullet>
+
 ### Patterns observed
 
+- <synthesised bullet>
+
 ### Levers to try next month
+
+- <synthesised bullet>
+```
+
+Create the issue:
+
+```bash
+gh issue create --repo <DAY_PLAN_REPO> --title "<MONTHLY_TITLE>" \
+  --body "<synthesised body>"
 ```
 
 Save the new issue number and URL into `MONTHLY_REVIEW_NUMBER` /
 `MONTHLY_REVIEW_URL` and set `MONTHLY_REVIEW_STATE = OPEN`.
 
-Mention the URL in the conversation only when the issue was just created
-("Seeded monthly review: …"). For an existing issue, stay quiet — daily
-runs shouldn't spam this once per morning.
+Mention the URL in the conversation only when the retro was just created
+(`Drafted retro for <PREVIOUS_LABEL>: <url> — review and edit if
+needed.`). For an existing retro, stay quiet — daily runs shouldn't spam
+this once per morning.
 
 ## Phase M2 — Posture hint extraction (daily mode only)
 
-Only run when generating a fresh daily plan. The close-day flow skips this.
+Only run when generating a fresh daily plan. The close-day flow skips
+this.
 
-If `MONTHLY_REVIEW_NUMBER` is unset (DAY_PLAN_REPO not configured) or
-`MONTHLY_REVIEW_STATE` is `CLOSED`, skip — no hint.
+If `MONTHLY_REVIEW_NUMBER` is unset (no retro exists for the previous
+month, or `DAY_PLAN_REPO` not configured), skip — no hint, no fallback.
 
-Fetch the body:
+Otherwise fetch the body **regardless of `MONTHLY_REVIEW_STATE`**. A
+closed retro is reference content, not stale — the user closing one
+shouldn't kill the hint. (If the user wants to silence the hint, they
+empty out the Patterns / Levers sections.)
 
 ```bash
 gh issue view <MONTHLY_REVIEW_NUMBER> --repo <DAY_PLAN_REPO> \
@@ -106,16 +163,25 @@ Examples:
 - `Today's posture: cap WIP at 2 tickets and resist new pickups — last month flagged scattering.`
 
 Pass the resulting string back to the synthesis phase as
-`POSTURE_HINT`. Synthesis inserts it directly under the `## Plan` header in
-the issue body (or the top-level title in file-mode output, though
+`POSTURE_HINT`. Synthesis inserts it directly under the `## Plan` header
+in the issue body (or the top-level title in file-mode output, though
 file-mode never has a monthly review so this is moot).
 
 ## Notes
 
 - Hardcoding day-of-week postures (e.g. "Wed = deep work") is explicitly
-  out of scope. The hint stays current only because the user updates the
-  monthly review through the month.
-- The skill never edits the monthly review body. Updates are user-driven.
-- If a calendar month has no daily runs at all, no review issue exists for
-  that month — that's fine and intentional. The first run of the next
-  month creates the next review and ignores the gap.
+  out of scope. The hint stays current only because the user updates
+  the retro Patterns / Levers sections (or the next month's retro
+  refreshes them).
+- Synthesis is **one-shot at creation**. The skill drafts the retro
+  body once, when the retro issue is first created. After that, the
+  user owns the body — edit, reorganise, or strip sections freely.
+- The skill never edits an existing retro's body. Updates are
+  user-driven.
+- Closed retros still feed the posture hint. Closing the issue is a
+  filing action, not a "discard" signal.
+- Multi-month gaps are not back-filled. If February was skipped
+  entirely, March's run creates the February retro from February's
+  daily issues; April's run does not retroactively create one for
+  February if March didn't. Only the immediately-previous month is
+  considered.
