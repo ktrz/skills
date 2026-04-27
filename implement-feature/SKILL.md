@@ -144,7 +144,7 @@ If `review-pr` reports that it skipped silently (pipeline mode without config), 
 
 ## Step 6: Retrospective
 
-After the summary table, present the friction log:
+After Step 5a completes (or is skipped), present the friction log:
 
 - If empty: "No friction noted — everything ran cleanly."
 - If non-empty: list each friction point, which skill it implicates, and what the likely fix is.

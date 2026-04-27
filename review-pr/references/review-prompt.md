@@ -20,7 +20,7 @@ emitted it.
 
 ## Prompt template
 
-````
+````text
 You are reviewing pull request <PR_NUMBER> for <REPO_NAME>.
 
 # PR metadata

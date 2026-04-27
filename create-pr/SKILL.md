@@ -121,8 +121,10 @@ If the user passed `--draft` (or the invoking skill requested a draft PR), add `
 ```bash
 gh pr create \
   --title "<title>" \
-  [--draft]  # if --draft requested \
-  [--base <feature-branch>]  # only if stacked \
+  # add --draft only if requested
+  [--draft] \
+  # add --base only when stacked on a feature branch
+  [--base <feature-branch>] \
   --body "$(cat <<'EOF'
 ### Ticket
 
