@@ -72,41 +72,72 @@ Example for a data layer phase:
 
 The agent must update this file as it works — checking off items as they are completed.
 
-## Step 4: Derive branch name
+## Step 4: Derive feature name
 
 From the plan filename and phase number:
 - Strip path and extension: `plans/proj-123-example-feature.md` → `proj-123-example-feature`
 - Append phase: `proj-123-example-feature-phase-1`
 
-**Do NOT include a username prefix** (e.g. `<username>/`) — `nwt` adds that automatically. Passing
-`<username>/proj-123-...` to `nwt` would produce a `<username>/<username>/proj-123-...` branch and a
-`worktrees/<username>/proj-123-...` path, both wrong.
+**Do NOT include a username prefix** (e.g. `<username>/`) — `nwt` typically adds one automatically.
+Passing `<username>/proj-123-...` to `nwt` would double the prefix.
 
-Confirm the branch name with the user before proceeding.
+This is the *feature name* you'll pass to `nwt`. The actual branch name and worktree path produced
+by `nwt` may differ from the feature name (different installations of `nwt` use different conventions
+for prefix and path layout — e.g. `ktrz/<feature>` branch and `./<feature>/` path, vs `<feature>`
+branch and `worktrees/<feature>/` path). Step 5 detects what `nwt` actually produced.
+
+Confirm the feature name with the user before proceeding.
 
 ## Step 5: Create worktree
+
+`nwt` may be a binary or a shell function. **Do not probe with `nwt --help`** — if it's a shell
+function, `--help` becomes the feature-name argument and creates an unwanted worktree.
+Use `type nwt` or `declare -f nwt` to inspect if needed.
+
+`nwt` may default its `base-branch` to `main`. If the repo uses `master` (or another default
+branch), pass it explicitly as the second argument.
+
+Determine the default branch first:
+
+```bash
+DEFAULT_BRANCH=$(git -C <repo-root> symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+# fallback: pick whichever of main/master exists locally
+```
 
 Run from the **repo root** (not from inside a worktree):
 
 ```bash
-nwt <branch-name> <base-branch>
+nwt <feature-name> <default-branch>
 ```
 
-This creates `./worktrees/<branch-name>/` with the branch `<username>/<branch-name>`.
+After it succeeds, detect the actual worktree path and branch name from git rather than assuming a
+convention:
+
+```bash
+# Path (worktrees may be at ./<feature>/, ./worktrees/<feature>/, etc.)
+WORKTREE_PATH=$(git -C <repo-root> worktree list --porcelain \
+  | awk '/^worktree / {p=$2} /^branch / && $2 ~ /'<feature-name>'/ {print p; exit}')
+
+# Branch
+BRANCH_NAME=$(git -C "$WORKTREE_PATH" branch --show-current)
+```
+
+Use `WORKTREE_PATH` and `BRANCH_NAME` for all subsequent steps.
 
 Then install dependencies in the worktree:
 
 ```bash
-cd ./worktrees/<branch-name> && npm install
+(cd "$WORKTREE_PATH" && npm install)
 ```
 
 ## Step 6: Copy plan + progress into worktree
 
 ```bash
-cp <plan-file> ./worktrees/<branch-name>/.claude/plans/
+mkdir -p "$WORKTREE_PATH/.claude/plans"
+cp <plan-file> "$WORKTREE_PATH/.claude/plans/"
 ```
 
-Write the progress file generated in Step 3 to `./worktrees/<branch-name>/.claude/plans/<plan-name>-phase-<N>-progress.md`.
+Write the progress file generated in Step 3 to `"$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md"`.
 
 ## Step 7: Spawn agent in background
 
@@ -153,7 +184,7 @@ Check off each item as you complete it. Follow the order: tests first, then impl
 
 After spawning, tell the user:
 - The agent is running in the background
-- The worktree path: `cd worktrees/<branch-name>`
+- The worktree path (from `WORKTREE_PATH` detected in Step 5)
 - That you'll report results when it completes
 
 ## Step 8: Report and sync progress
@@ -162,7 +193,7 @@ When the background agent completes, you'll be notified automatically. At that p
 
 1. **Copy the progress file back** to the main repo, next to the original plan file:
    ```bash
-   cp ./worktrees/<branch-name>/.claude/plans/<plan-name>-phase-<N>-progress.md <plan-dir>/
+   cp "$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md" <plan-dir>/
    ```
    This lets the user track progress across all phases from the main branch without entering each worktree.
 
@@ -170,4 +201,4 @@ When the background agent completes, you'll be notified automatically. At that p
    - Files created/modified
    - Test results
    - Any unchecked items remaining in the progress file
-   - Worktree path for review: `cd worktrees/<branch-name>`
+   - Worktree path for review: `cd "$WORKTREE_PATH"`
