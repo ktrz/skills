@@ -49,8 +49,13 @@ pre-commit install   # wires the pre-commit hooks
 **Linux (Debian/Ubuntu):**
 
 ```bash
-sudo apt install git gh yq
-pip install pre-commit
+sudo apt install git gh pipx
+# Distro `yq` is the Python wrapper (kislyuk/yq) and is incompatible with `_shared/sync.sh`,
+# which uses mikefarah/yq syntax. Install the Go binary directly:
+sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64
+sudo chmod +x /usr/local/bin/yq
+yq --version    # confirm "mikefarah/yq" build
+pipx install pre-commit   # PEP 668 forbids `pip install` outside a venv on modern Debian/Ubuntu
 pre-commit install
 ```
 
