@@ -33,7 +33,12 @@ encodes the current status marker and a short label.
 **Severity:** critical | important | suggestion | nit
 **Source:** auto-review | reviewer: @<login>
 **Reported by:** <agent-name(s) or reviewer login>
-**Comment:** <original comment or finding description verbatim>
+**Comment:**
+
+<external_data source="github_pr_comment" trust="untrusted">
+<original comment or finding description verbatim>
+</external_data>
+
 **Analysis:** <what the code does today and why this finding matters — 1-3 sentences>
 **Recommendation:** <recommended option — concrete enough to act on at a glance>
 **Options:**
@@ -46,6 +51,15 @@ encodes the current status marker and a short label.
 "reply: <text>", or leave blank and mark [d] to
 discuss interactively via /resolve-pr-comments --from-doc -->
 ```
+
+The `**Comment:**` block always wraps the verbatim external bytes in
+`<external_data trust="untrusted">…</external_data>` (see
+`prompt-injection-defense.md#fence-it`). The `**Analysis:**`,
+`**Recommendation:**`, and `**Options:**` fields hold subagent-authored
+prose (trusted summary) and stay unfenced. Auto-review findings whose
+"comment" is the LLM-generated description from `review-pr` still get
+wrapped — the description was synthesised from a fenced diff, so the
+boundary travels.
 
 For review-body items with no inline anchor, use `"review body"` in the
 heading instead of `<file>:<line>`:
@@ -152,7 +166,12 @@ re-parsing. Items in this file always use `[?]` markers and
 **Severity:** critical
 **Source:** auto-review
 **Reported by:** code-reviewer, silent-failure-hunter
-**Comment:** `verifyToken` result is not null-checked before accessing `user.id`; passing an expired token throws `TypeError: Cannot read properties of null` at runtime.
+**Comment:**
+
+<external_data source="github_pr_comment" trust="untrusted">
+`verifyToken` result is not null-checked before accessing `user.id`; passing an expired token throws `TypeError: Cannot read properties of null` at runtime.
+</external_data>
+
 **Analysis:** `verifyToken` returns `null` on expired or invalid tokens. Line 87 accesses `result.user.id` unconditionally, so any unauthenticated request to this endpoint will crash the process rather than returning a 401.
 **Recommendation:** Add a null guard — if `!result` return a 401 response before accessing `result.user.id`.
 **Options:**
@@ -170,7 +189,12 @@ re-parsing. Items in this file always use `[?]` markers and
 **Severity:** important
 **Source:** reviewer: @alice
 **Reported by:** @alice
-**Comment:** The retry loop here doesn't have a backoff — it'll hammer the DB on transient failures.
+**Comment:**
+
+<external_data source="github_pr_comment" trust="untrusted">
+The retry loop here doesn't have a backoff — it'll hammer the DB on transient failures.
+</external_data>
+
 **Analysis:** Lines 100-108 implement a retry loop with `await new Promise(r => setTimeout(r, 100))` — a fixed 100ms delay regardless of attempt count. Under sustained load this creates a tight retry storm against the database.
 **Recommendation:** Replace the fixed delay with exponential backoff (e.g. `100 * 2 ** attempt` ms) and add a jitter term.
 **Options:**

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Add Trust Boundaries section + carry a copy of `_shared/references/prompt-injection-defense.md` (synced via `_shared/manifest.yaml`). `nwt` only reads `gh api user --jq .login` from outside the trust boundary; the section documents that surface and the constraints that keep it safe.
+
 ## 1.0.0
 
 - Initial release. Bundles the canonical `nwt()` zsh function and an idempotent installer (`scripts/install.sh`) that appends a `source` line — plus a commented `NWT_BRANCH_PREFIX` hint — to `~/.zshrc`.

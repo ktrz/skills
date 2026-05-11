@@ -1,0 +1,28 @@
+name: shared-refs drift check
+on: [pull_request, push]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mikefarah/yq@v4.53.2
+      - run: bash _shared/sync.sh
+      - run: |
+          if ! git diff --quiet HEAD; then
+            echo "::error::Consumer copies of _shared/references/ are out of sync."
+            echo "Run _shared/sync.sh locally and commit the result."
+            git diff HEAD
+            exit 1
+          fi
+
+  new-skill-defense-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Warn if new SKILL.md missing defense doc
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+        run: bash _shared/check-new-skill-defense.sh
