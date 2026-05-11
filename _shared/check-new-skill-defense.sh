@@ -53,7 +53,7 @@ if [ ${#missing[@]} -gt 0 ]; then
   echo "WARN: New skills missing references/prompt-injection-defense.md:"
   printf '  %s\n' "${missing[@]}"
   echo "  If the skill fetches external content, add the defense doc and register in _shared/manifest.yaml."
-  echo "  If not, add the skill name to ALLOWLIST in _shared/check-new-skill-defense.sh and in .github/workflows/shared-refs-drift.yml."
+  echo "  If not, add the skill name to ALLOWLIST in _shared/check-new-skill-defense.sh."
 fi
 
 # Always exit 0 — warn only, never block
