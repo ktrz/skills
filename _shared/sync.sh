@@ -2,10 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-for ref in $(yq -r '.references | keys[]' _shared/manifest.yaml); do
-  for consumer in $(yq -r ".references[\"$ref\"][]" _shared/manifest.yaml); do
+while IFS= read -r ref; do
+  while IFS= read -r consumer; do
     mkdir -p "$consumer/references"
     cp "_shared/references/$ref" "$consumer/references/$ref"
     git add -- "$consumer/references/$ref" 2>/dev/null || true
-  done
-done
+  done < <(yq -r ".references[\"$ref\"][]" _shared/manifest.yaml)
+done < <(yq -r '.references | keys[]' _shared/manifest.yaml)
