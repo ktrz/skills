@@ -39,7 +39,7 @@ for skill_file in "${files[@]:-}"; do
   name=$(basename "$dir")
 
   # Skip if skill is in the allowlist
-  if echo " $ALLOWLIST " | grep -q " $name "; then
+  if printf '%s\n' $ALLOWLIST | grep -Fxq -- "$name"; then
     continue
   fi
 
