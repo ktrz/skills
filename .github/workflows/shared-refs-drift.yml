@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: mikefarah/yq@master
+      - uses: mikefarah/yq@v4.53.2
       - run: bash _shared/sync.sh
       - run: |
           if ! git diff --quiet; then
@@ -23,20 +23,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Warn if new SKILL.md missing defense doc
-        run: |
-          ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator"
-          base="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
-          added=$(git diff --diff-filter=A --name-only "$base"...HEAD -- '*/SKILL.md' || true)
-          missing=()
-          for f in $added; do
-            dir=$(dirname "$f")
-            name=$(basename "$dir")
-            if echo " $ALLOWLIST " | grep -q " $name "; then continue; fi
-            test -f "$dir/references/prompt-injection-defense.md" || missing+=("$f")
-          done
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::warning::New skills missing references/prompt-injection-defense.md:"
-            printf '  %s\n' "${missing[@]}"
-            echo "If the skill fetches external content, add the defense doc and register in _shared/manifest.yaml."
-            echo "If not, add the skill name to ALLOWLIST in this workflow and in _shared/check-new-skill-defense.sh."
-          fi
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+        run: bash _shared/check-new-skill-defense.sh

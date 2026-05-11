@@ -1,18 +1,38 @@
 #!/usr/bin/env bash
-# Pre-commit hook: warn (don't block) when a newly-added SKILL.md lacks the
-# prompt-injection-defense doc.  Edit ALLOWLIST to exempt skills that don't
-# fetch external content.
+# Warn (don't block) when a newly-added SKILL.md lacks the prompt-injection-defense
+# doc. Edit ALLOWLIST to exempt skills that don't fetch external content.
+#
+# Two invocation modes:
+#   1. Pre-commit hook: paths passed as "$@", staged-status checked via porcelain.
+#   2. CI / standalone: no args, file list computed from
+#      `git diff --diff-filter=A --name-only ${BASE_SHA:-HEAD~1}...HEAD -- '*/SKILL.md'`.
 set -euo pipefail
 
 ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator"
 
 missing=()
 
-for skill_file in "$@"; do
-  # Only care about files that git considers newly added (status A)
-  status=$(git status --porcelain -- "$skill_file" 2>/dev/null | cut -c1-2 | tr -d ' ')
-  if [ "$status" != "A" ]; then
-    continue
+if [ "$#" -eq 0 ]; then
+  base="${BASE_SHA:-HEAD~1}"
+  files=()
+  while IFS= read -r line; do
+    files+=("$line")
+  done < <(git diff --diff-filter=A --name-only "$base"...HEAD -- '*/SKILL.md' 2>/dev/null || true)
+  check_status=0
+else
+  files=("$@")
+  check_status=1
+fi
+
+for skill_file in "${files[@]:-}"; do
+  [ -n "$skill_file" ] || continue
+
+  if [ "$check_status" -eq 1 ]; then
+    # Pre-commit mode: only files staged as new (index column = A)
+    status=$(git status --porcelain -- "$skill_file" 2>/dev/null | cut -c1)
+    if [ "$status" != "A" ]; then
+      continue
+    fi
   fi
 
   dir=$(dirname "$skill_file")
