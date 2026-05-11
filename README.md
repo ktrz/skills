@@ -13,13 +13,19 @@ Each top-level directory is a self-contained skill (`SKILL.md` + optional `refer
 | [plan-my-day](plan-my-day/SKILL.md)             | Build today's prioritised work list from your worktrees, tracker tickets, open PRs, and Slack activity. Groups into Active worktrees / Tickets to pick up / Stale branches. |
 | [plan-my-day-setup](plan-my-day-setup/SKILL.md) | Interactive wizard that writes `~/.claude/plan-my-day.yaml` and seeds `~/.claude/tracker.yaml`.                                                                             |
 
+### Worktrees
+
+| Skill               | What it does                                                                                                                                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [nwt](nwt/SKILL.md) | Create a new git worktree via the `nwt` zsh helper — auto-detects umbrella vs regular repo layout, branches as `<prefix><feature>` (git-config / env / gh handle), seeds env/IDE/Claude config from `main/`. Ships an idempotent installer for `~/.zshrc`. |
+
 ### Plan and build features
 
 | Skill                                           | What it does                                                                                                                                                           |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [plan-feature](plan-feature/SKILL.md)           | Deep-plan a tracker ticket into a phased, parallelism-annotated implementation plan. Optionally grills you on requirements first. Writes to `./plans.local/<subdir>/`. |
 | [implement-feature](implement-feature/SKILL.md) | Execute a multi-phase plan via parallel worktree agents and open PRs. Auto-invokes `plan-feature` if no plan exists.                                                   |
-| [execute-phase](execute-phase/SKILL.md)         | Run a single plan phase in an isolated git worktree.                                                                                                                   |
+| [execute-phase](execute-phase/SKILL.md)         | Run a single plan phase in an isolated git worktree (uses [`nwt`](nwt/SKILL.md) when available).                                                                       |
 | [save-plan](save-plan/SKILL.md)                 | Persist the current conversation's plan or design discussion into `./plans.local/<repo>/` as a structured markdown file.                                               |
 
 ### Ship and review
