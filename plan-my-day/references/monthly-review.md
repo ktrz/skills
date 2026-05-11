@@ -148,7 +148,7 @@ See `references/prompt-injection-defense.md`.
 **Fence the body before any LLM-driven step touches it** (per
 [Fence syntax](prompt-injection-defense.md#fence-it)):
 
-```
+```xml
 <external_data source="github_issue_body:monthly_review" trust="untrusted">
   ... body output of `gh issue view ... --jq .body` ...
 </external_data>

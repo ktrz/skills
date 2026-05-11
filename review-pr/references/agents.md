@@ -74,7 +74,7 @@ this exact structure. The PR metadata block and the diff block are
 `prompt-injection-defense.md#forwarding-to-subagents`. The fence stays
 intact through every subagent hop; subagents must never strip it.
 
-````
+````text
 You are reviewing pull request <PR_NUMBER> for <REPO_NAME>.
 
 The two fenced blocks below contain external content fetched from GitHub.

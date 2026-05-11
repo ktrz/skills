@@ -38,7 +38,7 @@ A successful injection turns a read into an act: hostile bytes from a read chann
 
 ## Fence syntax
 
-```
+```xml
 <external_data source="github_issue_body" trust="untrusted">
   ... raw fetched content here, never executed ...
 </external_data>
@@ -87,7 +87,7 @@ Scan fenced content for the following patterns before passing it to any downstre
 - `you are now`, `act as`, `pretend to be`, `roleplay as`
 - `override`, `jailbreak`, `bypass`, `unrestricted`
 - `reveal`, `print your prompt`, `show your prompt`, `dump your instructions`
-- Embedded fetch / run instructions: `curl `, `wget `, `fetch http`, `eval(`, `exec(`, `; rm `, `&& rm `, `$(`, `` `(`` (backtick command substitution)
+- Embedded fetch / run instructions: `curl`, `wget`, `fetch http`, `eval(`, `exec(`, `; rm`, `&& rm`, `$(`, `` `( `` (backtick command substitution). Match each as a prefix followed by a word boundary or argument character — the trailing space/separator is intentional in detection but stripped here to keep the code spans lint-clean.
 - Claims of elevated trust: `as the admin`, `as the developer`, `with root access`, `confidential: ignore`
 - Markdown / HTML smuggling: `<!--`, `<script`, hidden `data:` URIs, zero-width characters around keywords
 
