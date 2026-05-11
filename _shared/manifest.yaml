@@ -11,6 +11,7 @@ references:
   prompt-injection-defense.md:
     - execute-review-decisions
     - investigate-pr-comments
+    - nwt
     - plan-feature
     - plan-my-day
     - plan-my-day-setup

@@ -124,3 +124,4 @@ When auditing or writing a skill that touches external content, work through thi
 | investigate-pr-comments  | 2026-04-27 |
 | execute-review-decisions | 2026-04-27 |
 | plan-my-day-setup        | 2026-04-27 |
+| nwt                      | 2026-05-11 |
