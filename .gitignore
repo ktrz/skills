@@ -28,3 +28,6 @@ yarn-error.log*
 
 # Local plans symlink → ~/projects/plans
 plans.local
+
+# Local worktrees created by nwt
+worktrees/
