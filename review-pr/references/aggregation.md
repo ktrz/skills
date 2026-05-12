@@ -24,15 +24,15 @@ already dropped with a warning at Step 7.
   severity threshold filter (drop below floor)
         │
         ▼
-  bot-skim suppression      (post-time only — auto-standalone + deep)
+  overlap-skim suppression      (post-time only — auto-standalone + deep)
         │
         ▼
   emoji prefix + post / write
 ```
 
-`severity_threshold` and `bot-skim` are **per-finding**. A `(file, line)`
+`severity_threshold` and `overlap-skim` are **per-finding**. A `(file, line)`
 group with two findings can be filtered or suppressed independently —
-losing one to the bot-skim does not remove the other.
+losing one to the overlap-skim does not remove the other.
 
 ## Exact-duplicate dedup (always on)
 
@@ -75,7 +75,7 @@ stream.
 At output time (file-write or post), findings sharing the same
 `(file, line)` get visually grouped (rendered consecutively under one
 location header) but each retains its own severity, emoji prefix, and
-bot-skim eligibility.
+overlap-skim eligibility.
 
 ## `finding_overlap: merge`
 
@@ -113,38 +113,44 @@ so a `merge`-collapsed finding inherits the highest severity of its
 contributors and may pass the threshold even if individual
 contributors wouldn't.
 
-## Bot-skim suppression
+## Overlap-skim suppression
 
 Applies only at **post time** (auto-standalone and deep modes). The
-auto-pipeline file write does **not** run bot-skim — the file is the
+auto-pipeline file write does **not** run overlap-skim — the file is the
 async hand-off and the user decides; suppression on file write would
-hide signal. Bot-skim runs immediately before posting comments.
+hide signal. Overlap-skim runs immediately before posting comments.
 
-Bot-skim procedure (one extra `gh` call before posting):
+Overlap-skim procedure (one extra `gh` call before posting):
 
 1. Fetch existing PR review comments and review-body items:
    ```bash
    gh pr view <N> --json reviews,comments
    ```
-2. Filter to bot authors — login ends with `[bot]` or matches a known
-   set (Copilot, Snyk, Sonar, etc.).
-3. For each finding about to be posted, check whether any bot comment
-   on the same `(file, line)` raises a substantively overlapping
-   point. Use a lightweight LLM judge for the substance check
-   (description + bot comment body). **Fence the bot comment body in
-   `<external_data source="github_pr_bot_comment" trust="untrusted">…</external_data>`
+2. Keep every comment regardless of author — author identity is not
+   the filter. Apply the content-relevance rule in
+   `_shared/references/comment-relevance.md` to drop boilerplate
+   (status pings, "draft detected" notes, coverage summaries,
+   marketing wrappers) and retain anything that anchors to code or
+   expresses critique. A bot's line-anchored finding is review
+   signal worth comparing against; its "review skipped" ping is not.
+   A human's `:+1:` reply is filtered the same way.
+3. For each finding about to be posted, check whether any retained
+   comment on the same `(file, line)` raises a substantively
+   overlapping point. Use a lightweight LLM judge for the substance
+   check (description + comment body). **Fence the comment body in
+   `<external_data source="github_pr_comment" trust="untrusted">…</external_data>`
    before passing to the LLM judge** (see
    `prompt-injection-defense.md#fence-it`); the judge returns a boolean,
-   so any instructions hidden in the bot prose stay walled off.
+   so any instructions hidden in the comment prose stay walled off.
 4. If overlap found → suppress the finding from the posted batch. Log
-   the suppression: `bot-skim: dropped <severity> on <file>:<line>
-(Copilot already flagged)`. If the finding's severity is `critical`
+   the suppression: `overlap-skim: dropped <severity> on <file>:<line>
+(@<login> already flagged)`. If the finding's severity is `critical`
    or `important` and the user wants to weight it higher, the spec
-   allows posting a brief reply to the bot comment instead of a
+   allows posting a brief reply to the existing comment instead of a
    duplicate top-level finding — leave that as a deep-mode option;
    auto-standalone simply suppresses.
 
-Bot-skim is **per-finding**, not per-group. A `(file, line)` group
+Overlap-skim is **per-finding**, not per-group. A `(file, line)` group
 with one critical and one suggestion can have the suggestion skimmed
 out while the critical posts.
 

@@ -137,12 +137,12 @@ findings. The `reported_by` value is replaced with the canonical
 prompt mutations from changing the source name in aggregated
 output).
 
-## Interaction with bot-skim
+## Interaction with overlap-skim
 
-Guidelines-compliance findings are subject to the same bot-skim
+Guidelines-compliance findings are subject to the same overlap-skim
 suppression as specialist findings — if Copilot already flagged the
 same `(file, line)` violation, the dedicated agent's report on that
-line is suppressed at post time per `aggregation.md`. The bot-skim
+line is suppressed at post time per `aggregation.md`. The overlap-skim
 check is per finding, not per agent, so a guidelines violation on
 one line and a guidelines violation on a different line are
 evaluated independently.

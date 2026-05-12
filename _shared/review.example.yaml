@@ -38,9 +38,19 @@ guidelines:
 # ── Output directory ───────────────────────────────────────────────
 #
 # Where `review-pr` writes the auto-mode findings file
-# (`pr-<N>-auto-review.md`). Default: `plans.local/<repo>/`. Tilde and
+# (`pr-<N>-auto-review.md`).
+#
+# Default: `plans.local/<repo>/` — the literal `<repo>` token is
+# substituted with the repo directory name from
+# `basename $(git rev-parse --show-toplevel)`, so a single shared
+# default file gives every repo its own subdirectory automatically.
+#
+# When you set `output_dir` here, the value is taken **verbatim** —
+# the skill does not append `<repo>` for you. If you want per-repo
+# subdirectories under a custom root, include the token yourself
+# (e.g. `output_dir: ~/code-reviews/<repo>/`). Tilde, env vars, and
 # absolute paths are honoured; the directory is created if missing.
-# output_dir: ~/projects/plans/
+# output_dir: ~/code-reviews/<repo>/
 
 # ── Severity threshold ─────────────────────────────────────────────
 #
@@ -119,7 +129,7 @@ guidelines_mode: shared
 #
 # - `group` (default) — keep all distinct findings on the same
 #   `(file, line)` as separate entries. Visually grouped at output
-#   time; severity / threshold / bot-skim still applied per finding.
+#   time; severity / threshold / overlap-skim still applied per finding.
 #   No signal loss.
 # - `merge` — after exact dedup, run an LLM judge over remaining
 #   same-line collisions and collapse near-duplicates. Cheaper output,
