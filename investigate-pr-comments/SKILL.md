@@ -182,8 +182,11 @@ where `<repo>` is the repo directory name from
 Write the document conforming to
 `investigate-pr-comments/references/handover-format.md`:
 
-- Document header: PR url, branch (`headRef → baseRef`), ISO-8601
-  timestamp, `Status: PENDING REVIEW`, source counts.
+- Document header: PR url, branch (`headRef → baseRef`), head and base
+  SHAs (fetch via `gh pr view <N> --json headRefOid,baseRefOid`),
+  ISO-8601 timestamp, `Status: PENDING REVIEW`, and source counts as a
+  single flat `**Source counts:**` field line (not a subheading with
+  bullets).
 - One `##`-level section per queue item, in merge order (Step 2).
 - Every item starts with `[?]` — no decisions have been made yet.
 - Populate from the subagent investigation result:
