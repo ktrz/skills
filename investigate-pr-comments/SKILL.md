@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.2.0
+version: 1.3.0
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and
@@ -182,8 +182,11 @@ where `<repo>` is the repo directory name from
 Write the document conforming to
 `investigate-pr-comments/references/handover-format.md`:
 
-- Document header: PR url, branch (`headRef → baseRef`), ISO-8601
-  timestamp, `Status: PENDING REVIEW`, source counts.
+- Document header: PR url, branch (`headRef → baseRef`), `Head SHA`
+  and `Base SHA` (from `gh pr view --json headRefOid,baseRefOid`),
+  ISO-8601 timestamp, `Status: PENDING REVIEW`, flat
+  `**Source counts:**` field line (see `references/handover-format.md`
+  for exact format).
 - One `##`-level section per queue item, in merge order (Step 2).
 - Every item starts with `[?]` — no decisions have been made yet.
 - Populate from the subagent investigation result:

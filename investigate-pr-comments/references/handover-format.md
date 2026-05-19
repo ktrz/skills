@@ -12,14 +12,11 @@ file output), `investigate-pr-comments` (writer), and
 
 **PR:** <url>
 **Branch:** <headRefName> → <baseRefName>
+**Head SHA:** <40-char sha>
+**Base SHA:** <40-char sha>
 **Generated:** <ISO-8601 timestamp>
 **Status:** PENDING REVIEW
-
-## Source counts
-
-- Auto-review findings: <N>
-- Human reviewer comments: <N>
-- Total items: <N> (<N> critical, <N> important, <N> suggestion/nit)
+**Source counts:** <A> auto-review findings, <H> human reviewer comments, <T> total (<C> critical, <I> important, <S> suggestion/nit)
 ```
 
 ## Item schema
@@ -150,14 +147,11 @@ re-parsing. Items in this file always use `[?]` markers and
 
 **PR:** https://github.com/owner/repo/pull/42
 **Branch:** feat/user-auth → main
+**Head SHA:** a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+**Base SHA:** 9f8e7d6c5b4a9f8e7d6c5b4a9f8e7d6c5b4a9f8e
 **Generated:** 2026-04-27T14:32:00Z
 **Status:** PENDING REVIEW
-
-## Source counts
-
-- Auto-review findings: 3
-- Human reviewer comments: 2
-- Total items: 5 (1 critical, 2 important, 2 suggestion)
+**Source counts:** 3 auto-review findings, 2 human reviewer comments, 5 total (1 critical, 2 important, 2 suggestion/nit)
 
 ---
 
