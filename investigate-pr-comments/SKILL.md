@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.4.0
+version: 1.5.0
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and
@@ -250,6 +250,32 @@ sections** below the header. This is a well-formed handover doc per
 `references/handover-format.md` — the plugin loads it as "PR reviewed,
 nothing flagged". Do not skip the write, and do not substitute a prose
 "nothing to do" note for the structured header.
+
+**Validate before exit — the doc must load in the plugin.** After writing
+the document (including the empty case), validate it against the **real**
+plugin parser vendored in `_shared/handover-validator/`:
+
+```bash
+node _shared/handover-validator/dist/validate.mjs validate <output-path>
+```
+
+The validator runs the byte-for-byte parser the `review-plugin-mvp`
+extension uses to load the doc (see
+`_shared/handover-validator/SOURCE.md`). It exits `0` when the doc loads
+cleanly, or non-zero and prints the violation list when it does not — the
+same `ParseError`s the plugin would hit.
+
+- **On exit 0** — proceed to Step 5.
+- **On non-zero exit** — the doc you just wrote is one the plugin cannot
+  load. **Regenerate it once**: re-derive the header and item sections
+  from the in-memory queue, fixing the reported violations (commonly a
+  `Source counts:` line that disagrees with the items, an unfenced
+  `**Comment:**` body, or a malformed heading), overwrite the file, and
+  validate again. If the **second** validation still fails, **hard-fail**:
+  do not leave the broken doc as the skill's output. Print the violation
+  list and the message
+  `investigate-pr-comments: refusing to emit a handover doc the review plugin cannot load`
+  and stop. Never ship a doc that fails validation.
 
 ### Step 5: Exit cleanly
 
