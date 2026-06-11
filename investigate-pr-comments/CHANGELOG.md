@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+
+- **Review history is no longer ignored.** Step 1 Source B now fetches **resolved** review threads too (the existing paginated `reviewThreads` query already returns `isResolved` — partition on it instead of filtering). Resolved threads are tagged `prior-handled` with resolution state preserved (`resolvedBy` login + last-activity timestamp as the `<when>` proxy, since the API exposes no resolution timestamp), bodies fenced as untrusted at fetch time. They never become queue items — context only, so the empty-queue fast path and always-write invariant are untouched
+- Step 2 grew a **prior-handled downgrade pass**: each new auto-review or human item matching a prior-handled thread — identity = same `(file, line)` + substantively overlapping point per a per-finding LLM judge (overlap-skim shape from `review-pr/references/aggregation.md`, fenced bodies, boolean output, 50-call cap failing open to "fresh") — is **downgraded and annotated, never dropped**: `**Note:** already handled in a prior review (thread resolved <when> by @<login>)`, keeping its `[?]` marker, severity, and queue position so the user can skip it in seconds without losing the signal that it resurfaced. Full rules in new `references/prior-handled.md`
+- Trust boundaries table — resolved thread bodies listed as untrusted, same handling as unresolved (fenced on fetch; read only by the boolean downgrade judge; never copied into the handover)
+
 ## 1.6.0
 
 - **Validator now ships with the skill — works on installed copies.** The handover validator the Step 4 check runs is now distributed into this skill as `vendor/handover-validator.mjs` (a generated, byte-for-byte copy of `_shared/handover-validator/dist/validate.mjs`, synced by `_shared/sync.sh`). The invocation changed from the CWD-relative `node _shared/handover-validator/dist/validate.mjs validate <path>` to `node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>`, resolved from the harness-injected skill base directory. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so machine validation exited "module not found" and the skill misread that as a malformed doc → hard-fail. The exit-code contract is unchanged (0 → proceed; non-zero → regenerate once → hard-fail)
