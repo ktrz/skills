@@ -16,7 +16,7 @@ skill's `vendor/` dir (`review-pr/vendor/handover-validator.mjs`,
 `investigate-pr-comments/vendor/handover-validator.mjs`) by `_shared/sync.sh`, so the skills can
 run it from their own directory on an installed copy — where `_shared/` is never present. The
 consumer copies are generated; never hand-edit them. Edit the source here, run `npm run build`,
-then `bash _shared/sync.sh` (the pre-commit hook does both on commit). At runtime the skills call:
+then `bash _shared/sync.sh` (the pre-commit hook runs `sync.sh` on commit; run `npm run build` yourself first). At runtime the skills call:
 
 ```bash
 node "<skill-base-dir>/vendor/handover-validator.mjs" validate <doc-path>
