@@ -2,6 +2,9 @@ name: handover-validator drift check
 
 on: [pull_request, push]
 
+permissions:
+  contents: read
+
 jobs:
   # Self-contained: the committed bundle must be a faithful build of the
   # vendored source, and the validator must still accept the fixtures.
@@ -28,8 +31,8 @@ jobs:
 
   # Cross-repo: the vendored parser must match review-plugin-mvp at the commit
   # pinned in SOURCE.md. Catches hand-edits to vendor/*.ts and a pin bump that
-  # forgot to re-sync. Requires a token with read access to the plugin repo;
-  # soft-skips when it is not configured so forks stay green.
+  # forgot to re-sync. review-plugin-mvp is public, so the checkout needs no
+  # token and the check runs unconditionally on every PR.
   vendor-drift:
     runs-on: ubuntu-latest
     steps:
@@ -45,26 +48,12 @@ jobs:
             exit 1
           fi
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-      - name: Check token availability
-        id: token
-        env:
-          PLUGIN_REPO_TOKEN: ${{ secrets.PLUGIN_REPO_TOKEN }}
-        run: |
-          if [ -z "$PLUGIN_REPO_TOKEN" ]; then
-            echo "::warning::PLUGIN_REPO_TOKEN not set — skipping vendor-drift check. Configure it to enforce."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/checkout@v4
-        if: steps.token.outputs.available == 'true'
         with:
           repository: ktrz/review-plugin-mvp
           ref: ${{ steps.pin.outputs.commit }}
-          token: ${{ secrets.PLUGIN_REPO_TOKEN }}
           path: plugin
       - name: Assert vendored parser matches pinned upstream
-        if: steps.token.outputs.available == 'true'
         run: |
           for f in parse.ts types.ts; do
             if ! diff -u "plugin/src/schema/$f" "skills/_shared/handover-validator/vendor/$f"; then
