@@ -9,3 +9,12 @@ while IFS= read -r ref; do
     git add -- "$consumer/references/$ref" 2>/dev/null || true
   done < <(yq -r ".references[\"$ref\"][]" _shared/manifest.yaml)
 done < <(yq -r '.references | keys[]' _shared/manifest.yaml)
+
+while IFS= read -r src; do
+  dest=$(yq -r ".bundles[\"$src\"].dest" _shared/manifest.yaml)
+  while IFS= read -r consumer; do
+    mkdir -p "$consumer/$(dirname "$dest")"
+    cp "_shared/$src" "$consumer/$dest"
+    git add -- "$consumer/$dest" 2>/dev/null || true
+  done < <(yq -r ".bundles[\"$src\"].consumers[]" _shared/manifest.yaml)
+done < <(yq -r '.bundles | keys[]' _shared/manifest.yaml)

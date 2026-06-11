@@ -18,3 +18,10 @@ references:
     - request-review
     - resolve-pr-comments
     - review-pr
+
+bundles:
+  handover-validator/dist/validate.mjs:
+    dest: vendor/handover-validator.mjs
+    consumers:
+      - review-pr
+      - investigate-pr-comments
