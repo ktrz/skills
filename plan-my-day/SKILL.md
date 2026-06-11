@@ -572,7 +572,7 @@ work happens). If no repo match is found, list the ticket as "unassigned to a re
 **Suppress already-actioned review asks** — before placing any
 "Review PR #N" bullet (whether it came from a Slack ask or from
 `reviewRequested_repoI`), check it against the review-state records from
-Phase 3:
+Phase 3. Evaluate the rules in order — first match wins:
 
 - **PR merged or closed** → drop the bullet entirely. There is nothing
   left to act on.
@@ -586,8 +586,9 @@ Phase 3:
   to the "Already handled" sub-note rather than dropping it — a still-open
   request after the user's review may be a genuine re-request, so keep the
   signal visible without claiming "Do first" urgency.
-- **Anything else** (no review by ME_LOGIN, or no Phase 3 record because
-  the lookup errored) → keep it in "Do first" as before. When in doubt,
+- **Anything else** (no review by ME_LOGIN, ME_LOGIN's reviews all
+  predate the ask, or no Phase 3 record because the lookup errored) →
+  keep it in "Do first" as before. When in doubt,
   surface the ask — a stale bullet is annoying, a missed review blocks a
   teammate.
 
