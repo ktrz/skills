@@ -14,8 +14,8 @@ jobs:
       run:
         working-directory: _shared/handover-validator
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund
@@ -36,7 +36,7 @@ jobs:
   vendor-drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: skills
       - name: Read pinned upstream commit
@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: ktrz/review-plugin-mvp
           ref: ${{ steps.pin.outputs.commit }}
