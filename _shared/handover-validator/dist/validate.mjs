@@ -4311,7 +4311,7 @@ function parseItemHeading(line, offset, lineNumber, state, startOffset) {
   } else {
     source = { kind: "reviewer", login: reviewerLogin, severity: "nit" };
   }
-  const location = locationStr === "review body" ? { kind: "review-body" } : { kind: "file", file, line: parseInt(lineStr, 10) };
+  const location = locationStr === "review body" ? { kind: "review-body" } : { kind: "file", file: unescapeMarkdown(file), line: parseInt(lineStr, 10) };
   return {
     id: "",
     status,
@@ -4328,6 +4328,9 @@ function parseItemHeading(line, offset, lineNumber, state, startOffset) {
     // auto-review: severity seen; reviewer: wait for field
     startOffset
   };
+}
+function unescapeMarkdown(value) {
+  return value.replace(/\\([!-/:-@[-`{-~])/g, "$1");
 }
 function transitionOnBoundary(boundary, item, line, raw, lineOffset, lineNum, fromState, items) {
   finalizeItem(item, raw, lineOffset, items);

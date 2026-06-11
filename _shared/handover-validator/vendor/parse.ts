@@ -289,7 +289,7 @@ function parseItemHeading(
   const location: Location =
     locationStr === 'review body'
       ? { kind: 'review-body' }
-      : { kind: 'file', file: file!, line: parseInt(lineStr!, 10) };
+      : { kind: 'file', file: unescapeMarkdown(file!), line: parseInt(lineStr!, 10) };
 
   return {
     id: '',
@@ -306,6 +306,13 @@ function parseItemHeading(
     severitySeen: source.kind === 'auto-review', // auto-review: severity seen; reviewer: wait for field
     startOffset,
   };
+}
+
+// Markdown escapes a backslash before ASCII punctuation (prettier writes a
+// leading `_` as `\_`). Heading file captures keep that literal backslash, so
+// unescape it here — at parse time — so every consumer gets a real path.
+function unescapeMarkdown(value: string): string {
+  return value.replace(/\\([!-/:-@[-`{-~])/g, '$1');
 }
 
 function transitionOnBoundary(

@@ -11,7 +11,7 @@ if it rejects one, the plugin would have shown "Failed to load findings".
 | Field  | Value                                      |
 | ------ | ------------------------------------------ |
 | Repo   | `ktrz/review-plugin-mvp`                   |
-| Commit | `dfeedb3ee7891510eafab490028d7404da5016de` |
+| Commit | `ae6d7344a09b4f34f15506285797a59527029977` |
 | Branch | `main`                                     |
 
 ## File mapping
