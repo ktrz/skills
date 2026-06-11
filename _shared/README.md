@@ -7,6 +7,7 @@ Canonical sources for content copied into multiple skills.
 - `references/tracker.md` — issue-tracker dispatch table (jira / linear / github / clickup). Copied into each consumer skill at `<skill>/references/tracker.md`. Edit the canonical file, then run the sync step below.
 - `references/prompt-injection-defense.md` — canonical playbook every external-fetching skill cites. Copied into each consumer skill at `<skill>/references/prompt-injection-defense.md`. Edit the canonical file, then run the sync step below.
 - `tracker.example.yaml` — tracker config template. Users copy it to either `~/.claude/tracker.yaml` (shared default) or `<repo>/.claude/tracker.yaml` (per-project override).
+- `handover-validator/` — vendored copy of the `review-plugin-mvp` handover-doc parser, wrapped in a CLI that gates the `pr-<N>-review-decisions.md` / `pr-<N>-auto-review.md` files before `investigate-pr-comments` and `review-pr` emit them. Unlike the references above (synced _within_ this repo via `sync.sh`), this is vendored from another repo — see [`handover-validator/SOURCE.md`](handover-validator/SOURCE.md) for the pin and the `handover-validator-drift` CI job that keeps it honest.
 
 ## Consumers
 

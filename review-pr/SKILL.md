@@ -1,6 +1,6 @@
 ---
 name: review-pr
-version: 1.3.0
+version: 1.4.0
 model: sonnet
 description: >
   Review a pull request by dispatching specialized sub-agents in parallel
@@ -268,8 +268,35 @@ exactly there.
 
 - Persist `severity` and `reported_by` verbatim — emoji prefixing
   happens at post time only, not file-write time.
+- **Validate the written file against the real plugin parser** (see
+  "Validate the auto-mode file" below) before printing success.
 - Print: `wrote <count> findings to <path>`.
 - Do NOT touch GitHub. No `gh pr review`, no `gh pr comment`.
+
+**Validate the auto-mode file.** The `pr-<N>-auto-review.md` file uses
+the same handover schema the `review-plugin-mvp` extension loads (see
+`investigate-pr-comments/references/handover-format.md` → "Auto-mode
+file"). After writing it (auto pipeline **and** auto standalone), run the
+vendored real parser:
+
+```bash
+node _shared/handover-validator/dist/validate.mjs validate <path>
+```
+
+This is the byte-for-byte parser the plugin uses, not a re-implementation
+(see `_shared/handover-validator/SOURCE.md`). It exits `0` when the file
+loads cleanly, or non-zero with the violation list when it does not.
+
+- **On exit 0** — continue (print success / proceed to posting).
+- **On non-zero exit** — **regenerate the file once** from the aggregated
+  findings, fixing the reported violations (commonly a `Source counts:`
+  line that disagrees with the items, an unfenced `**Comment:**` body, or
+  a malformed heading), and validate again. If the **second** validation
+  still fails, **hard-fail**: do not leave the broken file in place as
+  pipeline output and do not post. Print the violation list and
+  `review-pr: refusing to emit an auto-review file the review plugin cannot load`,
+  then stop. A doc the downstream plugin and `investigate-pr-comments`
+  can't parse is worse than no doc.
 
 #### Auto standalone (no flag, no env, no `--deep`)
 
@@ -348,11 +375,15 @@ visual; severity, threshold, and overlap-skim are per-finding.
   finding shape. Phase 2's handover format imports from it; do not
   diverge.
 
-## TDD note
+## Validation fixture
 
-A smoke fixture lives under `references/` (see the plan's TDD note —
-to be added in a follow-up commit alongside the first end-to-end
-run): a recorded review pass over a known small synthetic diff,
-asserting the auto-mode file matches the handover schema
-byte-for-byte. The diff is intentionally small and synthetic so the
-fixture stays stable across model updates.
+The auto-mode file format is enforced at runtime by the vendored real
+parser in `_shared/handover-validator/` (Step 9, "Validate the auto-mode
+file"). That directory ships a synthetic handover-doc fixture
+(`fixtures/valid-handover.md`) and a smoke test (`npm test`) asserting the
+validator accepts a well-formed doc and rejects a malformed one; the
+`handover-validator drift check` CI job runs it on every push. This
+replaces the previously-deferred "recorded review pass" TDD note — rather
+than snapshot a model's output (which drifts across model updates), we
+validate every emitted file against the byte-for-byte parser the plugin
+actually loads.

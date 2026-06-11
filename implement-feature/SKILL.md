@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-version: 1.3.0
+version: 1.3.1
 model: sonnet
 description: >
   Execute a multi-phase feature plan using parallel worktree agents, then open PRs. Use when you
@@ -132,7 +132,7 @@ For each PR `<N>` from Step 5's table, in PR-number order:
 
 1. **Invoke `review-pr` in pipeline mode.** Set the `PIPELINE=1` env so the skill runs in auto mode (writes findings to a file, does not post to GitHub). Pass the PR number explicitly. Wait for completion. Capture the auto-review file path it prints (default: `plans.local/<repo>/pr-<N>-auto-review.md`).
 
-2. **Invoke `investigate-pr-comments`.** Pass the PR number and `--auto-review-file <path>` from step 1. The skill fetches human reviewer comments from GitHub, merges them with the auto-review findings, runs investigation subagents in parallel, and writes the handover document to `plans.local/<repo>/pr-<N>-review-decisions.md`. Wait for completion.
+2. **Invoke `investigate-pr-comments`.** Pass the PR number and `--auto-review-file <path>` from step 1. The skill fetches human reviewer comments from GitHub, merges them with the auto-review findings, runs investigation subagents in parallel, and writes the handover document to `plans.local/<repo>/pr-<N>-review-decisions.md`. Wait for completion. A freshly-opened PR normally has **zero** human reviewer comments — `investigate-pr-comments` still writes the handover doc in that case (auto-review-only, or even empty), so always expect the decisions file to exist after this step; treat a missing file as a failure to surface, not the expected fresh-PR outcome.
 
 3. **Report.** One line per PR:
 

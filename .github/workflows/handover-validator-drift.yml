@@ -1,0 +1,67 @@
+name: handover-validator drift check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Self-contained: the committed bundle must be a faithful build of the
+  # vendored source, and the validator must still accept the fixtures.
+  selfcheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: _shared/handover-validator
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Assert committed bundle is up to date
+        run: |
+          if ! git diff --quiet -- dist/validate.mjs; then
+            echo "::error::dist/validate.mjs is stale. Run 'npm run build' in _shared/handover-validator and commit."
+            git diff -- dist/validate.mjs
+            exit 1
+          fi
+      - run: npm test
+
+  # Cross-repo: the vendored parser must match review-plugin-mvp at the commit
+  # pinned in SOURCE.md. Catches hand-edits to vendor/*.ts and a pin bump that
+  # forgot to re-sync. review-plugin-mvp is public, so the checkout needs no
+  # token and the check runs unconditionally on every PR.
+  vendor-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: skills
+      - name: Read pinned upstream commit
+        id: pin
+        run: |
+          commit=$(grep -oE '[0-9a-f]{40}' skills/_shared/handover-validator/SOURCE.md | head -1)
+          if [ -z "$commit" ]; then
+            echo "::error::could not read pinned commit from SOURCE.md"
+            exit 1
+          fi
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        with:
+          repository: ktrz/review-plugin-mvp
+          ref: ${{ steps.pin.outputs.commit }}
+          path: plugin
+      - name: Assert vendored parser matches pinned upstream
+        run: |
+          for f in parse.ts types.ts; do
+            if ! diff -u "plugin/src/schema/$f" "skills/_shared/handover-validator/vendor/$f"; then
+              echo "::error::vendor/$f has drifted from review-plugin-mvp@${{ steps.pin.outputs.commit }}. Re-sync via _shared/handover-validator/sync.sh."
+              exit 1
+            fi
+          done
+          echo "vendored parser matches review-plugin-mvp@${{ steps.pin.outputs.commit }}"

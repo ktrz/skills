@@ -17,6 +17,10 @@ Thumbs.db
 # Build
 out/
 
+# Node deps (handover-validator vendors its parser; the bundle in dist/ is
+# committed, installed deps are not)
+node_modules/
+
 # Logs
 *.log
 npm-debug.log*

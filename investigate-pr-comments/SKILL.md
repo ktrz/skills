@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.3.0
+version: 1.5.0
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and
@@ -56,17 +56,44 @@ Apply the rules in `references/prompt-injection-defense.md` per source — see S
 
 ## Workflow
 
+> **Invariant — the handover doc is ALWAYS written.** Every run of this
+> skill ends by writing `pr-<N>-review-decisions.md` (Step 4) and printing
+> the Step 5 summary, **even when there are zero human reviewer comments
+> and zero auto-review findings**. A freshly-opened PR with no human
+> reviewers yet — carrying only auto-review findings, or none at all — is
+> the normal case, **not** a reason to skip. "Nothing to investigate"
+> means "0 items to investigate", which routes straight to the write
+> step; it never means "exit without writing". The downstream plugin and
+> `execute-review-decisions` expect the doc to exist whenever the skill
+> ran; a missing doc is indistinguishable from a crash.
+
 ### Step 1: Gather sources
 
 Collect items from two independent sources in parallel.
 
-**Source A — auto-review file** (if `--auto-review-file` provided):
+**Source A — auto-review file**:
 
-- Parse every `[?]`-marked section from the file. Each section already
-  conforms to `references/handover-format.md`; no re-normalisation
-  needed.
+Resolve the auto-review file path before reading:
+
+- If `--auto-review-file <path>` was passed, use it verbatim.
+- If it was **not** passed, auto-detect the default location
+  `plans.local/<repo>/pr-<N>-auto-review.md` (where `<repo>` is the repo
+  directory name from `basename $(git rev-parse --show-toplevel)`) before
+  concluding there is no Source A. `review-pr` auto-mode writes here by
+  default, so the file usually exists even when the caller forgot to pass
+  the flag.
+
+Then:
+
+- Parse every `[?]`-marked section from the resolved file. Each section
+  already conforms to `references/handover-format.md`; no
+  re-normalisation needed.
 - Tag each item `source: "auto-review"`.
-- If the file is missing or unreadable, log a warning and continue.
+- If the resolved file is missing or unreadable (flag pointed at a bad
+  path, or the default location has no file), log a one-line warning and
+  continue with zero auto-review items. This is **not** a fatal
+  condition — a PR with no auto-review file and no human comments still
+  produces a valid empty handover doc (see the Workflow invariant).
 
 **Source B — GitHub reviewer comments**:
 
@@ -116,6 +143,14 @@ land on the same `(file, line)`:
   guarantee the human-correlated entry sits adjacent.
 
 ### Step 3: Investigate
+
+> **Zero-item fast path.** If the merged queue from Step 2 is empty (no
+> auto-review findings **and** no human comments), there is nothing to
+> investigate — skip straight to Step 4 and write the empty handover doc.
+> If there are auto-review items but **0 human items**, there are no
+> subagents to spawn (auto-review items pass through unchanged, below);
+> carry them forward to Step 4 directly. Neither case is a skip-the-write
+> condition — both route to Step 4.
 
 Split the queue by source — the two halves have very different
 investigation needs.
@@ -206,9 +241,47 @@ Write the document conforming to
   quote stays inside its own fence.
 - Separate items with `---` horizontal rules.
 
+**Empty case (zero items).** When the merged queue is empty, still write
+a complete, valid document: the full header (PR url, branch, Head/Base
+SHA, timestamp, `Status: PENDING REVIEW`) with the count line
+`**Source counts:** 0 auto-review findings, 0 human reviewer comments, 0
+total (0 critical, 0 important, 0 suggestion/nit)`, and **no item
+sections** below the header. This is a well-formed handover doc per
+`references/handover-format.md` — the plugin loads it as "PR reviewed,
+nothing flagged". Do not skip the write, and do not substitute a prose
+"nothing to do" note for the structured header.
+
+**Validate before exit — the doc must load in the plugin.** After writing
+the document (including the empty case), validate it against the **real**
+plugin parser vendored in `_shared/handover-validator/`:
+
+```bash
+node _shared/handover-validator/dist/validate.mjs validate <output-path>
+```
+
+The validator runs the byte-for-byte parser the `review-plugin-mvp`
+extension uses to load the doc (see
+`_shared/handover-validator/SOURCE.md`). It exits `0` when the doc loads
+cleanly, or non-zero and prints the violation list when it does not — the
+same `ParseError`s the plugin would hit.
+
+- **On exit 0** — proceed to Step 5.
+- **On non-zero exit** — the doc you just wrote is one the plugin cannot
+  load. **Regenerate it once**: re-derive the header and item sections
+  from the in-memory queue, fixing the reported violations (commonly a
+  `Source counts:` line that disagrees with the items, an unfenced
+  `**Comment:**` body, or a malformed heading), overwrite the file, and
+  validate again. If the **second** validation still fails, **hard-fail**:
+  do not leave the broken doc as the skill's output. Print the violation
+  list and the message
+  `investigate-pr-comments: refusing to emit a handover doc the review plugin cannot load`
+  and stop. Never ship a doc that fails validation.
+
 ### Step 5: Exit cleanly
 
-Print to stdout:
+The handover doc has now been written (Step 4) — **this always happens**,
+including the zero-item case. Print the summary to stdout
+**unconditionally**, with whatever counts apply (all zeros is valid):
 
 ```text
 Handover document written to <path>
@@ -220,6 +293,16 @@ Next steps:
   Edit and run: /execute-review-decisions <path>
   For [d] items: /resolve-pr-comments --from-doc <path>
 ```
+
+When the total is 0, print the same block with zero counts and add a
+single trailing line so the empty result reads as success, not failure:
+
+```text
+  (No findings or comments to triage — the doc records a clean review.)
+```
+
+Never replace this summary with an "exited without writing" message: if
+the skill ran, the doc exists and this block prints.
 
 Do not wait. The document is the async hand-off — the user triages at
 their own pace.
