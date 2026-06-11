@@ -286,7 +286,11 @@ a complete, valid document: the full header (PR url, branch, Head/Base
 SHA, timestamp, `Status: PENDING REVIEW`) with the count line
 `**Source counts:** 0 auto-review findings, 0 human reviewer comments, 0
 total (0 critical, 0 important, 0 suggestion/nit)`, and **no item
-sections** below the header. This is a well-formed handover doc per
+sections** below the header. The header must still be closed with a
+`---` separator line — the plugin parser treats an unclosed header as
+truncated input, so the separator is required even when nothing follows
+it (see `_shared/handover-validator/fixtures/empty-handover.md` for the
+exact shape). This is a well-formed handover doc per
 `references/handover-format.md` — the plugin loads it as "PR reviewed,
 nothing flagged". Do not skip the write, and do not substitute a prose
 "nothing to do" note for the structured header.
