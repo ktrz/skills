@@ -89,4 +89,4 @@ npx skills add ktrz/skills --skill resolve-pr-comments plan-my-day
 npx skills add ktrz/skills --agent claude-code
 ```
 
-The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/skills/`). Skills that consume `_shared/references/tracker.md` already ship with their copy bundled — no extra step.
+The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/skills/`). Skills that consume shared assets already ship with their copy bundled — no extra step. This covers both `_shared/references/` docs (e.g. `tracker.md`) and `_shared/` bundles (the `handover-validator` validator, shipped into `review-pr` and `investigate-pr-comments` as `vendor/handover-validator.mjs`).

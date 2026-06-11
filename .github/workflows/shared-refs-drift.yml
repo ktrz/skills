@@ -16,7 +16,7 @@ jobs:
       - run: bash _shared/sync.sh
       - run: |
           if ! git diff --quiet HEAD; then
-            echo "::error::Consumer copies of _shared/references/ are out of sync."
+            echo "::error::Consumer copies of _shared/ assets (references and bundles) are out of sync."
             echo "Run _shared/sync.sh locally and commit the result."
             git diff HEAD
             exit 1
