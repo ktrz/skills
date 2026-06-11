@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- **Validator now ships with the skill — works on installed copies.** The handover validator the Step 9 check runs is now distributed into this skill as `vendor/handover-validator.mjs` (a generated, byte-for-byte copy of `_shared/handover-validator/dist/validate.mjs`, synced by `_shared/sync.sh`). The invocation changed from the CWD-relative `node _shared/handover-validator/dist/validate.mjs validate <path>` to `node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>`, resolved from the harness-injected skill base directory. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so machine validation exited "module not found" and the skill misread that as a malformed doc → hard-fail. The exit-code contract is unchanged (0 → continue; non-zero → regenerate once → hard-fail)
+
 ## 1.5.0
 
 - New **`--re-review` mode** for follow-up passes on an already-reviewed PR. Orthogonal to `--deep` / `--pipeline` (re-review changes _what extra is computed_, the existing flags keep deciding _where output goes_). Adds four pieces:

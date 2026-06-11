@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.5.0
+version: 1.6.0
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and

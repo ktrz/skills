@@ -11,6 +11,17 @@ the plugin can't load never ships.
 node _shared/handover-validator/dist/validate.mjs validate <doc-path>
 ```
 
+`dist/validate.mjs` is the **canonical** bundle. It is also distributed into each consumer
+skill's `vendor/` dir (`review-pr/vendor/handover-validator.mjs`,
+`investigate-pr-comments/vendor/handover-validator.mjs`) by `_shared/sync.sh`, so the skills can
+run it from their own directory on an installed copy — where `_shared/` is never present. The
+consumer copies are generated; never hand-edit them. Edit the source here, run `npm run build`,
+then `bash _shared/sync.sh` (the pre-commit hook does both on commit). At runtime the skills call:
+
+```bash
+node "<skill-base-dir>/vendor/handover-validator.mjs" validate <doc-path>
+```
+
 - Exit `0` — the doc parses; the plugin would load it. Prints `OK: … (N item(s))`.
 - Exit `1` — the doc is malformed. Prints `INVALID:` plus the violation list (the parser's
   own `ParseError` messages, with any wrapped zod schema issues expanded).

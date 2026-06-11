@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- **Validator now ships with the skill — works on installed copies.** The handover validator the Step 4 check runs is now distributed into this skill as `vendor/handover-validator.mjs` (a generated, byte-for-byte copy of `_shared/handover-validator/dist/validate.mjs`, synced by `_shared/sync.sh`). The invocation changed from the CWD-relative `node _shared/handover-validator/dist/validate.mjs validate <path>` to `node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>`, resolved from the harness-injected skill base directory. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so machine validation exited "module not found" and the skill misread that as a malformed doc → hard-fail. The exit-code contract is unchanged (0 → proceed; non-zero → regenerate once → hard-fail)
+
 ## 1.5.0
 
 - Step 4 now **validates the written handover doc against the real plugin parser** before exit. The `review-plugin-mvp` parser is vendored byte-for-byte into `_shared/handover-validator/`; the skill runs `node _shared/handover-validator/dist/validate.mjs validate <path>` after writing. On a validation failure the doc is **regenerated once** (fixing the reported violations), then re-validated; a second failure **hard-fails** the skill rather than emitting a doc the plugin cannot load. Closes the gap where a subtly-malformed doc (e.g. a `Source counts:` line disagreeing with the items, or an unfenced `**Comment:**`) would ship and then fail to open in the plugin with an opaque "Failed to load findings"
