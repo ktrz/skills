@@ -253,17 +253,22 @@ nothing flagged". Do not skip the write, and do not substitute a prose
 
 **Validate before exit — the doc must load in the plugin.** After writing
 the document (including the empty case), validate it against the **real**
-plugin parser vendored in `_shared/handover-validator/`:
+plugin parser shipped with this skill at `vendor/handover-validator.mjs`.
+Substitute the absolute skill base directory the harness injected
+("Base directory for this skill: …") for `<skill-base-dir>`:
 
 ```bash
-node _shared/handover-validator/dist/validate.mjs validate <output-path>
+node "<skill-base-dir>/vendor/handover-validator.mjs" validate <output-path>
 ```
 
 The validator runs the byte-for-byte parser the `review-plugin-mvp`
-extension uses to load the doc (see
-`_shared/handover-validator/SOURCE.md`). It exits `0` when the doc loads
-cleanly, or non-zero and prints the violation list when it does not — the
-same `ParseError`s the plugin would hit.
+extension uses to load the doc. `vendor/handover-validator.mjs` is a
+generated copy of `_shared/handover-validator/dist/validate.mjs`
+(provenance: `_shared/handover-validator/SOURCE.md`), synced into this
+skill by `_shared/sync.sh` so it resolves on an installed copy without
+`_shared/` present. It exits `0` when the doc loads cleanly, or non-zero
+and prints the violation list when it does not — the same `ParseError`s
+the plugin would hit.
 
 - **On exit 0** — proceed to Step 5.
 - **On non-zero exit** — the doc you just wrote is one the plugin cannot

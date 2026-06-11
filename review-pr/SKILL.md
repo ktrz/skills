@@ -367,15 +367,21 @@ exactly there.
 the same handover schema the `review-plugin-mvp` extension loads (see
 `investigate-pr-comments/references/handover-format.md` → "Auto-mode
 file"). After writing it (auto pipeline **and** auto standalone), run the
-vendored real parser:
+vendored real parser, shipped with this skill at `vendor/handover-validator.mjs`.
+Substitute the absolute skill base directory the harness injected
+("Base directory for this skill: …") for `<skill-base-dir>`:
 
 ```bash
-node _shared/handover-validator/dist/validate.mjs validate <path>
+node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>
 ```
 
-This is the byte-for-byte parser the plugin uses, not a re-implementation
-(see `_shared/handover-validator/SOURCE.md`). It exits `0` when the file
-loads cleanly, or non-zero with the violation list when it does not.
+This is the byte-for-byte parser the plugin uses, not a re-implementation.
+`vendor/handover-validator.mjs` is a generated copy of
+`_shared/handover-validator/dist/validate.mjs` (provenance:
+`_shared/handover-validator/SOURCE.md`), synced into this skill by
+`_shared/sync.sh` so it resolves on an installed copy without `_shared/`
+present. It exits `0` when the file loads cleanly, or non-zero with the
+violation list when it does not.
 
 - **On exit 0** — continue (print success / proceed to posting).
 - **On non-zero exit** — **regenerate the file once** from the aggregated
@@ -513,8 +519,10 @@ including deep.
 ## Validation fixture
 
 The auto-mode file format is enforced at runtime by the vendored real
-parser in `_shared/handover-validator/` (Step 9, "Validate the auto-mode
-file"). That directory ships a synthetic handover-doc fixture
+parser — shipped with this skill as `vendor/handover-validator.mjs`, a
+synced copy of the canonical bundle in `_shared/handover-validator/`
+(Step 9, "Validate the auto-mode file"). That canonical directory ships a
+synthetic handover-doc fixture
 (`fixtures/valid-handover.md`) and a smoke test (`npm test`) asserting the
 validator accepts a well-formed doc and rejects a malformed one; the
 `handover-validator drift check` CI job runs it on every push. This
