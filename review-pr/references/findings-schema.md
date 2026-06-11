@@ -18,9 +18,13 @@ be normalised into this exact shape before aggregation:
   "severity": "critical | important | suggestion | nit",
   "description": "<one-paragraph statement of the problem>",
   "recommendation": "<concrete proposed fix or follow-up>",
-  "reported_by": ["code-reviewer"]
+  "reported_by": ["code-reviewer"],
+  "resolution_status": "not-addressed"
 }
 ```
+
+`resolution_status` is optional and appears only in `--re-review` runs —
+see the field rules below.
 
 ## Field rules
 
@@ -41,6 +45,19 @@ be normalised into this exact shape before aggregation:
   May reference a code snippet or a commit-style suggestion.
 - **`reported_by`** — list of agent names (or `single-pass` for the
   fallback). After dedup, this array unions all contributing agents.
+- **`resolution_status`** — optional; exactly one of `addressed`,
+  `partial`, `not-addressed`, `cant-tell`. Only set in `--re-review`
+  runs, and only on a finding that matches a **prior item** (same
+  `(file, line)` plus substantively overlapping point — the identity
+  rule in `rereview-agent.md`). A specialist that re-includes a
+  still-open prior finding sets `"not-addressed"` so output rendering
+  can mark it "previously raised, still open" instead of presenting it
+  as a fresh discovery. The resolution-verifier agent reuses this same
+  enum as its per-comment `verdict` (see `rereview-agent.md` → "Verifier
+  output handling"); verifier entries are not findings and bypass
+  aggregation. Absent everywhere outside `--re-review`; downstream
+  consumers must treat a missing field as "not applicable", not as
+  `not-addressed`.
 
 ## Severity mapping
 

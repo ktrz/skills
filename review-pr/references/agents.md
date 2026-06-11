@@ -141,6 +141,11 @@ The `reported_by` value the agent emits is overridden at normalisation
 time with the canonical agent name from `agents:` so custom prompts
 cannot accidentally claim to be a different agent.
 
+In `--re-review` mode, the upstream injection block from
+`rereview-agent.md` ("Upstream injection block") is appended to this
+template between the diff fence and `# Your task` — for every
+specialist, custom agents included, and the single-pass fallback.
+
 ## Severity-score normalisation
 
 `pr-review-toolkit:code-reviewer` and `pr-review-toolkit:type-design-analyzer`
@@ -148,6 +153,29 @@ emit confidence / severity scores that don't directly match our four
 buckets. Apply the mapping table in `findings-schema.md` ("Severity
 mapping" section) before aggregation. Findings whose source score
 falls below the lowest bucket are dropped, not coerced upward.
+
+## Resolution verifier (`--re-review` only)
+
+A seventh, special-purpose agent that exists outside the `agents:`
+config resolution above:
+
+- **Dispatched only when** `--re-review` is active **and** the
+  prior-findings set built at Step 2b is non-empty. It cannot be
+  enabled, disabled, or replaced via the `agents:` key — it is part of
+  the re-review mode itself, and `agents: []` (forced single-pass) does
+  not suppress it.
+- **Prompt** — built from the template in `rereview-agent.md`
+  ("Verifier prompt"), not the per-agent template above. It receives
+  the fenced prior comments and the fenced diff; it does not receive
+  the `focus:` hint or the guidelines block (it audits resolution, it
+  does not review code).
+- **Dispatch** — as a general-purpose Task call in the same parallel
+  turn as the specialists (SKILL.md Step 6). No plugin probe involved;
+  the verifier works whether or not pr-review-toolkit is installed.
+- **Output** — its JSON (one verdict per prior comment) bypasses Step 7
+  normalisation and Step 8 aggregation, flowing only into the Step 9
+  resolution report. Parse and failure handling per `rereview-agent.md`
+  → "Verifier output handling".
 
 ## Custom-agent gotchas
 
