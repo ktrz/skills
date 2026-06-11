@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0
+
+- Step 9 now **validates the auto-mode file (`pr-<N>-auto-review.md`) against the real plugin parser** before printing success or posting. The `review-plugin-mvp` parser is vendored byte-for-byte into `_shared/handover-validator/`; the skill runs `node _shared/handover-validator/dist/validate.mjs validate <path>` after the file write in both auto pipeline and auto standalone modes. On failure the file is **regenerated once** from the aggregated findings, then re-validated; a second failure **hard-fails** rather than leaving a file the downstream plugin and `investigate-pr-comments` cannot parse
+- Retired the deferred "TDD note" (a snapshot of a recorded review pass that would drift across model updates) in favour of the validator's synthetic fixture + smoke test, run by the `handover-validator drift check` CI job. New "Validation fixture" section documents this
+
 ## 1.2.0
 
 - Step 9 `output_dir` resolution rules made explicit: the default `plans.local/<repo>/` substitutes the `<repo>` token from `basename $(git rev-parse --show-toplevel)`; user overrides are taken **verbatim** with no automatic `<repo>` append. If users want per-repo subdirs under a custom root, they include the `<repo>` token in their config themselves. Closes ambiguity in the previous wording where it was unclear whether a user-set `output_dir` would have `<repo>` appended
