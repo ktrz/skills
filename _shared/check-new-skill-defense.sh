@@ -8,7 +8,7 @@
 #      `git diff --diff-filter=A --name-only ${BASE_SHA:-HEAD~1}...HEAD -- '*/SKILL.md'`.
 set -euo pipefail
 
-ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator"
+ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator checkpoint"
 
 missing=()
 

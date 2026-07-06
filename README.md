@@ -37,6 +37,12 @@ Each top-level directory is a self-contained skill (`SKILL.md` + optional `refer
 | [request-review](request-review/SKILL.md)               | Post an LFR to Slack and transition the tracker ticket to "In Review".                                                                                       |
 | [resolve-pr-comments](resolve-pr-comments/SKILL.md)     | Two-phase PR review walk-through: collect decisions on every unresolved comment via parallel investigation subagents, then implement and bulk-reply/resolve. |
 
+### Session hygiene
+
+| Skill                             | What it does                                                                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| [checkpoint](checkpoint/SKILL.md) | At a session length/cost checkpoint, assess the session and recommend compact vs handoff, with a ready-to-paste prompt for each. |
+
 ## Setup
 
 **Mac:**
