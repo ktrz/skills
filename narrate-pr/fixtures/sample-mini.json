@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "pr": {
+    "repo": "acme/webapp",
+    "number": 482,
+    "title": "Add in-app notifications",
+    "branch": "feat/notifications",
+    "base": "main"
+  },
+  "sha": "3f2a9c1d4e5b6a7c8d9e0f1a2b3c4d5e6f7a8b9c",
+  "generatedAt": "2026-07-12T09:00:00Z",
+  "packages": [
+    { "id": "core", "label": "@acme/core" },
+    { "id": "api", "label": "@acme/api" },
+    { "id": "web", "label": "@acme/web" }
+  ],
+  "thesis": {
+    "id": "thesis.main",
+    "text": "Adds an in-app notifications feed: the API persists notification events and pushes them to connected clients over a WebSocket channel, while the web app renders a feed panel and a bell icon with an unread-count badge. The event shape lives in core so both sides share one contract.",
+    "receipts": [
+      { "kind": "code", "ref": "packages/api/src/notifications/service.ts:1-40" },
+      { "kind": "report", "ref": "reports/api.md#overview" }
+    ]
+  },
+  "stats": { "files": 24, "additions": 1180, "deletions": 96, "commits": 9 },
+  "architecture": {
+    "prose": [
+      {
+        "id": "prose.delivery-path",
+        "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads. The client never writes notification state directly — it only acknowledges reads.",
+        "receipts": []
+      },
+      {
+        "id": "prose.storage-model",
+        "md": "Events are stored append-only in a `notifications` table; read state is a separate `notification_reads` join table so marking-as-read never mutates the event row.",
+        "receipts": [{ "kind": "doc", "ref": "docs/architecture/notifications.md:18" }]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "diagram.write-path",
+        "type": "lane",
+        "title": "Write path",
+        "caption": "A notification event moves from handler to persisted state to the push gateway.",
+        "lanes": [
+          {
+            "id": "lane.api",
+            "label": "api",
+            "rows": [
+              [
+                { "id": "box.handler", "label": "createNotification()", "sub": "REST handler", "pkg": "api" },
+                { "arrow": "→" },
+                { "id": "box.service", "label": "NotificationService", "sub": "persist + publish", "pkg": "api" },
+                { "arrow": "→" },
+                { "id": "box.repo", "label": "NotificationRepo", "sub": "tenant-scoped", "pkg": "api" }
+              ]
+            ]
+          },
+          {
+            "id": "lane.web",
+            "label": "web",
+            "rows": [
+              [
+                { "id": "box.socket-client", "label": "SocketClient", "sub": "reconnect w/ backoff", "pkg": "web" },
+                { "arrow": "⇄", "label": "push / ack" },
+                { "id": "box.gateway", "label": "SocketGateway", "pkg": "api" }
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "id": "diagram.socket-push",
+        "type": "sequence",
+        "title": "Realtime push on new notification",
+        "caption": "From persistence to a reconciled unread badge.",
+        "actors": [
+          { "id": "actor.service", "label": "NotificationService", "sub": "service.ts", "pkg": "api" },
+          { "id": "actor.gateway", "label": "SocketGateway", "sub": "socket.ts", "pkg": "api" },
+          { "id": "actor.client", "label": "SocketClient", "sub": "socketClient.ts", "pkg": "web" },
+          { "id": "actor.store", "label": "NotificationStore", "sub": "store.ts", "pkg": "web" }
+        ],
+        "steps": [
+          { "kind": "phase", "label": "Event persisted" },
+          { "kind": "msg", "from": "actor.service", "to": "actor.gateway", "label": "publish(event)" },
+          { "kind": "msg", "from": "actor.gateway", "to": "actor.client", "label": "notification:new" },
+          { "kind": "msg", "from": "actor.client", "to": "actor.gateway", "label": "ack(eventId)", "muted": true },
+          { "kind": "msg", "from": "actor.client", "to": "actor.store", "label": "append(event)" },
+          { "kind": "self", "actor": "actor.store", "label": "recompute unread count" }
+        ]
+      },
+      {
+        "id": "diagram.notification-depmap",
+        "type": "depmap",
+        "title": "Notification component dependencies",
+        "caption": "Topology verified against imports at the doc sha; layout is a rendering hint only.",
+        "zones": [
+          { "id": "zone.core", "label": "core" },
+          { "id": "zone.api", "label": "api" },
+          { "id": "zone.web", "label": "web" }
+        ],
+        "nodes": [
+          {
+            "id": "node.types",
+            "zone": "zone.core",
+            "label": "notification types",
+            "sub": ["types.ts"],
+            "chips": ["contract"],
+            "pkg": "core"
+          },
+          {
+            "id": "node.service",
+            "zone": "zone.api",
+            "label": "NotificationService",
+            "sub": ["service.ts"],
+            "chips": ["write path"],
+            "pkg": "api"
+          },
+          {
+            "id": "node.repo",
+            "zone": "zone.api",
+            "label": "NotificationRepo",
+            "sub": ["repo.ts"],
+            "chips": ["tenant-scoped"],
+            "pkg": "api"
+          },
+          {
+            "id": "node.gateway",
+            "zone": "zone.api",
+            "label": "SocketGateway",
+            "sub": ["socket.ts"],
+            "chips": ["push path"],
+            "pkg": "api"
+          },
+          {
+            "id": "node.feed",
+            "zone": "zone.web",
+            "label": "NotificationFeed",
+            "sub": ["NotificationFeed.tsx", "store.ts"],
+            "chips": ["ui"],
+            "pkg": "web"
+          },
+          {
+            "id": "node.badge",
+            "zone": "zone.web",
+            "label": "UnreadBadge",
+            "sub": ["UnreadBadge.tsx"],
+            "chips": ["ui"],
+            "pkg": "web"
+          }
+        ],
+        "edges": [
+          { "from": "node.service", "to": "node.repo", "label": "insert", "kind": "call" },
+          { "from": "node.service", "to": "node.gateway", "label": "publish", "kind": "call" },
+          { "from": "node.gateway", "to": "node.feed", "label": "notification:new", "kind": "net" },
+          { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call" },
+          { "from": "node.service", "to": "node.types", "kind": "type-only" },
+          { "from": "node.feed", "to": "node.types", "kind": "type-only" }
+        ],
+        "layout": {
+          "cols": 3,
+          "nodes": {
+            "node.types": { "col": 1, "row": 1, "colSpan": 3 },
+            "node.service": { "col": 1, "row": 2 },
+            "node.repo": { "col": 1, "row": 3 },
+            "node.gateway": { "col": 2, "row": 2 },
+            "node.feed": { "col": 3, "row": 2 },
+            "node.badge": { "col": 3, "row": 3 }
+          }
+        }
+      }
+    ],
+    "channels": [
+      {
+        "id": "channel.realtime-push",
+        "tag": "Strong · realtime path",
+        "title": "WebSocket push",
+        "points": [
+          "Server pushes a notification event within one tick of persistence",
+          "Client reconciles unread count from the event payload, not a refetch",
+          "Client acks each event so the gateway can drop its retry buffer"
+        ],
+        "receipts": [
+          { "kind": "code", "ref": "packages/api/src/notifications/socket.ts:12-30" },
+          { "kind": "url", "ref": "https://developer.mozilla.org/en-US/docs/Web/API/WebSocket" }
+        ]
+      },
+      {
+        "id": "channel.poll-fallback",
+        "tag": "Weak · cold load",
+        "title": "Poll on mount",
+        "points": [
+          "Feed panel fetches the latest 50 events on mount before the socket connects",
+          "Poll result and socket stream are merged by event id, newest wins"
+        ],
+        "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.ts:41-58" }]
+      }
+    ],
+    "boundaries": [
+      {
+        "id": "boundary.tenant-isolation",
+        "text": "Notification queries are always scoped by tenant id at the repository layer; no handler queries the notifications table directly.",
+        "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/repo.ts:8-22" }]
+      },
+      {
+        "id": "boundary.client-read-only",
+        "text": "The web client can only acknowledge reads; it can never create, edit, or delete notification events.",
+        "receipts": [
+          { "kind": "code", "ref": "packages/api/src/notifications/routes.ts:15" },
+          { "kind": "doc", "ref": "docs/architecture/notifications.md:34" }
+        ]
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "comp.notification-service",
+      "pkg": "api",
+      "title": "Notification service",
+      "runtime": "server",
+      "files": [
+        { "path": "packages/api/src/notifications/service.ts", "role": "write path" },
+        { "path": "packages/api/src/notifications/repo.ts", "role": "persistence" },
+        { "path": "packages/api/src/notifications/socket.ts", "role": "push gateway" }
+      ],
+      "summary": "Persists notification events append-only and fans them out to connected clients over the WebSocket gateway. Owns the retry buffer for unacked events.",
+      "invariants": [
+        {
+          "id": "inv.persist-before-push",
+          "text": "An event is always durably persisted before it is pushed, so a reconnecting client can never see an event that later disappears.",
+          "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.ts:22-27" }]
+        }
+      ],
+      "receipts": [
+        { "kind": "code", "ref": "packages/api/src/notifications/service.ts:1-40" },
+        { "kind": "report", "ref": "reports/api.md#notification-service" }
+      ]
+    },
+    {
+      "id": "comp.notification-feed",
+      "pkg": "web",
+      "title": "Notification feed UI",
+      "runtime": "browser",
+      "files": [
+        { "path": "packages/web/src/notifications/NotificationFeed.tsx", "role": "feed panel" },
+        { "path": "packages/web/src/notifications/UnreadBadge.tsx", "role": "bell badge" },
+        { "path": "packages/web/src/notifications/store.ts", "role": "client state" }
+      ],
+      "summary": "Renders the feed panel and the bell badge from a single client store that merges the poll-on-mount snapshot with the live socket stream.",
+      "invariants": [
+        {
+          "id": "inv.badge-matches-store",
+          "text": "The unread badge is always derived from the store's event list, never tracked as an independent counter.",
+          "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.ts:63-70" }]
+        }
+      ],
+      "receipts": [{ "kind": "report", "ref": "reports/web.md#notification-feed" }]
+    },
+    {
+      "id": "comp.notification-types",
+      "pkg": "core",
+      "title": "Shared notification contract",
+      "runtime": "shared",
+      "files": [{ "path": "packages/core/src/notifications/types.ts", "role": "event shape" }],
+      "summary": "The versioned NotificationEvent shape shared by API and web. Adding a field requires bumping the event version so old clients can ignore unknown payloads.",
+      "invariants": [
+        {
+          "id": "inv.event-shape-versioned",
+          "text": "Every NotificationEvent carries an integer schemaVersion; consumers must ignore events with a version they do not know.",
+          "receipts": [{ "kind": "code", "ref": "packages/core/src/notifications/types.ts:4-9" }]
+        }
+      ],
+      "receipts": [{ "kind": "code", "ref": "packages/core/src/notifications/types.ts:1-30" }]
+    }
+  ],
+  "reviewOrder": [
+    {
+      "id": "order.contracts",
+      "step": 1,
+      "scope": "packages/core/src/notifications/types.ts",
+      "timeboxMin": 10,
+      "rationale": "The event shape is the contract every other component depends on; reading it first makes the service and UI diffs legible.",
+      "receipts": [{ "kind": "code", "ref": "packages/core/src/notifications/types.ts:1-30" }]
+    },
+    {
+      "id": "order.service",
+      "step": 2,
+      "scope": "packages/api/src/notifications/",
+      "timeboxMin": 25,
+      "rationale": "The service owns both persistence and push; its persist-before-push ordering and the retry buffer are the riskiest logic in the PR.",
+      "receipts": [{ "kind": "report", "ref": "reports/api.md#review-notes" }]
+    },
+    {
+      "id": "order.web-ui",
+      "step": 3,
+      "scope": "packages/web/src/notifications/",
+      "timeboxMin": 20,
+      "rationale": "The client store merges two event sources; with the contract and service already understood, its reconciliation rules are quick to verify.",
+      "receipts": [{ "kind": "report", "ref": "reports/web.md#review-notes" }]
+    }
+  ],
+  "attentionSpots": [
+    {
+      "id": "spot.unread-count-race",
+      "loc": "packages/web/src/notifications/store.ts:66",
+      "why": "The unread count is derived from local socket state, not refetched; a dropped socket message during reconnect could leave the badge stale until the next event.",
+      "group": "realtime path",
+      "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.ts:63-70" }]
+    },
+    {
+      "id": "spot.reconnect-backoff",
+      "loc": "packages/web/src/notifications/socketClient.ts:28",
+      "why": "The backoff cap is 30s but there is no jitter; a fleet-wide disconnect would reconnect every client in lockstep.",
+      "group": "realtime path",
+      "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/socketClient.ts:24-33" }]
+    },
+    {
+      "id": "spot.tenant-filter",
+      "loc": "packages/api/src/notifications/repo.ts:14",
+      "why": "The tenant filter is applied in the repo's base query builder; verify no method bypasses it with a raw query.",
+      "group": "persistence",
+      "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/repo.ts:8-22" }]
+    },
+    {
+      "id": "spot.migration-default",
+      "loc": "packages/api/migrations/0042_notifications.sql:9",
+      "why": "The read-state table defaults to unread for all pre-existing users; on a large tenant this backfills a large unread count on first deploy.",
+      "group": "persistence",
+      "receipts": [{ "kind": "code", "ref": "packages/api/migrations/0042_notifications.sql:1-18" }]
+    },
+    {
+      "id": "spot.badge-overflow",
+      "loc": "packages/web/src/notifications/UnreadBadge.tsx:12",
+      "why": "Counts above 99 render as \"99+\" but the aria-label still reads the raw number; screen-reader and visual output diverge.",
+      "group": "web ui",
+      "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/UnreadBadge.tsx:10-16" }]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test.notification-service",
+      "area": "Notification service",
+      "coverage": "Unit tests cover persist-then-push ordering, tenant-scoped queries, and retry-buffer eviction on ack.",
+      "gaps": "No test exercises a dropped-socket reconnect while the retry buffer is non-empty.",
+      "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.test.ts:1-88" }]
+    },
+    {
+      "id": "test.notification-feed",
+      "area": "Notification feed UI",
+      "coverage": "Store tests cover poll/stream merge by event id and unread-count derivation; a rendering test asserts the 99+ badge cap.",
+      "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.test.ts:1-52" }]
+    }
+  ],
+  "qa": [],
+  "prComments": []
+}
