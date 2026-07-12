@@ -85,6 +85,11 @@ nodes/actors, boxes) MUST resolve to a `packages[].id`. `packages` is purely
 a palette source — the renderer assigns one color per entry and reuses it
 wherever that `id` appears as a `pkg` reference.
 
+`packages[].id` values are palette keys, a separate namespace from node
+ids: a plain lowercase token (e.g. `api`), unique within `packages[]`,
+not required to match the `type.slug` node-id pattern — validation
+rules 1 and 2 do not apply to them.
+
 ## thesis
 
 A single claim node: what the PR does, in one paragraph.
@@ -517,11 +522,17 @@ rendered exactly as given.
 `validate.mjs` implements these rules normatively; a document that
 violates any of them is invalid.
 
-1. **Id uniqueness.** Every `id` in the document is unique document-wide.
-2. **Id pattern.** Every `id` matches `^[a-z]+\.[a-z0-9-]+$` — a lowercase
-   type prefix, a literal `.`, then a lowercase-kebab-case slug. Slugs
-   MUST be human-readable (e.g. `comp.notification-service`), never
-   positional/numeric (e.g. not `comp.001`).
+1. **Id uniqueness.** Every node `id` in the document is unique
+   document-wide. Applies to node ids only: `packages[].id` is a separate
+   palette-key namespace (a plain lowercase token, unique within
+   `packages[]`), and `layout.nodes` map keys are references checked by
+   rule 6, not id declarations.
+2. **Id pattern.** Every node `id` matches `^[a-z]+\.[a-z0-9-]+$` — a
+   lowercase type prefix, a literal `.`, then a lowercase-kebab-case
+   slug. Slugs MUST be human-readable (e.g. `comp.notification-service`),
+   never positional/numeric (e.g. not `comp.001`). Applies to node ids
+   only — `packages[].id` palette keys are not required to match this
+   pattern.
 3. **Receipts on claim-bearing nodes.** Each of the following node kinds
    requires at least one receipt: `thesis`, `architecture.channels[]`,
    `architecture.boundaries[]`, `components[]`, `components[].invariants[]`,
