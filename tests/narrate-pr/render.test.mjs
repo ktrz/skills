@@ -72,6 +72,12 @@ test("inlineMd: url with _ and * is not mangled by emphasis pass", () => {
   assert.ok(!out.includes("<em>"), "no <em> injected into the URL");
 });
 
+test("inlineMd: inline code inside link text is restored, not dropped", () => {
+  const out = render(makeDoc({ thesis: thesisWith("See [the `cfg` flag](https://example.com) now.") }));
+  assert.ok(out.includes('<a href="https://example.com">the <code>cfg</code> flag</a>'), "code inside link text must survive");
+  assert.ok(!out.includes("\uE000"), "no leftover placeholder sentinel in output");
+});
+
 test("url receipt with data: ref gets no href", () => {
   const out = render(makeDoc({
     thesis: thesisWith("T.", [{ kind: "url", ref: "data:text/html,hi", note: "sneaky" }]),

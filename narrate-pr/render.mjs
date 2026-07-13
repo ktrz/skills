@@ -94,8 +94,8 @@ function inlineMd(raw) {
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   s = s.replace(/_([^_]+)_/g, "<em>$1</em>");
-  s = s.replace(/\uE000C(\d+)\uE000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
   s = s.replace(/\uE000L(\d+)\uE000/g, (_, i) => links[Number(i)]);
+  s = s.replace(/\uE000C(\d+)\uE000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
   return s;
 }
 
