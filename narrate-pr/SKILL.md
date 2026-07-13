@@ -223,7 +223,10 @@ Build, in order:
   columns, upstream-to-downstream reading left-to-right or top-to-
   bottom. `layout` is never load-bearing (see schema.md "Design
   notes") — get the topology right first; the grid just needs to be
-  legible, not optimal.
+  legible, not optimal. Edge labels come from the edge-verification
+  report's "what is imported/called" strings, trimmed but never
+  re-summarized; a genuinely bidirectional relationship becomes two
+  edges, per schema.md's "Edge label conventions".
 - **`components`** — one per unit of code the PR touches or
   introduces, from the research reports' component inventories.
 - **`reviewOrder`** — **dependency order, not file order or diff

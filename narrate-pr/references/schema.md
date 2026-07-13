@@ -508,6 +508,16 @@ separate, strippable `layout` block.
 | `layout.cols`   | integer | yes      | Grid column count.                                         |
 | `layout.nodes`  | object  | yes      | Map keyed by node id → `{ col, row, colSpan?, rowSpan? }`. |
 
+### Edge label conventions
+
+Every `depmap` edge label names exactly one mechanism, in words a reader can parse standalone.
+
+- **One edge, one mechanism.** The label names it in words a reader can parse standalone — an API/method name, an endpoint, a protocol string — ideally lifted verbatim from verified evidence (the edge-verification report), never re-summarized into invented shorthand.
+- **No glyph shorthand in labels.** No arrows (e.g. `⇄`) standing in for prose.
+- **Bidirectional relationships are two edges.** A genuinely bidirectional relationship MUST be modeled as two edges, each labeled with its own direction's mechanism — never one edge with a two-way label. The renderer draws reciprocal pairs as parallel lanes automatically.
+- **Arrow direction is data/control flow, not reference ownership.** The arrow points the way a reader should follow the flow, not which side holds the reference — e.g. an event-subscription edge points from emitter to consumer, labeled with the event mechanism, even though it's the consumer that registered the callback.
+- **One mechanism per edge.** If a relationship needs more than one mechanism named, split the edge or move the detail into the node's `sub` lines instead of compounding the label.
+
 `layout` is a hint/cache authored at synthesis time — **never load-bearing.**
 It is a distinct block, strippable without loss of topology: a renderer
 that ignores `layout` entirely must still be able to reconstruct full
