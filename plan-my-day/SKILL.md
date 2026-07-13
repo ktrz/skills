@@ -613,8 +613,12 @@ reviewed. Evaluate the rules in order — first match wins:
   timestamp doesn't.
 - **MY_REVIEW exists and `MY_REVIEW.commitOid == headOid`**
   (my review is against the current tip) → move it to a quiet one-line
-  "Already handled" sub-note at the end of "Do first" (e.g.
-  `Already handled: reviewed #NNN, no changes since`). Nothing new to see,
+  "Already handled" sub-note at the end of "Do first". For a Slack-sourced
+  ask, word it with the ask time from `message_ts` — e.g.
+  `Already handled: reviewed #NNN after Thursday's ask` (derive the
+  weekday/relative phrasing from `message_ts`; never quote the message
+  text). For a `reviewRequested` ask (no `message_ts`), use the plain form
+  `Already handled: reviewed #NNN, no changes since`. Nothing new to see,
   but a still-open request stays visible without claiming urgency.
 - **MY_REVIEW is `COMMENTED` and `MY_REVIEW.commitOid != headOid`** → treat
   COMMENTED as non-blocking: put it in the "Already handled" sub-note
