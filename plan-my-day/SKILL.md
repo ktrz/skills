@@ -602,8 +602,17 @@ SHA**, never by ask timestamps.
 Let **MY_REVIEW** be ME_LOGIN's most recent _submitted_ review on the PR
 (highest non-null `submittedAt` among reviews where `login == ME_LOGIN`),
 or none if I never submitted one. Ignore `PENDING` drafts — they have no
-`submittedAt` and are not a review anyone is waiting on. Evaluate the rules
-in order — first match wins:
+`submittedAt` and are not a review anyone is waiting on.
+
+Define one predicate and reuse it — **`REVIEW_COVERS_HEAD`** is true when
+MY_REVIEW exists, its `state` is `APPROVED`, `CHANGES_REQUESTED`, or
+`COMMENTED` (a real sign-off — `DISMISSED` is a _revoked_ one and never
+counts), **and** `MY_REVIEW.commitOid == headOid` (I reviewed the current
+tip). This is the single source of truth for "I've already reviewed what's
+there now"; both the requested and non-requested rules below reference it
+rather than re-spelling the state list, so the coverage definition can only
+ever be changed in one place. Evaluate the rules in order — first match
+wins:
 
 - **PR merged or closed** (`state` is `MERGED` or `CLOSED`) → drop the
   bullet entirely. There is nothing left to act on.
@@ -611,13 +620,11 @@ in order — first match wins:
   → never drop it on account of a past approval. GitHub removes me from the
   requested reviewers when I submit a review, so an active request that
   outlives my `APPROVED` review is a genuine re-request. Route it: quiet
-  "Already handled" sub-note only when I have _coverage_ of the current tip
-  — MY_REVIEW is `APPROVED`, `CHANGES_REQUESTED`, or `COMMENTED` **and**
-  `MY_REVIEW.commitOid == headOid` (explicitly re-requested on code I've
-  already reviewed) — otherwise "Do first" (no submitted review, a SHA
-  mismatch, or a `DISMISSED` review, which is a revoked sign-off that a
-  re-request wants redone). This rule precedes the `APPROVED` drop below so
-  provenance wins.
+  "Already handled" sub-note when `REVIEW_COVERS_HEAD` (explicitly
+  re-requested on code I've already reviewed) — otherwise "Do first" (no
+  submitted review, a SHA mismatch, or a `DISMISSED` review, which is a
+  revoked sign-off that a re-request wants redone). This rule precedes the
+  `APPROVED` drop below so provenance wins.
 - **MY_REVIEW is `APPROVED`** (and not actively requested) → drop the
   bullet. I signed off; later fix-up commits addressing my notes don't need
   my re-review. (A dismissed approval surfaces as `DISMISSED`, not
@@ -629,11 +636,11 @@ in order — first match wins:
   rather than times means a preserved-date rebase still trips this — the
   head SHA always changes on a push or rebase, even when the commit
   timestamp doesn't.
-- **MY_REVIEW is `CHANGES_REQUESTED` or `COMMENTED` and `MY_REVIEW.commitOid == headOid`**
-  (I gave real review coverage and it's against the current tip — note a
-  `DISMISSED` review is a _revoked_ sign-off, so it deliberately does NOT
-  count here and falls to the catch-all) → move it to a quiet one-line
-  "Already handled" sub-note at the end of "Do first". For a Slack-sourced
+- **`REVIEW_COVERS_HEAD`** (APPROVED is already handled by the drop above,
+  so in practice this is `CHANGES_REQUESTED`/`COMMENTED` against the current
+  tip; `DISMISSED` fails the predicate and falls to the catch-all) → move it
+  to a quiet one-line "Already handled" sub-note at the end of "Do first".
+  For a Slack-sourced
   ask, word it with the ask time from `message_ts` — e.g.
   `Already handled: reviewed #NNN after Thursday's ask` (derive the
   weekday/relative phrasing from `message_ts`; never quote the message
