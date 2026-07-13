@@ -519,8 +519,11 @@ afternoon — Slack asks never self-heal the way GitHub review requests do.
 
 2. **Fetch review state in one `gh api graphql` batch.** Build the lookup
    set from every `(repo, N)` found in step 1 plus every PR in
-   `reviewRequested_repoI` from Phase 2 (dedupe pairs). One aliased query
-   covers them all — do not shell out to `gh pr view` per PR:
+   `reviewRequested_repoI` from Phase 2 (dedupe pairs). Track which pairs
+   came from `reviewRequested_repoI` — those are PRs GitHub is **actively
+   requesting** my review on right now, and Phase 4 must not let a stale
+   `APPROVED` review suppress them. One aliased query covers them all — do
+   not shell out to `gh pr view` per PR:
 
    ```graphql
    query {
@@ -550,7 +553,9 @@ afternoon — Slack asks never self-heal the way GitHub review requests do.
    ```
 
    Save `viewer.login` as **ME_LOGIN**, and for each PR a record
-   `{repo, N, state, headOid, reviews: [{login, state, submittedAt, commitOid}], message_ts?}`.
+   `{repo, N, state, headOid, reviews: [{login, state, submittedAt, commitOid}], isReviewRequested, message_ts?}`.
+   Set `isReviewRequested: true` when the pair came from
+   `reviewRequested_repoI` (GitHub is actively requesting my review now).
    `headOid` is `headRefOid` (the SHA of the PR branch's current tip);
    each review's `commitOid` is `commit.oid` (the SHA the review was
    submitted against). Comparing these two SHAs — not timestamps — is how
@@ -600,11 +605,19 @@ reviewed. Evaluate the rules in order — first match wins:
 
 - **PR merged or closed** (`state` is `MERGED` or `CLOSED`) → drop the
   bullet entirely. There is nothing left to act on.
-- **MY_REVIEW is `APPROVED`** → drop the bullet. I signed off; later
-  fix-up commits addressing my notes don't need my re-review. If a
-  branch-protection rule dismissed the stale approval, GitHub re-requests
-  me and the PR reappears independently via `reviewRequested_repoI` — so
-  suppressing here never loses a genuine re-request.
+- **`isReviewRequested` is true** (GitHub is actively requesting my review)
+  → never drop it on account of a past approval. GitHub removes me from the
+  requested reviewers when I submit a review, so an active request that
+  outlives my `APPROVED` review is a genuine re-request. Route it like any
+  live ask: "Do first" when `MY_REVIEW.commitOid != headOid` (or no review),
+  and the quiet "Already handled" sub-note when `MY_REVIEW.commitOid == headOid`
+  (explicitly re-requested on code I've already reviewed). This rule precedes
+  the `APPROVED` drop below so provenance wins.
+- **MY_REVIEW is `APPROVED`** (and not actively requested) → drop the
+  bullet. I signed off; later fix-up commits addressing my notes don't need
+  my re-review. (A dismissed approval surfaces as `DISMISSED`, not
+  `APPROVED`, so it falls through to the catch-all; an active re-request is
+  caught by the rule above.)
 - **MY_REVIEW is `CHANGES_REQUESTED` and `MY_REVIEW.commitOid != headOid`**
   (the tip moved since I reviewed) → keep it in "Do first": the author has
   pushed since I asked for changes, so it needs a re-review. Comparing SHAs
