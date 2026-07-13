@@ -225,14 +225,14 @@ surface). One entry per component.
 
 A suggested, dependency-ordered path through the PR for a reviewer.
 
-| Field        | Type    | Required | Meaning                                                |
-| ------------ | ------- | -------- | ------------------------------------------------------ |
-| `id`         | string  | yes      | `order.<slug>`.                                        |
-| `step`       | integer | yes      | 1-based position in the suggested order.               |
-| `scope`      | string  | yes      | What to look at in this step (files, component, area). |
-| `timeboxMin` | integer | yes      | Suggested minutes to spend on this step.               |
-| `rationale`  | string  | yes      | Why this step comes here in the order.                 |
-| `receipts`   | array   | yes      | ≥1 receipt (claim-bearing node).                       |
+| Field        | Type    | Required | Meaning                                                                                                                                  |
+| ------------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string  | yes      | `order.<slug>`.                                                                                                                          |
+| `step`       | integer | yes      | 1-based position in the suggested order. Across all entries, `step` values MUST form the contiguous set `1..N` — no gaps, no duplicates. |
+| `scope`      | string  | yes      | What to look at in this step (files, component, area).                                                                                   |
+| `timeboxMin` | integer | yes      | Suggested minutes to spend on this step.                                                                                                 |
+| `rationale`  | string  | yes      | Why this step comes here in the order.                                                                                                   |
+| `receipts`   | array   | yes      | ≥1 receipt (claim-bearing node).                                                                                                         |
 
 ```json
 {
@@ -546,7 +546,8 @@ violates any of them is invalid.
 3. **Receipts on claim-bearing nodes.** Each of the following node kinds
    requires at least one receipt: `thesis`, `architecture.channels[]`,
    `architecture.boundaries[]`, `components[]`, `components[].invariants[]`,
-   `attentionSpots[]`, `tests[]`, `qa[]` entries, `prComments[]` entries.
+   `reviewOrder[]`, `attentionSpots[]`, `tests[]`, `qa[]` entries,
+   `prComments[]` entries.
 4. **`sha` format.** `sha` is exactly 40 hex characters.
 5. **Depmap edge references.** Every `depmap` edge's `from` and `to` value
    references an existing node id within that same diagram's `nodes[]`.
@@ -556,15 +557,34 @@ violates any of them is invalid.
 7. **Package references resolve.** Every `pkg` field anywhere in the
    document (components, diagram actors/nodes/boxes) resolves to a
    `packages[].id`.
-8. **Code receipt ref shape.** Every receipt with `"kind": "code"` has a
-   `ref` matching `path:line` or `path:line-line` (a repo-relative path,
-   a colon, an integer line, optionally a hyphen and a second integer
-   line no smaller than the first).
+8. **Code receipt ref shape.** Every receipt with `"kind": "code"` has
+   a `ref` matching `path:line` or `path:line-line` — a repo-relative
+   path (no leading `/`, no `..` segments, not a URL), a colon, a
+   positive integer line, optionally a hyphen and a second integer line
+   no smaller than the first.
 9. **Depmap zone references.** Every depmap node's `zone` value
    references an existing `zones[].id` within that same diagram.
 10. **Sequence actor references.** Every sequence step of kind `msg` has
     `from`/`to` referencing existing `actors[].id` within that same
     diagram; every `self` step's `actor` likewise.
+11. **Doc receipt ref shape.** Every receipt with `"kind": "doc"` has a
+    `ref` satisfying the same `path:line` / `path:line-line` constraints
+    as rule 8.
+12. **URL receipt ref shape.** Every receipt with `"kind": "url"` has
+    an absolute `http(s)` URL as its `ref`.
+13. **Report receipt ref shape.** Every receipt with `"kind": "report"`
+    has a `ref` matching `reports/<name>.md`, optionally followed by
+    `#anchor`.
+14. **Depmap layout bounds.** `layout.cols` is an integer ≥ 1; every
+    `layout.nodes` entry's `col` and `row` (and `colSpan`/`rowSpan` when
+    present) are positive integers, `col + colSpan − 1 ≤ cols` so no
+    node overflows the grid, and `row + rowSpan − 1 ≤ 100`.
+15. **Required ids present.** Every node kind whose field table marks
+    `id` as required carries a non-empty `id` bearing that kind's
+    documented type prefix (e.g. `comp.`, `spot.`, `order.`).
+16. **Review-order step contiguity.** The `reviewOrder[].step` values
+    are exactly the contiguous set `1..N` for `N` entries — no gaps, no
+    duplicates.
 
 ## Design notes
 
