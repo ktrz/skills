@@ -131,6 +131,8 @@ user who wants the prior discussion can open the thread on GitHub.
 - The prior-handled set never **creates** queue items.
 - The downgrade pass never **removes** queue items.
 - Zero resolved threads → the pass is a no-op; zero queue items → the
-  pass has nothing to annotate and the Step 4 empty doc is written
-  exactly as before. The always-write invariant in `SKILL.md` holds
-  unconditionally.
+  pass has nothing to annotate and the Step 4 empty doc is written in the
+  current empty-document format defined in `SKILL.md` — including its
+  header-closing `---` separator, `Status: PENDING REVIEW`, and
+  `Source counts: 0 … 0 total` — never a truncated variant. The
+  always-write invariant in `SKILL.md` holds unconditionally.
