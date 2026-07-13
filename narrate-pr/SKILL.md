@@ -1,6 +1,6 @@
 ---
 name: narrate-pr
-version: 0.1.0
+version: 1.0.0
 description: >
   Narrate a pull request as a multi-level HTML walkthrough — thesis,
   architecture diagrams, components, dependency-ordered review path, and
