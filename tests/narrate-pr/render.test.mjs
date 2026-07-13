@@ -65,6 +65,13 @@ test("inlineMd: https markdown link renders as anchor", () => {
   assert.ok(out.includes('<a href="https://example.com">x</a>'));
 });
 
+test("inlineMd: url with _ and * is not mangled by emphasis pass", () => {
+  const url = "https://host/my_page_here/a*b";
+  const out = render(makeDoc({ thesis: thesisWith(`See [x](${url}) now.`) }));
+  assert.ok(out.includes(`<a href="${url}">x</a>`), "href must survive _ and * untouched");
+  assert.ok(!out.includes("<em>"), "no <em> injected into the URL");
+});
+
 test("url receipt with data: ref gets no href", () => {
   const out = render(makeDoc({
     thesis: thesisWith("T.", [{ kind: "url", ref: "data:text/html,hi", note: "sneaky" }]),
