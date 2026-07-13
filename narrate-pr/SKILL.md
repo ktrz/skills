@@ -153,6 +153,22 @@ every research brief's scope. Wrap it in the same
 and run the same detect-flag scan over it before inserting it into any
 subagent prompt.
 
+**Budget the payload.** Before any of this PR-controlled data flows into
+a fan-out prompt, enforce explicit caps so a pathological PR can't blow
+up every research brief:
+
+- **Title + body:** ≤ 20 KB combined. If larger, truncate the body to
+  the cap for briefing purposes (the full body still seeds the thesis in
+  Step 5, but the fan-out briefs only need enough context to scope).
+- **Diff file list:** ≤ 2000 entries. If larger, this PR is beyond the
+  skill's human-review scale — **STOP** and tell the user the PR is too
+  large to walk through meaningfully; ask them to narrow the range
+  (e.g. a subset of paths or a single commit range) and re-run.
+
+These are guardrails, not review limits — a normal PR is nowhere near
+them. If either cap trips, surface it plainly rather than silently
+truncating scope.
+
 Compute `stats` for `walkthrough.json`: `files` = count of changed
 files, `additions`/`deletions` from the `gh pr view` payload,
 `commits` = length of the `commits` array.

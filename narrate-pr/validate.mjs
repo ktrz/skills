@@ -158,7 +158,11 @@ function checkPathLineRef(kind, ref, refPath, rule) {
   } else if (end !== undefined && Number(end) < Number(start)) {
     fail(rule, refPath, `${kind} receipt ref "${ref}" has end line smaller than start line`);
   }
-  if (filePath.startsWith("/")) {
+  if (/\\/.test(filePath) || /^[A-Za-z]:/.test(filePath)) {
+    // Backslashes and drive-letter prefixes are Windows-absolute shapes; a
+    // backslash also lets "a\..\b" traversal evade the POSIX split("/") check.
+    fail(rule, refPath, `${kind} receipt ref "${ref}" must be a repo-relative POSIX path (no drive letters or backslashes)`);
+  } else if (filePath.startsWith("/")) {
     fail(rule, refPath, `${kind} receipt ref "${ref}" must be repo-relative, not an absolute path`);
   } else if (filePath.includes("://")) {
     fail(rule, refPath, `${kind} receipt ref "${ref}" must be a repo-relative path, not a URL`);
@@ -300,6 +304,11 @@ function checkDepmap(d, path, pkgIds) {
       fail("rule-14-layout-bounds", `${lPath}.cols`, `cols must be >= 1, got ${cols}`);
     }
     if (requireField(d.layout, lPath, "nodes", isObj, "an object")) {
+      for (const id of nodeIds) {
+        if (!Object.hasOwn(d.layout.nodes, id)) {
+          fail("rule-6-layout-keys", `${lPath}.nodes`, `node "${id}" has no layout entry (every node needs exactly one position)`);
+        }
+      }
       for (const [key, place] of Object.entries(d.layout.nodes)) {
         const pPath = `${lPath}.nodes["${key}"]`;
         if (!nodeIds.has(key)) {

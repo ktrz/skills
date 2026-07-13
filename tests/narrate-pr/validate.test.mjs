@@ -1,4 +1,4 @@
-// Tests for validate.mjs — run with: node --test tests/
+// Tests for validate.mjs — run with: node --test "tests/**/*.test.mjs"
 //
 // Zero dependencies: node:test + node:assert/strict. The validator is
 // imported programmatically via its exported validate(doc); the CLI entry
@@ -58,6 +58,9 @@ const BAD_PATH_REFS = [
   ["/absolute.js:1", "absolute path"],
   ["https://host/file:1", "URL scheme"],
   ["a/../b.js:3", "embedded .. segment"],
+  ["C:\\Users\\x.js:10", "Windows drive-letter absolute"],
+  ["src\\win\\path.js:5", "backslash separator"],
+  ["a\\..\\b.js:3", "backslash traversal evading POSIX split"],
 ];
 
 for (const kind of ["code", "doc"]) {
@@ -206,6 +209,13 @@ test("valid depmap layout with spans passes", () => {
   // fixture already uses colSpan: 3 on node.types; add a legal rowSpan too
   depmapLayout(doc).nodes["node.gateway"].rowSpan = 2;
   assertClean(doc, "valid layout");
+});
+
+test("depmap node missing a layout entry is rejected", () => {
+  const doc = sample();
+  // node.badge exists in nodes[] but drop its position → unplaced, undrawn
+  delete depmapLayout(doc).nodes["node.badge"];
+  assertViolation(doc, [`${LAYOUT_PATH}.nodes`, "node.badge"], "unplaced node");
 });
 
 // ---- fix 5: required, prefix-namespaced ids on all node kinds ---------------

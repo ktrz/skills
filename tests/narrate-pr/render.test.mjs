@@ -1,5 +1,5 @@
 // render.test.mjs — black-box tests for render.mjs via the CLI.
-// Zero deps: node:test + node:assert/strict. Run: node --test narrate-pr/tests
+// Zero deps: node:test + node:assert/strict. Run: node --test "tests/**/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -137,6 +137,46 @@ test("--report-map with unreadable/unparsable file fails with a clear error", ()
   const res = run(["--report-map", bad, writeJson(makeDoc())]);
   assert.notEqual(res.status, 0, "unparsable map must be a hard error");
   assert.match(res.stderr, /report map/i);
+});
+
+// ---------------------------------------------------------------------------
+// Fix — depmap-only architecture must not emit an empty Architecture section
+// ---------------------------------------------------------------------------
+
+const depmapOnly = () => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "dg.dep", type: "depmap", title: "Deps",
+      zones: [{ id: "z.a", label: "A" }],
+      nodes: [{ id: "node.x", label: "X", zone: "z.a" }],
+      edges: [],
+      layout: { cols: 1, nodes: { "node.x": { col: 1, row: 1 } } },
+    }],
+  },
+});
+
+test("depmap-only architecture emits no Architecture section or TOC entry", () => {
+  const out = render(depmapOnly());
+  assert.ok(!out.includes('href="#architecture"'), "no TOC entry for empty Architecture section");
+  assert.ok(!out.includes('id="architecture"'), "no empty Architecture section shell");
+});
+
+test("depmap-only architecture still renders the depmap under Components", () => {
+  const out = render(depmapOnly());
+  assert.ok(out.includes('href="#components"'), "Components section present for the depmap");
+});
+
+// ---------------------------------------------------------------------------
+// Fix — GitHub blob URLs percent-encode path segments
+// ---------------------------------------------------------------------------
+
+test("code receipt with a space in the path is percent-encoded in the blob URL", () => {
+  const out = render(makeDoc({
+    thesis: thesisWith("T.", [{ kind: "code", ref: "src/my file.js:10" }]),
+  }));
+  assert.ok(out.includes("blob/0123456789abcdef0123456789abcdef01234567/src/my%20file.js#L10"),
+    "space in path must be encoded, separators and #L anchor preserved");
+  assert.ok(!/href="[^"]*src\/my file\.js/.test(out), "raw unencoded path must not appear in an href");
 });
 
 // ---------------------------------------------------------------------------

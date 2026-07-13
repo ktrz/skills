@@ -551,9 +551,11 @@ violates any of them is invalid.
 4. **`sha` format.** `sha` is exactly 40 hex characters.
 5. **Depmap edge references.** Every `depmap` edge's `from` and `to` value
    references an existing node id within that same diagram's `nodes[]`.
-6. **Depmap layout key containment.** Every key in a `depmap`'s
-   `layout.nodes` is a subset of that diagram's `nodes[].id` — no
-   layout entry may reference a node that doesn't exist.
+6. **Depmap layout node coverage.** A `depmap`'s `layout.nodes` maps
+   exactly one positioned entry to each of that diagram's `nodes[].id`:
+   every layout key must be a real node id (no dangling entries), and
+   every node id must have a layout entry (an unplaced node has no
+   position and would go undrawn by the reference renderer).
 7. **Package references resolve.** Every `pkg` field anywhere in the
    document (components, diagram actors/nodes/boxes) resolves to a
    `packages[].id`.
