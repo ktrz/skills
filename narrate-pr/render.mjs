@@ -79,7 +79,9 @@ const cssId = (id) => String(id == null ? "" : id).toLowerCase().replace(/[^a-z0
 // ---- minimal inline markdown ----------------------------------------------
 // Escape FIRST, then transform a safe subset. No raw-HTML passthrough.
 function inlineMd(raw) {
-  const text = esc(raw);
+  // Neutralize any literal sentinel char in user input so it cannot collide
+  // with the code/link placeholders below (which use U+E000 as a delimiter).
+  const text = esc(raw).replace(/\uE000/g, "&#xE000;");
   const codes = [];
   let s = text.replace(/`([^`]+)`/g, (_, c) => {
     codes.push(c);
@@ -123,7 +125,8 @@ function main() {
       if (reportMapPath == null) { usage(); process.exit(2); }
     }
     else if (a === "--help" || a === "-h") { usage(); process.exit(0); }
-    else path = a;
+    else if (path == null) path = a;
+    else { usage(); process.exit(2); }
   }
   if (!path) { usage(); process.exit(2); }
 

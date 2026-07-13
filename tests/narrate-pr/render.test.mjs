@@ -78,6 +78,13 @@ test("inlineMd: inline code inside link text is restored, not dropped", () => {
   assert.ok(!out.includes("\uE000"), "no leftover placeholder sentinel in output");
 });
 
+test("inlineMd: user text carrying a sentinel char cannot forge a placeholder", () => {
+  const out = render(makeDoc({ thesis: thesisWith("Weird \uE000C0\uE000 and \uE000L0\uE000 text.") }));
+  assert.ok(!out.includes("undefined"), "forged sentinels must not resolve to undefined/markup");
+  assert.ok(!out.includes("<code>"), "no <code> conjured from user-supplied sentinel");
+  assert.ok(out.includes("&#xE000;"), "raw sentinel char is entity-encoded, not passed through");
+});
+
 test("url receipt with data: ref gets no href", () => {
   const out = render(makeDoc({
     thesis: thesisWith("T.", [{ kind: "url", ref: "data:text/html,hi", note: "sneaky" }]),
