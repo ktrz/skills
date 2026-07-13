@@ -1,4 +1,4 @@
-// Tests for validate.mjs — run with: node --test narrate-pr/tests/
+// Tests for validate.mjs — run with: node --test tests/
 //
 // Zero dependencies: node:test + node:assert/strict. The validator is
 // imported programmatically via its exported validate(doc); the CLI entry
@@ -11,11 +11,11 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { validate } from "../validate.mjs";
+import { validate } from "../../narrate-pr/validate.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const validatorPath = path.join(here, "..", "validate.mjs");
-const samplePath = path.join(here, "..", "fixtures", "sample-mini.json");
+const validatorPath = path.join(here, "..", "..", "narrate-pr", "validate.mjs");
+const samplePath = path.join(here, "..", "..", "narrate-pr", "fixtures", "sample-mini.json");
 
 const sample = () => JSON.parse(readFileSync(samplePath, "utf8"));
 
