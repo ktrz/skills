@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.0.0 - 2026-07-13
+## 0.1.0 - 2026-07-13
 
-First production release: a `/narrate-pr` skill that turns a PR into a validated, self-contained HTML walkthrough.
+Initial release: a `/narrate-pr` skill that turns a PR into a validated, self-contained HTML walkthrough. Feature-complete and tested, but not yet hardened through repeated real-world use — staying pre-1.0 until it's proven in action.
 
 - **Input contract** — `walkthrough.json` v1 schema (`references/schema.md`) with a zero-dependency validator: 16 rules with all-violations reporting, covering receipt ref shapes (doc/url/report), repo-relative code refs with positive line numbers (Windows drive-letter and backslash paths rejected), depmap layout bounds, a node-to-layout bijection so no node goes undrawn, required prefixed ids, review-order step contiguity, and structure violations for non-object collection entries.
 - **Renderer** — deterministic `render.mjs` (byte-identical HTML per input, zero deps): lane, sequence, and depmap diagrams; a generated per-package palette; dual light/dark themes; sha-pinned code receipts and PR-diff-anchored doc receipts; a `--standalone` flag; and a golden fixture. Every href is scheme-allowlisted (`javascript:`/`data:` rejected) and blob-URL path segments are percent-encoded (spaces/`#`/non-ASCII) while the diff-anchor digest stays on the raw path. Report receipts render as local-only badges in fragment mode, with `--report-map` mapping them to published artifact URLs. Depmap-only architecture emits no empty Architecture section or dead TOC link. The CLI rejects a second positional path (exit 2) rather than silently rendering the last.

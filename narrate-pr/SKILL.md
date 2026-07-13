@@ -1,6 +1,6 @@
 ---
 name: narrate-pr
-version: 1.0.0
+version: 0.1.0
 disable-model-invocation: true
 description: >
   Narrate a pull request as a multi-level HTML walkthrough — thesis,
