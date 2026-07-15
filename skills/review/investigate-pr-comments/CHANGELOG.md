@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+- **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and the Step 1 `SKILL.md` + `references/prior-handled.md` citations were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference
+
 ## 1.7.0
 
 - **Review history is no longer ignored.** Step 1 Source B now fetches **resolved** review threads too (the existing paginated `reviewThreads` query already returns `isResolved` — partition on it instead of filtering). Resolved threads are tagged `prior-handled` with resolution state preserved (`resolvedBy` login + last-activity timestamp as the `<when>` proxy, since the API exposes no resolution timestamp), bodies fenced as untrusted at fetch time. They never become queue items — context only, so the empty-queue fast path and always-write invariant are untouched

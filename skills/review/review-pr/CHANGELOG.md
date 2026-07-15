@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and its citations in `SKILL.md`, `references/aggregation.md`, and `references/rereview-agent.md` were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference
+
 ## 1.6.0
 
 - **Validator now ships with the skill — works on installed copies.** The handover validator the Step 9 check runs is now distributed into this skill as `vendor/handover-validator.mjs` (a generated, byte-for-byte copy of `_shared/handover-validator/dist/validate.mjs`, synced by `_shared/sync.sh`). The invocation changed from the CWD-relative `node _shared/handover-validator/dist/validate.mjs validate <path>` to `node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>`, resolved from the harness-injected skill base directory. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so machine validation exited "module not found" and the skill misread that as a malformed doc → hard-fail. The exit-code contract is unchanged (0 → continue; non-zero → regenerate once → hard-fail)
