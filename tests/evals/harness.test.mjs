@@ -50,6 +50,44 @@ test("loadSkill flags a missing SKILL.md rather than throwing", () => {
   assert.equal(skill.exists, false);
 });
 
+test("parseSkillMd tolerates a BOM and CRLF line endings", () => {
+  const text = "\uFEFF---\r\nname: x\r\ndescription: hello crlf\r\n---\r\nbody line\r\n";
+  const parsed = parseSkillMd(text);
+  assert.equal(parsed.hasFrontmatter, true);
+  assert.equal(parsed.description, "hello crlf");
+  assert.match(parsed.body, /body line/);
+});
+
+test("parseSkillMd reads a literal (|) description block", () => {
+  const parsed = parseSkillMd("---\nname: x\ndescription: |\n  line one\n  line two\n---\nbody\n");
+  assert.equal(parsed.description, "line one line two");
+});
+
+test("parseSkillMd reads a single-quoted description", () => {
+  const parsed = parseSkillMd("---\nname: x\ndescription: 'quoted here'\n---\nbody\n");
+  assert.equal(parsed.description, "quoted here");
+});
+
+test("parseSkillMd flags missing frontmatter instead of masquerading as an empty description", () => {
+  const parsed = parseSkillMd("# Just markdown\n\nno frontmatter here\n");
+  assert.equal(parsed.hasFrontmatter, false);
+  assert.equal(parsed.description, "");
+});
+
+test("checks against a SKILL.md without parseable frontmatter fail closed with a parse reason", () => {
+  const skill = loadSkill(fixture("no-frontmatter-skill"));
+  assert.equal(skill.exists, true);
+  const res = runCheck(skill, { type: "body_contains", value: "gh pr create" });
+  assert.equal(res.pass, false);
+  assert.match(res.reason, /no parseable frontmatter/);
+});
+
+test("loadSkill returns the same key set whether or not the skill exists", () => {
+  const good = loadSkill(fixture("good-skill"));
+  const missing = loadSkill(fixture("does-not-exist"));
+  assert.deepEqual(Object.keys(missing).sort(), Object.keys(good).sort());
+});
+
 // ---- check evaluators -------------------------------------------------------
 
 test("each check type evaluates against a loaded skill", () => {
