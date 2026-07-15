@@ -32,4 +32,3 @@ Depends on the Phase 0 layout.
 Builds on Phase 1.
 
 **Deliverable:** second slice demoable.
-</content>

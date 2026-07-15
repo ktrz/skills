@@ -8,7 +8,9 @@
 // references/plan-file-format.md §"Validation rules". Collects ALL
 // violations, prints them one per line, exits 1 on any violation and 0 on a
 // clean document. Zero dependencies; plain node. Operates on the markdown
-// source text (headings only — prose inside sections is free-form).
+// structure — heading positions plus a presence check on each phase body
+// (rule 7 scans a phase's lines for at least one that is neither blank nor a
+// bare `---`); the prose content itself is free-form.
 
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -49,7 +51,7 @@ function structuralLines(text) {
 }
 
 const H1_RE = /^#(?!#)\s+\S/;
-const H2_RE = /^##(?!#)\s+(.*\S)\s*$/;
+const H2_RE = /^##(?!#)\s+\S/;
 const PHASE_RE = /^##(?!#)\s+Phase\s+(\d+)\b/;
 const CONTEXT_RE = /^##(?!#)\s+Context\b/;
 const EXEC_ORDER_RE = /^##(?!#)\s+Execution Order\b/;

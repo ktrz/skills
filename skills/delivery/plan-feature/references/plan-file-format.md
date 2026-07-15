@@ -159,5 +159,6 @@ distributed into the consumer skills. Consumers read a plan file by
 LLM-parsing its markdown, not by shelling out to the validator, so — unlike the
 handover-validator, which each review skill must _run_ from its own directory
 on an installed copy — no cross-skill bundle is needed. This mirrors the
-co-located `narrate-pr/validate.mjs`. See `_shared/README.md` → "Distributed
-categories" for when a validator instead warrants a `bundles:` entry.
+co-located `narrate-pr/validate.mjs`. See `_shared/README.md` → "When a
+contract validator needs a `bundles:` entry" for when a validator instead
+warrants a `bundles:` entry.

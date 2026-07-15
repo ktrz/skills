@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -114,6 +114,34 @@ test("an empty phase body is rejected", () => {
   assertViolation(fixture("invalid-empty-phase.md"), ["rule-7-phase-body", "Phase 2"], "empty phase");
 });
 
+test("a phase body consisting only of a `---` rule is rejected", () => {
+  const text = [
+    "# PROJ-11: Rule-only body",
+    "",
+    "## Context",
+    "",
+    "x",
+    "",
+    "## Execution Order",
+    "",
+    "Phase 1 then Phase 2.",
+    "",
+    "## Phase 1 (PR 1): First",
+    "",
+    "Real body content.",
+    "",
+    "## Phase 2 (PR 2): Second",
+    "",
+    "---",
+    "",
+    "## Open Questions",
+    "",
+    "none",
+    "",
+  ].join("\n");
+  assertViolation(text, ["rule-7-phase-body", "Phase 2"], "rule-only phase body");
+});
+
 // ---- robustness: fenced code blocks are not parsed as structure -------------
 
 test("a `## Phase` heading inside a code fence is ignored", () => {
@@ -162,4 +190,14 @@ test("an H1 inside a code fence is not counted as a second title", () => {
     "",
   ].join("\n");
   assertClean(text, "fenced h1 ignored");
+});
+
+// ---- regression: fixtures carry no stray wrapper tag ------------------------
+
+test("no plan fixture contains a stray </content> wrapper line", () => {
+  const fixturesDir = path.join(skillDir, "fixtures");
+  const offenders = readdirSync(fixturesDir)
+    .filter((name) => name.endsWith(".md"))
+    .filter((name) => /^<\/content>\s*$/m.test(readFileSync(path.join(fixturesDir, name), "utf8")));
+  assert.deepEqual(offenders, [], `fixtures with a stray </content> wrapper line: ${offenders.join(", ")}`);
 });
