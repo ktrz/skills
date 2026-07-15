@@ -265,7 +265,7 @@ Auto-review findings did not come from GitHub, so there is no thread
 to reply to or resolve. Instead, post **a single grouped PR comment**
 summarising what was addressed:
 
-```
+```bash
 gh pr comment <N> --body "..."
 ```
 
@@ -273,7 +273,7 @@ Keep the posted comment scannable: a one-line visible summary (counts
 by severity) above the fold, with the full per-severity detail tucked
 inside a collapsible `<details>` block. Format the body:
 
-```
+```text
 ## Auto-review items addressed
 
 <N> findings addressed — 🚨 <c> critical, ⚠️ <i> important, 💡 <s> suggestion.
@@ -294,10 +294,15 @@ inside a collapsible `<details>` block. Format the body:
 ```
 
 `<N>` is the total item count; `<c>` / `<i>` / `<s>` are the
-per-severity counts (omit a severity from the summary line if its
-count is zero). GitHub requires a blank line after `<summary>` and
-another blank line before `</details>` for the enclosed markdown list
-to render — do not collapse those onto adjacent lines.
+per-severity counts — `<s>` covers both `suggestion` and `nit`, which
+share the 💡 prefix (see `review-pr/references/findings-schema.md`).
+Omit a zero-count severity from both the summary line and the
+`<details>` block — if `<s>` is 0, drop the `### 💡 Suggestion`
+heading and list rather than rendering an empty section; same for
+`critical` / `important`. GitHub requires a blank line after
+`<summary>` and another blank line before `</details>` for the
+enclosed markdown list to render — do not collapse those onto
+adjacent lines.
 
 This is one comment for the entire auto-review batch — not one comment
 per finding. The reviewer's eye should land on a tidy summary, not an
