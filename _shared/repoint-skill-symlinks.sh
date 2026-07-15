@@ -19,15 +19,30 @@
 #     never creates a dangling link, so a live install is never broken.
 #
 # Usage: repoint-skill-symlinks.sh [REPO_ROOT] [SKILLS_DIR]
-#   REPO_ROOT   default: /Users/chris/projects/skills
+#   REPO_ROOT   default: the repo this script ships in, derived from the
+#               script's own location (it lives in _shared/, so its parent is
+#               the repo root). Override with the REPO_ROOT env var or the
+#               first positional argument.
 #   SKILLS_DIR  default: ~/.claude/skills
 set -euo pipefail
 
-REPO=${1:-/Users/chris/projects/skills}
+# Derive the default repo root from the script's own location so no personal
+# path is baked into this published script. Precedence: positional arg, then
+# the REPO_ROOT env var, then the script-relative default (_shared/..).
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+REPO=${1:-${REPO_ROOT:-"$script_dir/.."}}
 SKILLS_DIR=${2:-"$HOME/.claude/skills"}
 
 # Normalise REPO to an absolute, symlink-resolved path for prefix matching.
-REPO=$(cd "$REPO" && pwd -P)
+# Guard the cd so a bad REPO_ROOT yields a framed error naming the argument,
+# not set -e's terse, context-free cd abort. Resolve into a temp var first so
+# the original value survives for the error message (a failed cd substitution
+# would otherwise blank REPO out).
+if ! repo_resolved=$(cd "$REPO" 2>/dev/null && pwd -P); then
+  echo "repoint: REPO_ROOT '$REPO' is not a directory — pass it as the first argument or set \$REPO_ROOT" >&2
+  exit 1
+fi
+REPO=$repo_resolved
 
 repointed=0
 skipped_worktree=0
@@ -43,7 +58,10 @@ for link in "$SKILLS_DIR"/*; do
   # Only consider targets that live inside this repo checkout.
   case "$target" in
     "$REPO"/*) ;;
-    *) continue ;;
+    *)
+      skipped_foreign=$((skipped_foreign + 1))
+      continue
+      ;;
   esac
 
   # Leave parallel-test installs (targets under worktrees/) untouched.
@@ -64,10 +82,20 @@ for link in "$SKILLS_DIR"/*; do
   esac
 
   # At this point the target is a top-level "<repo>/<something>". Only re-point
-  # if it names a skill that now lives under skills/<group>/<name>.
+  # if it names a skill that now lives under skills/<group>/<name>. Exclude
+  # skills/wip/: a bare-name install must never be re-pointed onto a wip
+  # variant, whose directory basename equals the stable skill's name.
   new=""
   if [ -d "$REPO/skills" ]; then
-    new=$(find "$REPO/skills" -mindepth 2 -maxdepth 2 -type d -name "$name" 2>/dev/null | head -1 || true)
+    matches=$(find "$REPO/skills" -mindepth 2 -maxdepth 2 -type d -name "$name" \
+      -not -path "$REPO/skills/wip/*" 2>/dev/null)
+    match_count=$(printf '%s' "$matches" | grep -c . || true)
+    if [ "$match_count" -gt 1 ]; then
+      echo "error  $name -> $target: multiple skills/<group>/$name candidates, refusing to guess:" >&2
+      printf '         %s\n' $matches >&2
+      exit 1
+    fi
+    new=$matches
   fi
   if [ -z "$new" ]; then
     echo "skip   $name -> $target (no skills/<group>/$name found under $REPO/skills — grouped tree not present yet?)"
@@ -81,4 +109,4 @@ for link in "$SKILLS_DIR"/*; do
 done
 
 echo "---"
-echo "repointed=$repointed already-migrated=$already leave-worktree=$skipped_worktree not-found=$skipped_missing"
+echo "repointed=$repointed already-migrated=$already leave-worktree=$skipped_worktree not-found=$skipped_missing foreign=$skipped_foreign"
