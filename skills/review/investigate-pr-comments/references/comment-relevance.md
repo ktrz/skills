@@ -5,6 +5,14 @@ processing. Used by `review-pr` (overlap-skim, its
 `review-pr/references/aggregation.md`) and `investigate-pr-comments`
 (Step 1 source-B ingestion).
 
+## Contents
+
+- [Why content, not author](#why-content-not-author)
+- [Detection rule](#detection-rule)
+- [Implementation outline](#implementation-outline)
+- [LLM judge for the residue](#llm-judge-for-the-residue)
+- [Out of scope](#out-of-scope)
+
 ## Why content, not author
 
 The obvious filter — "skip authors whose login ends in `[bot]`, plus a

@@ -12,6 +12,15 @@ PM run both produce the right snapshot for the time they're invoked.
 Requires `DAY_PLAN_REPO`. If unset, stop and tell the user standup mode
 needs a GitHub-issue-backed day plan.
 
+## Contents
+
+- [Phase S0 — Find today's issue](#phase-s0--find-todays-issue)
+- [Phase S1 — Gather data](#phase-s1--gather-data)
+- [Phase S2 — Build the three subsections](#phase-s2--build-the-three-subsections)
+- [Phase S3 — Splice into the issue](#phase-s3--splice-into-the-issue)
+- [Phase S4 — Echo for copy-paste](#phase-s4--echo-for-copy-paste)
+- [Notes](#notes)
+
 ## Phase S0 — Find today's issue
 
 ```bash
