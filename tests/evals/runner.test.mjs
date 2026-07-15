@@ -13,7 +13,14 @@ import { fileURLToPath } from "node:url";
 
 import { spawnSync } from "node:child_process";
 
-import { parseArgs, validateSpec, runTarget, loadScenarioFiles, triggerEvalSet } from "../../evals/run.mjs";
+import {
+  parseArgs,
+  validateSpec,
+  runTarget,
+  loadScenarioFiles,
+  triggerEvalSet,
+  buildBaseline,
+} from "../../evals/run.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const scenarioPath = (f) => path.join(here, "..", "..", "evals", "scenarios", f);
@@ -30,7 +37,9 @@ test("parseArgs defaults", () => {
   assert.equal(a.target, null);
   assert.equal(a.json, false);
   assert.equal(a.writeBaseline, false);
-  assert.ok(Number.isInteger(a.reps) && a.reps >= 1);
+  // Deterministic checks are pure — variance is structurally 0 — so repeated
+  // reps are redundant work; the default is a single reproducible rep.
+  assert.equal(a.reps, 1);
 });
 
 test("parseArgs reads every documented flag", () => {
@@ -142,6 +151,39 @@ test("triggerEvalSet emits the plugin-compatible [{query, should_trigger}] shape
     { query: "p1", should_trigger: true },
     { query: "p2", should_trigger: false },
   ]);
+});
+
+// ---- committed artifacts must match a fresh run ------------------------------
+// The runner never reads baselines back, so without these guards a committed
+// baseline (or hand-edited trigger file) could silently go stale while the
+// run stays green — including the check-set-shrink case where a scenario's
+// checks were weakened after recording.
+
+const baselinePath = (f) => path.join(here, "..", "..", "evals", "baselines", f);
+
+test("committed baselines match a fresh run (staleness / check-set-shrink guard)", () => {
+  for (const { spec } of loadScenarioFiles(null)) {
+    const fresh = buildBaseline(spec, runTarget(spec, "stable", 1));
+    const committed = JSON.parse(readFileSync(baselinePath(`${spec.target}-baseline.json`), "utf8"));
+    fresh.recorded_at = null;
+    committed.recorded_at = null;
+    assert.deepEqual(
+      fresh,
+      committed,
+      `${spec.target} baseline is stale — re-record with: node evals/run.mjs --write-baseline`
+    );
+  }
+});
+
+test("committed trigger eval-sets are exactly what the scenario live blocks derive", () => {
+  for (const { spec } of loadScenarioFiles(null)) {
+    const committed = JSON.parse(readFileSync(scenarioPath(`${spec.target}.trigger.json`), "utf8"));
+    assert.deepEqual(
+      committed,
+      triggerEvalSet(spec),
+      `${spec.target}.trigger.json drifted from the scenario live blocks — re-run --write-baseline`
+    );
+  }
 });
 
 // ---- main(): the actual CI gate, exercised end-to-end via the CLI -----------
