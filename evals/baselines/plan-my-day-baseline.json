@@ -196,15 +196,15 @@
       "firstRepChecks": [
         {
           "type": "body_matches",
-          "pattern": "standup",
-          "desc": "documents the standup mode",
+          "pattern": "\\*\\*standup\\*\\* \\(`/plan-my-day standup`\\)",
+          "desc": "keeps the standup mode's dispatch list entry",
           "pass": true,
           "reason": "ok"
         },
         {
           "type": "body_matches",
-          "pattern": "close",
-          "desc": "documents the close mode",
+          "pattern": "\\*\\*close\\*\\* \\(`/plan-my-day close`\\)",
+          "desc": "keeps the close mode's dispatch list entry",
           "pass": true,
           "reason": "ok"
         },

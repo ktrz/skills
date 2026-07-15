@@ -94,12 +94,19 @@
       "kind": "invariant",
       "passRate": 1,
       "variance": 0,
-      "deterministicChecks": 1,
+      "deterministicChecks": 2,
       "firstRepChecks": [
         {
           "type": "body_contains",
           "value": "Do NOT push the branch yourself",
           "desc": "keeps the 'let gh handle the push' failure-bias invariant",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_absent",
+          "value": "git push --force",
+          "desc": "anti-pattern guard: a rewrite must not (re)introduce force-push instructions",
           "pass": true,
           "reason": "ok"
         }

@@ -14,8 +14,8 @@
       "firstRepChecks": [
         {
           "type": "description_contains",
-          "value": "plan",
-          "desc": "description advertises planning intent",
+          "value": "plan feature",
+          "desc": "description advertises the plan-feature trigger phrase",
           "pass": true,
           "reason": "ok"
         },
