@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.0
+
+- **Handover format promoted to an explicit contract doc.** `references/handover-format.md` now carries a contract header (owner / consumers / validator / status), a table of contents, and a dedicated Validator section documenting the vendored `handover-validator` — how both writers run it, the exit-code contract, and that the flattened `**Source counts:**` line plus `**Head SHA:**` / `**Base SHA:**` header fields already validate against the pinned parser (no upstream change, no re-vendor). Documentation only; the vendored validator and its fixtures are untouched.
+
 ## 1.7.1
 
 - **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and the Step 1 `SKILL.md` + `references/prior-handled.md` citations were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference
