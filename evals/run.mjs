@@ -1,0 +1,192 @@
+#!/usr/bin/env node
+// Eval harness runner.
+//
+// Usage:
+//   node evals/run.mjs [--target <name>] [--variant stable|wip] [--reps N]
+//                      [--json] [--write-baseline]
+//
+//   --target          run one target (plan-my-day | create-pr | plan-feature);
+//                     default: all scenario files in evals/scenarios/
+//   --variant         which copy of the skill to check (default: stable).
+//                     stable -> skills/<group>/<skill>; wip -> skills/wip/<skill>.
+//                     Phase 5 runs the SAME scenarios A/B by flipping this flag.
+//   --reps N          repeat the deterministic run N times and report variance
+//                     (default 5). Deterministic checks are invariant, so the
+//                     expected variance is 0 — a non-zero value means a check is
+//                     reading something non-stable and is itself a bug.
+//   --json            emit machine-readable JSON instead of the text report.
+//   --write-baseline  write evals/baselines/<target>-baseline.json for each
+//                     target run (records measured results + pending live specs).
+//
+// The runner ONLY executes the deterministic `checks` on each scenario — those
+// need no model and gate CI. Scenarios also carry a `live` block (prompt +
+// expectations) describing the model-in-the-loop A/B run a human executes; the
+// runner reports those as PENDING and never fakes a result.
+//
+// Exit code: non-zero if any deterministic check fails (drift / broken variant).
+
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { REPO_ROOT, resolveVariantDir, loadSkill } from "./lib/skill.mjs";
+import { runCheck } from "./lib/checks.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const SCENARIO_DIR = path.join(here, "scenarios");
+const BASELINE_DIR = path.join(here, "baselines");
+
+function parseArgs(argv) {
+  const args = { variant: "stable", reps: 5, target: null, json: false, writeBaseline: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--variant") args.variant = argv[++i];
+    else if (a === "--reps") args.reps = Number(argv[++i]);
+    else if (a === "--target") args.target = argv[++i];
+    else if (a === "--json") args.json = true;
+    else if (a === "--write-baseline") args.writeBaseline = true;
+    else throw new Error(`unknown arg: ${a}`);
+  }
+  return args;
+}
+
+function loadScenarioFiles(target) {
+  const files = readdirSync(SCENARIO_DIR)
+    .filter((f) => f.endsWith(".json") && !f.endsWith(".trigger.json"))
+    .filter((f) => !target || f === `${target}.json`);
+  return files.map((f) => ({
+    file: f,
+    spec: JSON.parse(readFileSync(path.join(SCENARIO_DIR, f), "utf8")),
+  }));
+}
+
+// Run every deterministic check for one target's scenarios against one variant,
+// `reps` times, and fold the reps into a per-scenario pass-rate + variance.
+export function runTarget(spec, variant, reps) {
+  const dir = resolveVariantDir(spec, variant);
+  const scenarioResults = spec.scenarios.map((sc) => {
+    const perRep = [];
+    for (let r = 0; r < reps; r++) {
+      const skill = loadSkill(dir); // reloaded each rep so the run is honest
+      const checks = (sc.checks || []).map((c) => ({ ...c, ...runCheck(skill, c) }));
+      const passed = checks.every((c) => c.pass);
+      perRep.push({ passed, checks });
+    }
+    const passCount = perRep.filter((r) => r.passed).length;
+    const passRate = perRep.length ? passCount / perRep.length : 1;
+    return {
+      id: sc.id,
+      kind: sc.kind,
+      passRate,
+      variance: passRate === 0 || passRate === 1 ? 0 : passRate * (1 - passRate),
+      deterministicChecks: sc.checks ? sc.checks.length : 0,
+      firstRepChecks: perRep[0]?.checks ?? [],
+      live: sc.live
+        ? { status: "pending", prompt: sc.live.prompt, should_trigger: sc.live.should_trigger }
+        : null,
+    };
+  });
+  return {
+    target: spec.target,
+    variant,
+    variantDir: path.relative(REPO_ROOT, dir),
+    reps,
+    scenarios: scenarioResults,
+    summary: summarize(scenarioResults),
+  };
+}
+
+function summarize(scenarios) {
+  const withChecks = scenarios.filter((s) => s.deterministicChecks > 0);
+  const passed = withChecks.filter((s) => s.passRate === 1).length;
+  const live = scenarios.filter((s) => s.live).length;
+  const maxVariance = withChecks.reduce((m, s) => Math.max(m, s.variance), 0);
+  return {
+    scenarios: scenarios.length,
+    deterministic: withChecks.length,
+    deterministicPassed: passed,
+    deterministicFailed: withChecks.length - passed,
+    livePending: live,
+    maxVariance,
+  };
+}
+
+function textReport(results) {
+  const lines = [];
+  for (const r of results) {
+    lines.push(`\n${r.target}  (variant=${r.variant}, ${r.variantDir}, reps=${r.reps})`);
+    for (const sc of r.scenarios) {
+      const det = sc.deterministicChecks > 0 ? `${(sc.passRate * 100).toFixed(0)}%` : "  — ";
+      const flag = sc.deterministicChecks === 0 ? "" : sc.passRate === 1 ? " PASS" : " FAIL";
+      lines.push(`  [${det}]${flag}  ${sc.id}  (${sc.kind}, ${sc.deterministicChecks} checks)`);
+      if (sc.passRate < 1) {
+        for (const c of sc.firstRepChecks.filter((c) => !c.pass)) {
+          lines.push(`         ✗ ${c.reason}`);
+        }
+      }
+      if (sc.live) lines.push(`         ⧗ live: PENDING (needs model run) — "${sc.live.prompt}"`);
+    }
+    const s = r.summary;
+    lines.push(
+      `  → ${s.deterministicPassed}/${s.deterministic} deterministic passed, ` +
+        `${s.livePending} live pending, maxVariance=${s.maxVariance}`
+    );
+  }
+  return lines.join("\n");
+}
+
+// A skill-creator-plugin-compatible trigger eval-set: [{query, should_trigger}].
+// The plugin's scripts/run_eval.py consumes exactly this shape for the live
+// trigger layer, so we emit it alongside the baseline for the human to run.
+function triggerEvalSet(spec) {
+  return spec.scenarios
+    .filter((sc) => sc.live && typeof sc.live.should_trigger === "boolean")
+    .map((sc) => ({ query: sc.live.prompt, should_trigger: sc.live.should_trigger }));
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const specs = loadScenarioFiles(args.target);
+  if (specs.length === 0) {
+    console.error(`no scenario files found${args.target ? ` for target ${args.target}` : ""}`);
+    process.exit(2);
+  }
+
+  const results = specs.map(({ spec }) => runTarget(spec, args.variant, args.reps));
+
+  if (args.writeBaseline) {
+    if (!existsSync(BASELINE_DIR)) mkdirSync(BASELINE_DIR, { recursive: true });
+    for (let i = 0; i < results.length; i++) {
+      const spec = specs[i].spec;
+      const out = {
+        recorded_at: new Date().toISOString().slice(0, 10),
+        ...results[i],
+        live_layer: {
+          status: "pending",
+          note:
+            "Live trigger/behavior runs require a model and are not executed by this runner. " +
+            "Run evals/scenarios/<target>.trigger.json through the skill-creator plugin " +
+            "(scripts/run_eval.py) or drive the prompts manually. See evals/README.md.",
+          trigger_eval_set: triggerEvalSet(spec),
+        },
+      };
+      const file = path.join(BASELINE_DIR, `${spec.target}-baseline.json`);
+      writeFileSync(file, JSON.stringify(out, null, 2) + "\n");
+      console.error(`wrote ${path.relative(REPO_ROOT, file)}`);
+    }
+  }
+
+  if (args.json) {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    console.log(textReport(results));
+  }
+
+  const anyFail = results.some((r) => r.summary.deterministicFailed > 0);
+  process.exit(anyFail ? 1 : 0);
+}
+
+// Only run main when invoked as a script, not when imported by tests.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  main();
+}
