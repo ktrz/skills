@@ -1,8 +1,9 @@
 # Comment relevance filter
 
 Shared rule for deciding whether a PR comment is review signal worth
-processing. Used by `review-pr` (overlap-skim, `references/aggregation.md`)
-and `investigate-pr-comments` (Step 1 source-B ingestion).
+processing. Used by `review-pr` (overlap-skim, its
+`review-pr/references/aggregation.md`) and `investigate-pr-comments`
+(Step 1 source-B ingestion).
 
 ## Why content, not author
 
