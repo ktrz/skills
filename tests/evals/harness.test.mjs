@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseSkillMd, loadSkill } from "../../evals/lib/skill.mjs";
+import { parseSkillMd, loadSkill, resolveVariantDir, REPO_ROOT } from "../../evals/lib/skill.mjs";
 import { runCheck } from "../../evals/lib/checks.mjs";
 import { runTarget } from "../../evals/run.mjs";
 
@@ -163,6 +163,60 @@ test("the deliberately-drifted fixture is caught on every drifted invariant", ()
   // All three contract points were drifted in the broken fixture: the softened
   // trigger phrase, the renamed section, and the removed push invariant.
   assert.equal(failed.length, 3, `expected 3 drift failures, got ${failed.length}`);
+});
+
+// ---- references/ are part of the checkable surface --------------------------
+
+test("loadSkill includes references/*.md in the checkable body", () => {
+  // A progressive-disclosure rewrite that relocates spec text into
+  // references/ must not read as drift, so body-level checks see it.
+  const skill = loadSkill(fixture("good-skill"));
+  assert.ok(runCheck(skill, { type: "body_contains", value: "TEMPLATE_MARKER_IN_REFERENCE" }).pass);
+  assert.ok(runCheck(skill, { type: "section_present", value: "Relocated spec section" }).pass);
+});
+
+// ---- variant resolution (the wip half of the A/B loop) ----------------------
+
+const relFixture = (name) => path.relative(REPO_ROOT, fixture(name));
+
+test("resolveVariantDir resolves an explicit wip_path", () => {
+  const sc = { target: "demo", stable_path: "skills/x/demo", wip_path: "custom/wip/demo" };
+  assert.equal(resolveVariantDir(sc, "wip"), path.join(REPO_ROOT, "custom/wip/demo"));
+});
+
+test("resolveVariantDir defaults a missing wip_path to skills/wip/<target>", () => {
+  const sc = { target: "demo", stable_path: "skills/x/demo" };
+  assert.equal(resolveVariantDir(sc, "wip"), path.join(REPO_ROOT, "skills", "wip", "demo"));
+});
+
+test("resolveVariantDir throws on an unknown variant", () => {
+  const sc = { target: "demo", stable_path: "skills/x/demo" };
+  assert.throws(() => resolveVariantDir(sc, "staging"), /unknown variant: staging/);
+});
+
+test("runTarget A/B: the drifted stable variant fails the contract a good wip variant passes", () => {
+  const spec = {
+    target: "demo",
+    stable_path: relFixture("broken-skill"),
+    wip_path: relFixture("good-skill"),
+    scenarios: [{ id: "demo-contract", kind: "invariant", checks: DEMO_CONTRACT }],
+  };
+  const drifted = runTarget(spec, "stable", 1);
+  assert.ok(drifted.summary.deterministicFailed > 0, "drifted variant must fail the gate");
+  assert.equal(drifted.scenarios[0].passRate, 0, "drifted scenario must have passRate 0");
+  const wip = runTarget(spec, "wip", 1);
+  assert.equal(wip.summary.deterministicFailed, 0, "good wip variant must pass the same contract");
+});
+
+test("runTarget raises a distinct not-found error for a missing variant directory", () => {
+  const spec = {
+    target: "demo",
+    stable_path: relFixture("broken-skill"),
+    scenarios: [{ id: "demo-contract", kind: "invariant", checks: DEMO_CONTRACT }],
+  };
+  // No wip_path and no skills/wip/demo on disk: the wip run must say "not
+  // created yet" loudly instead of rendering as all-checks-failed drift.
+  assert.throws(() => runTarget(spec, "wip", 1), /variant directory not found.*did you create the wip variant/s);
 });
 
 // ---- runner aggregation against the real stable scenarios -------------------
