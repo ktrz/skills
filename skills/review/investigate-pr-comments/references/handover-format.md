@@ -114,7 +114,7 @@ severity-desc then file:line-asc for auto findings — matching the
 ## Schema compatibility with findings-schema.md
 
 Every auto-review item in the handover document is the hand-off form of
-a finding that conforms to `review-pr/references/findings-schema.md`. The
+a finding that conforms to `skills/review/review-pr/references/findings-schema.md`. The
 mapping is:
 
 | findings-schema field | Handover field              |

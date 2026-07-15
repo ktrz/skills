@@ -2,52 +2,52 @@
 
 Personal collection of [Claude Code](https://docs.claude.com/en/docs/claude-code) skills for ticket-driven development: plan a day, plan a feature, ship it, review it, resolve review comments.
 
-Each top-level directory is a self-contained skill (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
+Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline they belong to: `delivery/` (plan → build → PR), `review/` (review → resolve), and `workflow/` (day planning, session hygiene, delegation). `skills/wip/` holds work-in-progress variants and newborn primitives that are excluded from this index until they graduate (see [`skills/wip/README.md`](skills/wip/README.md)). Each skill directory is self-contained (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
 
 ## Skills
 
 ### Daily flow
 
-| Skill                                           | What it does                                                                                                                                                                |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [plan-my-day](plan-my-day/SKILL.md)             | Build today's prioritised work list from your worktrees, tracker tickets, open PRs, and Slack activity. Groups into Active worktrees / Tickets to pick up / Stale branches. |
-| [plan-my-day-setup](plan-my-day-setup/SKILL.md) | Interactive wizard that writes `~/.claude/plan-my-day.yaml` and seeds `~/.claude/tracker.yaml`.                                                                             |
+| Skill                                                           | What it does                                                                                                                                                                |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [plan-my-day](skills/workflow/plan-my-day/SKILL.md)             | Build today's prioritised work list from your worktrees, tracker tickets, open PRs, and Slack activity. Groups into Active worktrees / Tickets to pick up / Stale branches. |
+| [plan-my-day-setup](skills/workflow/plan-my-day-setup/SKILL.md) | Interactive wizard that writes `~/.claude/plan-my-day.yaml` and seeds `~/.claude/tracker.yaml`.                                                                             |
 
 ### Worktrees
 
-| Skill               | What it does                                                                                                                                                                                                                                               |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [nwt](nwt/SKILL.md) | Create a new git worktree via the `nwt` zsh helper — auto-detects umbrella vs regular repo layout, branches as `<prefix><feature>` (git-config / env / gh handle), seeds env/IDE/Claude config from `main/`. Ships an idempotent installer for `~/.zshrc`. |
+| Skill                               | What it does                                                                                                                                                                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [nwt](skills/delivery/nwt/SKILL.md) | Create a new git worktree via the `nwt` zsh helper — auto-detects umbrella vs regular repo layout, branches as `<prefix><feature>` (git-config / env / gh handle), seeds env/IDE/Claude config from `main/`. Ships an idempotent installer for `~/.zshrc`. |
 
 ### Plan and build features
 
-| Skill                                           | What it does                                                                                                                                                           |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [plan-feature](plan-feature/SKILL.md)           | Deep-plan a tracker ticket into a phased, parallelism-annotated implementation plan. Optionally grills you on requirements first. Writes to `./plans.local/<subdir>/`. |
-| [implement-feature](implement-feature/SKILL.md) | Execute a multi-phase plan via parallel worktree agents and open PRs. Auto-invokes `plan-feature` if no plan exists.                                                   |
-| [execute-phase](execute-phase/SKILL.md)         | Run a single plan phase in an isolated git worktree (uses [`nwt`](nwt/SKILL.md) when available).                                                                       |
-| [save-plan](save-plan/SKILL.md)                 | Persist the current conversation's plan or design discussion into `./plans.local/<repo>/` as a structured markdown file.                                               |
+| Skill                                                           | What it does                                                                                                                                                           |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [plan-feature](skills/delivery/plan-feature/SKILL.md)           | Deep-plan a tracker ticket into a phased, parallelism-annotated implementation plan. Optionally grills you on requirements first. Writes to `./plans.local/<subdir>/`. |
+| [implement-feature](skills/delivery/implement-feature/SKILL.md) | Execute a multi-phase plan via parallel worktree agents and open PRs. Auto-invokes `plan-feature` if no plan exists.                                                   |
+| [execute-phase](skills/delivery/execute-phase/SKILL.md)         | Run a single plan phase in an isolated git worktree (uses [`nwt`](skills/delivery/nwt/SKILL.md) when available).                                                       |
+| [save-plan](skills/delivery/save-plan/SKILL.md)                 | Persist the current conversation's plan or design discussion into `./plans.local/<repo>/` as a structured markdown file.                                               |
 
 ### Ship and review
 
-| Skill                                                   | What it does                                                                                                                                                 |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [commit-message-format](commit-message-format/SKILL.md) | Write or validate a Conventional-Commits-style git commit message with the right scope and ticket reference.                                                 |
-| [create-pr](create-pr/SKILL.md)                         | Open a GitHub PR following the project template; detects stacked branches and fills ticket reference, description, and test scenario from context.           |
-| [request-review](request-review/SKILL.md)               | Post an LFR to Slack and transition the tracker ticket to "In Review".                                                                                       |
-| [resolve-pr-comments](resolve-pr-comments/SKILL.md)     | Two-phase PR review walk-through: collect decisions on every unresolved comment via parallel investigation subagents, then implement and bulk-reply/resolve. |
+| Skill                                                                   | What it does                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [commit-message-format](skills/delivery/commit-message-format/SKILL.md) | Write or validate a Conventional-Commits-style git commit message with the right scope and ticket reference.                                                 |
+| [create-pr](skills/delivery/create-pr/SKILL.md)                         | Open a GitHub PR following the project template; detects stacked branches and fills ticket reference, description, and test scenario from context.           |
+| [request-review](skills/review/request-review/SKILL.md)                 | Post an LFR to Slack and transition the tracker ticket to "In Review".                                                                                       |
+| [resolve-pr-comments](skills/review/resolve-pr-comments/SKILL.md)       | Two-phase PR review walk-through: collect decisions on every unresolved comment via parallel investigation subagents, then implement and bulk-reply/resolve. |
 
 ### Delegation
 
-| Skill                               | What it does                                                                                                                                                                                    |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [orchestrate](orchestrate/SKILL.md) | Delegation-heavy execution mode: the parent only decomposes, briefs, judges, and synthesizes — everything else goes to subagents by model tier. Optional sticky-reminder UserPromptSubmit hook. |
+| Skill                                               | What it does                                                                                                                                                                                    |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [orchestrate](skills/workflow/orchestrate/SKILL.md) | Delegation-heavy execution mode: the parent only decomposes, briefs, judges, and synthesizes — everything else goes to subagents by model tier. Optional sticky-reminder UserPromptSubmit hook. |
 
 ### Session hygiene
 
-| Skill                             | What it does                                                                                                                     |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| [checkpoint](checkpoint/SKILL.md) | At a session length/cost checkpoint, assess the session and recommend compact vs handoff, with a ready-to-paste prompt for each. |
+| Skill                                             | What it does                                                                                                                     |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| [checkpoint](skills/workflow/checkpoint/SKILL.md) | At a session length/cost checkpoint, assess the session and recommend compact vs handoff, with a ready-to-paste prompt for each. |
 
 ## Setup
 
@@ -102,3 +102,5 @@ npx skills add ktrz/skills --agent claude-code
 ```
 
 The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/skills/`). Skills that consume shared assets already ship with their copy bundled — no extra step. This covers both `_shared/references/` docs (e.g. `tracker.md`) and `_shared/` bundles (the `handover-validator` validator, shipped into `review-pr` and `investigate-pr-comments` as `vendor/handover-validator.mjs`).
+
+> **Migration note (repo restructured to `skills/<group>/`):** existing `npx skills` installs pin each skill's exact path in their lockfile and do **not** follow the move — an `npx skills update` treats the relocated skills as deleted upstream. If you installed before this restructure landed, re-run `npx skills add ktrz/skills` (add `-g` and/or `--skill …` to match your original install) to re-point them. Symlink installs (e.g. `~/.claude/skills/<name>`) are unaffected once their targets are re-pointed.

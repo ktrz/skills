@@ -61,9 +61,9 @@ they may have edited it in another window, taken a break, or come back
 days later. Open the file, read it end-to-end, and parse it as if you
 have never seen it before.
 
-The handover schema is owned by `investigate-pr-comments/references/handover-format.md`
+The handover schema is owned by `skills/review/investigate-pr-comments/references/handover-format.md`
 and the underlying finding shape comes from
-`review-pr/references/findings-schema.md` — both are the canonical
+`skills/review/review-pr/references/findings-schema.md` — both are the canonical
 sources. The summary below is enough to bucket items; reach for the
 schema files for edge cases.
 
@@ -80,7 +80,7 @@ section with the following fields:
   status marker carries the meaning) or may override option (a) for
   `[~]` items.
 
-Status markers (see `investigate-pr-comments/references/handover-format.md`):
+Status markers (see `skills/review/investigate-pr-comments/references/handover-format.md`):
 
 | Marker | Meaning                                                 | This skill's action                            |
 | ------ | ------------------------------------------------------- | ---------------------------------------------- |
@@ -106,7 +106,7 @@ proceeding.
 
 ### Step 2: Implement
 
-**Before touching code, read `resolve-pr-comments/references/execute.md`
+**Before touching code, read `skills/review/resolve-pr-comments/references/execute.md`
 in full.** That file is the authoritative playbook for execution and
 must be loaded fresh into context at this boundary — it covers TDD for
 bug fixes (red → green → suite), commit grouping, ordering, reply-only
@@ -134,7 +134,7 @@ Per-item rules layered on top of `execute.md`:
   the user can review. Never silently extrapolate.
 - **Bug-classified items** — TDD applies per `execute.md`: red test
   first, then minimal fix, then suite. The classification lives on
-  the original finding (see `review-pr/references/findings-schema.md`
+  the original finding (see `skills/review/review-pr/references/findings-schema.md`
   severity buckets — `critical` / `important` are usually bugs;
   `suggestion` / `nit` usually are not, but the Analysis field is the
   ground truth).
@@ -183,7 +183,7 @@ do, update the entry and re-show the table before posting.
 #### 3b. Overlap-skim suppression
 
 Before posting, run the overlap-skim check from the plan's Context
-section (also documented in `review-pr/references/aggregation.md`):
+section (also documented in `skills/review/review-pr/references/aggregation.md`):
 
 1. Fetch existing PR review comments and reviews:
    ```bash
@@ -213,7 +213,7 @@ does not suppress the other.
 
 For every reply that survives overlap-skim, prepend the severity emoji
 per the Code-Review-Comment Conventions (also in
-`review-pr/references/findings-schema.md`):
+`skills/review/review-pr/references/findings-schema.md`):
 
 | Severity        | Prefix                       |
 | --------------- | ---------------------------- |
@@ -231,7 +231,7 @@ between then and now.
 
 **Reuse the `resolve-pr-comments` Step 6 bulk-mutation logic verbatim
 — do not duplicate it.** The mutation pattern, alias scheme, and
-batch sizing live in `resolve-pr-comments/SKILL.md` (Step 6 — "Bulk
+batch sizing live in `skills/review/resolve-pr-comments/SKILL.md` (Step 6 — "Bulk
 reply and resolve"). The shape is:
 
 ```bash
@@ -295,7 +295,7 @@ inside a collapsible `<details>` block. Format the body:
 
 `<N>` is the total item count; `<c>` / `<i>` / `<s>` are the
 per-severity counts — `<s>` covers both `suggestion` and `nit`, which
-share the 💡 prefix (see `review-pr/references/findings-schema.md`).
+share the 💡 prefix (see `skills/review/review-pr/references/findings-schema.md`).
 Omit a zero-count severity from both the summary line and the
 `<details>` block — if `<s>` is 0, drop the `### 💡 Suggestion`
 heading and list rather than rendering an empty section; same for
@@ -410,7 +410,7 @@ If post-flight failed, do **not** offer to mark ready — the discrepancy must b
   comment per run, not N inline comments. The reviewer's PR view
   should not look like a bot just emptied a queue.
 - **Overlap-skim and emoji prefixing are per-finding** — see
-  `review-pr/references/findings-schema.md` and the plan's Context
+  `skills/review/review-pr/references/findings-schema.md` and the plan's Context
   section for the full rule.
 - **Do not duplicate logic from `resolve-pr-comments`.** The execute
   playbook (`references/execute.md`) and the bulk-mutation pattern
