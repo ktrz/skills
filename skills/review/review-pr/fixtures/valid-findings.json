@@ -1,0 +1,27 @@
+[
+  {
+    "file": "src/auth/router.ts",
+    "line": 87,
+    "severity": "critical",
+    "description": "verifyToken result is not null-checked before accessing user.id; an expired token throws at runtime.",
+    "recommendation": "Add a null guard returning 401 before accessing result.user.id.",
+    "reported_by": ["code-reviewer", "silent-failure-hunter"]
+  },
+  {
+    "file": "src/util/retry.ts",
+    "line": 12,
+    "severity": "important",
+    "description": "The retry loop uses a fixed delay with no backoff.",
+    "recommendation": "Use exponential backoff with jitter.",
+    "reported_by": ["code-reviewer"],
+    "resolution_status": "not-addressed"
+  },
+  {
+    "file": null,
+    "line": null,
+    "severity": "suggestion",
+    "description": "Naming is inconsistent across the module (camelCase vs snake_case).",
+    "recommendation": "Pick one convention and apply it repo-wide in a follow-up.",
+    "reported_by": ["single-pass"]
+  }
+]

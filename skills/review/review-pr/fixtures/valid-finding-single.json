@@ -1,0 +1,8 @@
+{
+  "file": "src/index.ts",
+  "line": 3,
+  "severity": "nit",
+  "description": "Unused import.",
+  "recommendation": "Remove the unused import.",
+  "reported_by": ["code-reviewer"]
+}
