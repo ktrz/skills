@@ -11,11 +11,16 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseArgs, validateSpec, runTarget } from "../../evals/run.mjs";
+import { spawnSync } from "node:child_process";
+
+import { parseArgs, validateSpec, runTarget, loadScenarioFiles, triggerEvalSet } from "../../evals/run.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const scenarioPath = (f) => path.join(here, "..", "..", "evals", "scenarios", f);
 const loadSpec = (f) => JSON.parse(readFileSync(scenarioPath(f), "utf8"));
+const RUN_MJS = path.join(here, "..", "..", "evals", "run.mjs");
+const fixtureSet = (name) => path.join(here, "fixtures", "scenario-sets", name);
+const runCli = (args) => spawnSync(process.execPath, [RUN_MJS, ...args], { encoding: "utf8" });
 
 // ---- parseArgs: the documented CLI contract ---------------------------------
 
@@ -106,6 +111,69 @@ test("validateSpec warns when a live block's should_trigger is missing or non-bo
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /stringly-trigger/);
   assert.match(warnings[0], /should_trigger/);
+});
+
+// ---- scenario discovery -----------------------------------------------------
+
+test("loadScenarioFiles excludes *.trigger.json (bare arrays would crash the scenario path)", () => {
+  const all = loadScenarioFiles(null);
+  assert.ok(all.length >= 3, "expected the three real targets");
+  assert.ok(all.every(({ file }) => !file.endsWith(".trigger.json")));
+  for (const { spec } of all) assert.ok(Array.isArray(spec.scenarios), `${spec.target} must be a spec, not a trigger set`);
+});
+
+test("loadScenarioFiles filters to one target when asked", () => {
+  const files = loadScenarioFiles("create-pr").map(({ file }) => file);
+  assert.deepEqual(files, ["create-pr.json"]);
+});
+
+// ---- trigger eval-set (the skill-creator plugin compatibility contract) -----
+
+test("triggerEvalSet emits the plugin-compatible [{query, should_trigger}] shape", () => {
+  const spec = {
+    scenarios: [
+      { id: "a", live: { prompt: "p1", should_trigger: true, expectations: ["x"] } },
+      { id: "b", live: { prompt: "p2", should_trigger: false } },
+      { id: "c" },
+      { id: "d", live: { prompt: "p3", should_trigger: "true" } },
+    ],
+  };
+  assert.deepEqual(triggerEvalSet(spec), [
+    { query: "p1", should_trigger: true },
+    { query: "p2", should_trigger: false },
+  ]);
+});
+
+// ---- main(): the actual CI gate, exercised end-to-end via the CLI -----------
+
+test("main exits 1 when a deterministic check fails — the drift gate itself", () => {
+  const r = runCli(["--scenario-dir", fixtureSet("drifted")]);
+  assert.equal(r.status, 1, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.match(r.stdout, /FAIL/);
+});
+
+test("main exits 0 on a fully green scenario set (and skips the bare *.trigger.json beside it)", () => {
+  const r = runCli(["--scenario-dir", fixtureSet("green")]);
+  assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.match(r.stdout, /PASS/);
+});
+
+test("main exits non-zero with a clear message on an invalid --reps", () => {
+  const r = runCli(["--scenario-dir", fixtureSet("green"), "--reps", "0"]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--reps must be a positive integer/);
+});
+
+test("main exits non-zero when a spec's scenarios array is empty", () => {
+  const r = runCli(["--scenario-dir", fixtureSet("invalid")]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /non-empty array/);
+});
+
+test("main exits non-zero with the distinct not-found message for a missing wip variant", () => {
+  const r = runCli(["--scenario-dir", fixtureSet("green"), "--variant", "wip"]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /variant directory not found/);
 });
 
 // ---- aggregation: an empty per-rep fold must fail, never pass --------------
