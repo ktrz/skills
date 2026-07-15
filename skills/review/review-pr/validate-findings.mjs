@@ -43,6 +43,7 @@ function checkFinding(f, path) {
       if (f.file.startsWith("./")) fail(`${path}.file`, `file "${f.file}" must not have a leading "./"`);
       if (f.file.startsWith("/")) fail(`${path}.file`, `file "${f.file}" must be repo-relative, not absolute`);
       if (f.file.includes("\\")) fail(`${path}.file`, `file "${f.file}" must use forward slashes, not backslashes`);
+      if (f.file.split("/").includes("..")) fail(`${path}.file`, `file "${f.file}" must not escape the repo root with a ".." segment`);
     }
   }
 

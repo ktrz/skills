@@ -1,0 +1,10 @@
+[
+  {
+    "file": "../../etc/passwd",
+    "line": 1,
+    "severity": "important",
+    "description": "x",
+    "recommendation": "y",
+    "reported_by": ["code-reviewer"]
+  }
+]

@@ -86,6 +86,14 @@ test("a missing recommendation is rejected", () => {
   assertViolation(fixture("invalid-missing-recommendation.json"), ["$[0].recommendation", "non-empty string"], "missing recommendation");
 });
 
+test("a missing description is rejected", () => {
+  assertViolation(fixture("invalid-missing-description.json"), ["$[0].description", "non-empty string"], "missing description");
+});
+
+test("a file path escaping the repo root with .. is rejected", () => {
+  assertViolation(fixture("invalid-file-parent-escape.json"), ["$[0].file", ".."], "parent-escape path");
+});
+
 test("line 0 is rejected", () => {
   assertViolation(fixture("invalid-bad-line.json"), ["$[0].line", ">= 1"], "bad line");
 });
@@ -129,5 +137,45 @@ test("an absolute file path is rejected", () => {
     [{ file: "/etc/passwd", line: 1, severity: "nit", description: "x", recommendation: "y", reported_by: ["a"] }],
     ["$[0].file", "repo-relative"],
     "absolute path"
+  );
+});
+
+test("an interior .. segment (foo/../bar) is rejected", () => {
+  assertViolation(
+    [{ file: "src/../../secret", line: 1, severity: "nit", description: "x", recommendation: "y", reported_by: ["a"] }],
+    ["$[0].file", ".."],
+    "interior parent segment"
+  );
+});
+
+test("a non-empty-string reported_by entry is required (empty string entry rejected)", () => {
+  assertViolation(
+    [{ file: "src/a.ts", line: 1, severity: "nit", description: "x", recommendation: "y", reported_by: [""] }],
+    ["$[0].reported_by[0]", "non-empty string"],
+    "empty reported_by entry"
+  );
+});
+
+test("a non-string reported_by entry is rejected", () => {
+  assertViolation(
+    [{ file: "src/a.ts", line: 1, severity: "nit", description: "x", recommendation: "y", reported_by: [123] }],
+    ["$[0].reported_by[0]", "non-empty string"],
+    "numeric reported_by entry"
+  );
+});
+
+test("a non-integer (float) line is rejected", () => {
+  assertViolation(
+    [{ file: "src/a.ts", line: 1.5, severity: "nit", description: "x", recommendation: "y", reported_by: ["a"] }],
+    ["$[0].line", ">= 1"],
+    "float line"
+  );
+});
+
+test("a non-integer (string) line is rejected", () => {
+  assertViolation(
+    [{ file: "src/a.ts", line: "3", severity: "nit", description: "x", recommendation: "y", reported_by: ["a"] }],
+    ["$[0].line", ">= 1"],
+    "string line"
   );
 });
