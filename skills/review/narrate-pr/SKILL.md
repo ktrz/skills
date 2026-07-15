@@ -1,19 +1,14 @@
 ---
 name: narrate-pr
-version: 0.1.0
+version: 0.1.1
 disable-model-invocation: true
 description: >
-  Narrate a pull request as a multi-level HTML walkthrough — thesis,
-  architecture diagrams, components, dependency-ordered review path, and
-  bounded "look closely here" attention spots — published as a Claude
-  artifact. Scouts the PR, fans out scoped Sonnet research subagents,
-  verifies component edges, synthesizes a doc-as-data walkthrough.json
-  with stable node ids and file:line receipts, validates and renders it
-  with a deterministic zero-dependency renderer, persists everything
-  under the target repo's plans.local/<repo>/pr-<N>/walkthrough/, and
-  publishes the rendered page as a Claude artifact. Triggers on "narrate
-  PR", "narrate this PR", "walk me through this PR", "PR walkthrough",
-  "walkthrough for PR [N]", or "/narrate-pr [PR]".
+  Generate a multi-level HTML walkthrough of a pull request — its thesis,
+  architecture, components, and a dependency-ordered review path — published
+  as a Claude artifact for reviewers who want the shape of a PR before the
+  diff. Use when the user says "narrate PR", "narrate this PR", "walk me
+  through this PR", "PR walkthrough", "walkthrough for PR [N]", or runs
+  "/narrate-pr [PR]".
 ---
 
 # Narrate PR

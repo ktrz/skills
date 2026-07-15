@@ -1,16 +1,14 @@
 ---
 name: implement-feature
-version: 1.3.1
+version: 1.3.2
 model: sonnet
 description: >
-  Execute a multi-phase feature plan using parallel worktree agents, then open PRs. Use when you
-  want to go from ticket to code — dispatches parallel execute-phase agents for independent phases
-  and chains cohorts with user confirmation between them. Triggers on "implement feature",
-  "implement ticket", "/implement-feature PROJ-XXX", "execute the plan", or "run the phases".
-  Invokes plan-feature automatically if no plan file exists yet. After PRs are opened, runs the
-  automated review pipeline (`review-pr` → `investigate-pr-comments`) per PR to produce a handover
-  doc the user can triage offline. Works with jira, linear, github, or clickup tickets via
-  references/tracker.md.
+  Take a tracker ticket from plan to opened PRs, running phases in parallel
+  worktrees and the review pipeline afterward. Use when the user says
+  "implement feature", "implement ticket", "execute the plan", "run the
+  phases", or runs "/implement-feature PROJ-XXX". Plans the feature first if
+  no plan file exists yet. Works with jira, linear, github, or clickup
+  tickets — see references/tracker.md.
 ---
 
 # Implement Feature

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Description tightened to when-to-use triggers only — dropped the pipeline-mechanism summary (scout → fan-out → synthesize → validate → render → publish) per review-guidelines §1. Added a table of contents to `references/schema.md`. Documentation only.
+
 ## 0.1.0 - 2026-07-13
 
 Initial release: a `/narrate-pr` skill that turns a PR into a validated, self-contained HTML walkthrough. Feature-complete and tested, but not yet hardened through repeated real-world use — staying pre-1.0 until it's proven in action.

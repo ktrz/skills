@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+- Description tightened to triggers + modes — dropped the six-agent enumeration and the aggregation-mechanism summary per review-guidelines §1. Added tables of contents to `references/rereview-agent.md`, `agents.md`, `aggregation.md`, `guidelines-agent.md`, and `review-prompt.md`. Fixed a premature-close fence bug in `agents.md`, `guidelines-agent.md`, and `review-prompt.md`: the 4-backtick prompt-template block closed early (right after the diff) and a stray `​```…`​``` pair then rendered the trailing prose sections ("Severity-score normalisation", "Resolution verifier", "Custom-agent gotchas", "Normalisation", "Interaction with overlap-skim", "Notes") as a code block instead of headings. Documentation only.
+
 ## 1.7.0
 
 - **Findings schema promoted to an owned contract doc.** `references/findings-schema.md` now carries a contract header (owner / consumers / status) and a table of contents, specifying a findings file (a single finding object or a JSON array): the four-bucket `severity` enum; non-empty `description` / `recommendation`; a non-empty `reported_by` array; `file`/`line` both-null (PR-level) or both-set with a repo-relative `file` and integer `line` ≥ 1; and `resolution_status`, when present, in `addressed|partial|not-addressed|cant-tell`. `review-pr` is the sole producer of findings JSON and every consumer (aggregation, the handover format that imports these fields) is a model reading the doc — so the doc is the contract, with no runtime validator (nothing but models reads a findings file).
