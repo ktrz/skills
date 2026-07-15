@@ -9,8 +9,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RENDER = join(HERE, "..", "..", "narrate-pr", "render.mjs");
-const FIXTURE = join(HERE, "..", "..", "narrate-pr", "fixtures", "sample-mini.json");
+const RENDER = join(HERE, "..", "..", "skills", "review", "narrate-pr", "render.mjs");
+const FIXTURE = join(HERE, "..", "..", "skills", "review", "narrate-pr", "fixtures", "sample-mini.json");
 
 const tmp = mkdtempSync(join(tmpdir(), "narrate-pr-render-"));
 process.on("exit", () => rmSync(tmp, { recursive: true, force: true }));
