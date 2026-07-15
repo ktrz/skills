@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+- **Plan-file contract** — the phased plan-file format is now an owned contract doc (`references/plan-file-format.md`) with a zero-dependency validator (`validate-plan.mjs`): exactly one H1 title, a `## Context` section, an `## Execution Order` section when the plan has ≥ 2 phases, at least one `## Phase <N>` section, unique phase numbers forming a contiguous run from 0 or 1, and a non-empty body per phase. Headings inside fenced code blocks are ignored. Fixtures + `tests/plan-feature/validate-plan.test.mjs` cover one valid case per accepted shape and one invalid case per rule. The plan file is the artifact `plan-feature` produces and `implement-feature` / `execute-phase` consume.
+
 ## 1.3.1
 
 - The repo-name derivation that matches the current repository against existing `plans.local/<subdir>/` project directories now uses the main repository's git directory instead of `basename "$(pwd)"`, so it is stable across worktrees. Running from a worktree previously yielded the worktree's name, which failed to match the real project subdirectory.
