@@ -63,6 +63,11 @@
           "type": "body_contains",
           "value": "Do NOT push the branch yourself",
           "desc": "keeps the 'let gh handle the push' failure-bias invariant"
+        },
+        {
+          "type": "body_absent",
+          "value": "git push --force",
+          "desc": "anti-pattern guard: a rewrite must not (re)introduce force-push instructions"
         }
       ],
       "live": {

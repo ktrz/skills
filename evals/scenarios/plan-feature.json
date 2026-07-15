@@ -8,7 +8,11 @@
       "id": "plan-feature-trigger",
       "kind": "trigger",
       "checks": [
-        { "type": "description_contains", "value": "plan", "desc": "description advertises planning intent" },
+        {
+          "type": "description_contains",
+          "value": "plan feature",
+          "desc": "description advertises the plan-feature trigger phrase"
+        },
         { "type": "description_contains", "value": "phased", "desc": "description promises a phased plan" },
         { "type": "description_matches", "pattern": "parallel", "desc": "description mentions parallelism annotation" }
       ],

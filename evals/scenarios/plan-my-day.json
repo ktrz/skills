@@ -2,7 +2,7 @@
   "target": "plan-my-day",
   "stable_path": "skills/workflow/plan-my-day",
   "wip_path": "skills/wip/plan-my-day",
-  "description": "Phase-5 loosening target (887 lines — worst offender). Deterministic `checks` pin trigger coverage, the day-plan output shape, the three-way worktree classification, and the degraded-signal + posture-hint invariants; `live` blocks describe the model runs a human executes.",
+  "description": "Phase-5 loosening target (the largest and most prescriptive of the three). Deterministic `checks` pin trigger coverage, the day-plan output shape, the three-way worktree classification, and the degraded-signal + posture-hint invariants; `live` blocks describe the model runs a human executes.",
   "scenarios": [
     {
       "id": "plan-my-day-trigger",
@@ -106,8 +106,16 @@
       "id": "plan-my-day-modes",
       "kind": "invariant",
       "checks": [
-        { "type": "body_matches", "pattern": "standup", "desc": "documents the standup mode" },
-        { "type": "body_matches", "pattern": "close", "desc": "documents the close mode" },
+        {
+          "type": "body_matches",
+          "pattern": "\\*\\*standup\\*\\* \\(`/plan-my-day standup`\\)",
+          "desc": "keeps the standup mode's dispatch list entry"
+        },
+        {
+          "type": "body_matches",
+          "pattern": "\\*\\*close\\*\\* \\(`/plan-my-day close`\\)",
+          "desc": "keeps the close mode's dispatch list entry"
+        },
         { "type": "section_present", "value": "Modes", "desc": "keeps an explicit Modes dispatch section" }
       ],
       "live": {
