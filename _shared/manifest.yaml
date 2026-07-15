@@ -1,4 +1,7 @@
 references:
+  comment-relevance.md:
+    - skills/review/review-pr
+    - skills/review/investigate-pr-comments
   tracker.md:
     - skills/delivery/commit-message-format
     - skills/delivery/create-pr

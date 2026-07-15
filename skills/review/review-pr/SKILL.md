@@ -189,7 +189,7 @@ Build the **prior-findings set** per `references/rereview-agent.md`
 ("Prior-findings set"): one entry per thread — `(file, line, author,
 is_resolved, fenced body)` — covering **both resolved and unresolved**
 threads, with boilerplate dropped per
-`_shared/references/comment-relevance.md`. Two items are "the same
+`references/comment-relevance.md`. Two items are "the same
 prior item" only under the identity rule in `rereview-agent.md` (same
 `(file, line)` plus substantively overlapping point).
 
