@@ -36,13 +36,21 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const SCENARIO_DIR = path.join(here, "scenarios");
 const BASELINE_DIR = path.join(here, "baselines");
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = { variant: "stable", reps: 5, target: null, json: false, writeBaseline: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--variant") args.variant = argv[++i];
-    else if (a === "--reps") args.reps = Number(argv[++i]);
-    else if (a === "--target") args.target = argv[++i];
+    else if (a === "--reps") {
+      // A missing/zero/NaN reps would run zero iterations and (before the
+      // fail-closed fold below) report a vacuous 100% green — reject it loudly.
+      const raw = argv[++i];
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 1) {
+        throw new Error(`--reps must be a positive integer, got: ${raw}`);
+      }
+      args.reps = n;
+    } else if (a === "--target") args.target = argv[++i];
     else if (a === "--json") args.json = true;
     else if (a === "--write-baseline") args.writeBaseline = true;
     else throw new Error(`unknown arg: ${a}`);
@@ -50,7 +58,43 @@ function parseArgs(argv) {
   return args;
 }
 
-function loadScenarioFiles(target) {
+// Validate a loaded scenario spec. Returns { errors, warnings }.
+//
+// Errors fail the run (exit 2): a spec whose scenarios vanished, or a scenario
+// with no deterministic checks (e.g. a "cheks" typo or checks emptied while
+// loosening a wip variant), would otherwise be vacuously green — the exact
+// silent-gate-disable this harness exists to prevent. A scenario may opt out
+// of deterministic checks only by declaring `"live_only": true`.
+//
+// Warnings surface data that silently degrades the live layer (a live block
+// whose should_trigger is missing/non-boolean is excluded from the emitted
+// trigger eval-set); --write-baseline refuses to record while any exist.
+export function validateSpec(spec, file) {
+  const errors = [];
+  const warnings = [];
+  if (!Array.isArray(spec.scenarios) || spec.scenarios.length === 0) {
+    errors.push(`${file}: "scenarios" must be a non-empty array — a spec that asserts nothing must not pass`);
+    return { errors, warnings };
+  }
+  for (const sc of spec.scenarios) {
+    const id = sc.id || "<missing id>";
+    const hasChecks = Array.isArray(sc.checks) && sc.checks.length > 0;
+    if (!hasChecks && sc.live_only !== true) {
+      errors.push(
+        `${file}: scenario "${id}" has no deterministic checks — add checks or mark it explicitly "live_only": true`
+      );
+    }
+    if (sc.live && typeof sc.live.should_trigger !== "boolean") {
+      warnings.push(
+        `${file}: scenario "${id}" live block has a missing/non-boolean should_trigger — ` +
+          `it would be silently excluded from the trigger eval-set`
+      );
+    }
+  }
+  return { errors, warnings };
+}
+
+export function loadScenarioFiles(target) {
   const files = readdirSync(SCENARIO_DIR)
     .filter((f) => f.endsWith(".json") && !f.endsWith(".trigger.json"))
     .filter((f) => !target || f === `${target}.json`);
@@ -73,7 +117,8 @@ export function runTarget(spec, variant, reps) {
       perRep.push({ passed, checks });
     }
     const passCount = perRep.filter((r) => r.passed).length;
-    const passRate = perRep.length ? passCount / perRep.length : 1;
+    // Fail closed: zero executed reps means zero evidence, never a pass.
+    const passRate = perRep.length ? passCount / perRep.length : 0;
     return {
       id: sc.id,
       kind: sc.kind,
@@ -145,10 +190,29 @@ function triggerEvalSet(spec) {
 }
 
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
+  }
   const specs = loadScenarioFiles(args.target);
   if (specs.length === 0) {
     console.error(`no scenario files found${args.target ? ` for target ${args.target}` : ""}`);
+    process.exit(2);
+  }
+
+  // Fail closed on malformed specs before running anything — a target whose
+  // scenarios or checks silently vanished must be an error, not a green run.
+  const validations = specs.map(({ file, spec }) => validateSpec(spec, file));
+  const specErrors = validations.flatMap((v) => v.errors);
+  const specWarnings = validations.flatMap((v) => v.warnings);
+  for (const w of specWarnings) console.error(`WARN: ${w}`);
+  for (const e of specErrors) console.error(`ERROR: ${e}`);
+  if (specErrors.length > 0) process.exit(2);
+  if (args.writeBaseline && specWarnings.length > 0) {
+    console.error("refusing --write-baseline while warnings exist — the recorded trigger eval-set would silently shrink");
     process.exit(2);
   }
 
