@@ -27,4 +27,3 @@ Body content.
 Body content.
 
 **Deliverable:** something.
-</content>

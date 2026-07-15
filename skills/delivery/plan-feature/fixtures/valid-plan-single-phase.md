@@ -12,4 +12,3 @@ One vertical slice covers it.
 **TDD note:** tests first.
 
 **Deliverable:** feature works end-to-end.
-</content>

@@ -47,4 +47,3 @@ Vertical slice: mutation hook + button + tests.
 ## Open Questions
 
 1. Real API endpoint shape — deferred to a follow-up ticket.
-</content>

@@ -21,4 +21,3 @@ Body content.
 ## Open Questions
 
 The empty Phase 2 above has nothing an agent could execute.
-</content>
