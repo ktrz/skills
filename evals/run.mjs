@@ -10,10 +10,11 @@
 //   --variant         which copy of the skill to check (default: stable).
 //                     stable -> skills/<group>/<skill>; wip -> skills/wip/<skill>.
 //                     Phase 5 runs the SAME scenarios A/B by flipping this flag.
-//   --reps N          repeat the deterministic run N times and report variance
-//                     (default 5). Deterministic checks are invariant, so the
-//                     expected variance is 0 — a non-zero value means a check is
-//                     reading something non-stable and is itself a bug.
+//   --reps N          repeat the deterministic run N times (default 1). The
+//                     checks are pure functions of on-disk text, so variance is
+//                     structurally 0 on this layer; reps + the variance column
+//                     are a scaffold for the live (model-in-the-loop) layer and
+//                     for manual stress runs, not a deterministic-layer signal.
 //   --scenario-dir    read scenario files from another directory (default:
 //                     evals/scenarios). Used by the harness's own tests to
 //                     drive main()'s exit gate against fixture scenario sets,
@@ -43,7 +44,7 @@ const BASELINE_DIR = path.join(here, "baselines");
 export function parseArgs(argv) {
   const args = {
     variant: "stable",
-    reps: 5,
+    reps: 1,
     target: null,
     json: false,
     writeBaseline: false,
@@ -136,7 +137,10 @@ export function runTarget(spec, variant, reps) {
   const scenarioResults = spec.scenarios.map((sc) => {
     const perRep = [];
     for (let r = 0; r < reps; r++) {
-      const skill = loadSkill(dir); // reloaded each rep so the run is honest
+      // Reloaded each rep. Note the checks are pure over stable bytes, so
+      // per-rep results are identical on this layer (variance stays 0 by
+      // construction); reps exist for the live layer and manual stress runs.
+      const skill = loadSkill(dir);
       const checks = (sc.checks || []).map((c) => ({ ...c, ...runCheck(skill, c) }));
       const passed = checks.every((c) => c.pass);
       perRep.push({ passed, checks });
@@ -214,6 +218,24 @@ export function triggerEvalSet(spec) {
     .map((sc) => ({ query: sc.live.prompt, should_trigger: sc.live.should_trigger }));
 }
 
+// The serialized baseline for one target: the measured deterministic results
+// plus the pending live-layer spec (including the plugin-consumable trigger
+// eval-set derived from the scenario live blocks).
+export function buildBaseline(spec, result) {
+  return {
+    recorded_at: new Date().toISOString().slice(0, 10),
+    ...result,
+    live_layer: {
+      status: "pending",
+      note:
+        "Live trigger/behavior runs require a model and are not executed by this runner. " +
+        "Run evals/scenarios/<target>.trigger.json through the skill-creator plugin " +
+        "(scripts/run_eval.py) or drive the prompts manually. See evals/README.md.",
+      trigger_eval_set: triggerEvalSet(spec),
+    },
+  };
+}
+
 function main() {
   let args;
   try {
@@ -253,21 +275,15 @@ function main() {
     if (!existsSync(BASELINE_DIR)) mkdirSync(BASELINE_DIR, { recursive: true });
     for (let i = 0; i < results.length; i++) {
       const spec = specs[i].spec;
-      const out = {
-        recorded_at: new Date().toISOString().slice(0, 10),
-        ...results[i],
-        live_layer: {
-          status: "pending",
-          note:
-            "Live trigger/behavior runs require a model and are not executed by this runner. " +
-            "Run evals/scenarios/<target>.trigger.json through the skill-creator plugin " +
-            "(scripts/run_eval.py) or drive the prompts manually. See evals/README.md.",
-          trigger_eval_set: triggerEvalSet(spec),
-        },
-      };
       const file = path.join(BASELINE_DIR, `${spec.target}-baseline.json`);
-      writeFileSync(file, JSON.stringify(out, null, 2) + "\n");
+      writeFileSync(file, JSON.stringify(buildBaseline(spec, results[i]), null, 2) + "\n");
       console.error(`wrote ${path.relative(REPO_ROOT, file)}`);
+      // The standalone plugin-consumable trigger file is derived from the
+      // scenario live blocks (the single source of truth), never hand-edited —
+      // a test asserts the committed copies stay in sync.
+      const trig = path.join(args.scenarioDir, `${spec.target}.trigger.json`);
+      writeFileSync(trig, JSON.stringify(triggerEvalSet(spec), null, 2) + "\n");
+      console.error(`wrote ${path.relative(REPO_ROOT, trig)}`);
     }
   }
 

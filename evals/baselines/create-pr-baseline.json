@@ -3,7 +3,7 @@
   "target": "create-pr",
   "variant": "stable",
   "variantDir": "skills/delivery/create-pr",
-  "reps": 5,
+  "reps": 1,
   "scenarios": [
     {
       "id": "create-pr-trigger",

@@ -3,7 +3,7 @@
   "target": "plan-my-day",
   "variant": "stable",
   "variantDir": "skills/workflow/plan-my-day",
-  "reps": 5,
+  "reps": 1,
   "scenarios": [
     {
       "id": "plan-my-day-trigger",

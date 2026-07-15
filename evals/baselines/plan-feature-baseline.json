@@ -3,7 +3,7 @@
   "target": "plan-feature",
   "variant": "stable",
   "variantDir": "skills/delivery/plan-feature",
-  "reps": 5,
+  "reps": 1,
   "scenarios": [
     {
       "id": "plan-feature-trigger",
