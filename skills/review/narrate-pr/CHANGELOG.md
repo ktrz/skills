@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Description tightened to when-to-use triggers only — dropped the pipeline-mechanism summary (scout → fan-out → synthesize → validate → render → publish) per review-guidelines §1. Added a table of contents to `references/schema.md`. Documentation only.
+
 ## 0.1.1 - 2026-07-30
 
 - CodeRabbit review fixes: depmap layout gains an obstacle check so the router won't route lane/sequence edges through unrelated nodes; edge label chips get an accessible-name fallback when unlabelled; `validate.mjs` tightens the package-id pattern, requires the prefixed-id format, and validates `revisedAt` as strict ISO 8601. +28 tests covering the tightened rules.

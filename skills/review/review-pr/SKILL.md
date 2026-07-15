@@ -1,19 +1,14 @@
 ---
 name: review-pr
-version: 1.7.0
+version: 1.7.1
 model: sonnet
 description: >
-  Review a pull request by dispatching specialized sub-agents in parallel
-  (default: pr-review-toolkit's 6 agents — code-reviewer, comment-analyzer,
-  silent-failure-hunter, pr-test-analyzer, type-design-analyzer,
-  code-simplifier — with graceful fallback to single-pass review if the
-  plugin isn't installed). Aggregates findings, applies project guidelines,
-  then writes them to a file (auto pipeline + standalone) or interactively
-  triages before posting (deep mode). Pass --re-review for follow-up
-  passes on an already-reviewed PR: audits whether prior review comments
-  were addressed and avoids re-raising them. Triggers on "review PR",
-  "review this PR", "re-review this PR", "/review-pr [PR]", or when
-  invoked automatically by implement-feature after PRs are created.
+  Review a pull request and surface findings by severity — written to a file
+  (auto/pipeline + standalone) or interactively triaged before posting (deep
+  mode). Pass --re-review for a follow-up pass that checks whether earlier
+  review comments were addressed without re-raising them. Use when the user
+  says "review PR", "review this PR", "re-review this PR", runs "/review-pr
+  [PR]", or when implement-feature invokes it after opening PRs.
 ---
 
 # Review PR
