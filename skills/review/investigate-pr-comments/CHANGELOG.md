@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2
+
+- **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and the Step 1 `SKILL.md` + `references/prior-handled.md` citations were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference
+
 ## 1.7.1
 
 - **Worktree fix: the `<repo>` token in `plans.local/<repo>/…` now identifies the repository, not the current worktree.** Both the Step 1 Source A auto-detect and the Step 4 output path derive it from the main repo's git directory (`git rev-parse --git-common-dir`, canonicalized, then basename) instead of `basename $(git rev-parse --show-toplevel)`, matching `review-pr` Step 9. Previously every worktree minted its own token, and because `review-pr` derives the token independently, running the two skills from different worktrees of the same repo made Source A auto-detect miss the `review-pr` findings file sitting one directory over — and the handover doc land in a per-worktree directory nobody reads. That is the normal flow, since `execute-phase`/`implement-feature` run each phase inside its own worktree

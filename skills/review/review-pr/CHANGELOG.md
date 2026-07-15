@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.2
+
+- **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and its citations in `SKILL.md`, `references/aggregation.md`, and `references/rereview-agent.md` were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference
+
 ## 1.6.1
 
 - **Worktree fix: the default `output_dir`'s `<repo>` token now identifies the repository, not the current worktree.** Both the Step 1 config-defaults summary and the authoritative Step 9 resolution derive it from the main repo's git directory (`git rev-parse --git-common-dir`, canonicalized, then basename) instead of `basename $(git rev-parse --show-toplevel)`, so the `<repo>` segment is identical from every worktree of the repo. The `plans.local/` prefix itself is still resolved relative to the invoking worktree — with the usual shared `plans.local` symlink that means one directory for the whole repo, which is what makes producer and consumer agree; a worktree carrying its own real `plans.local/` directory keeps its own copy. Previously each worktree produced a different token, and because `investigate-pr-comments` derives it independently, the two skills invoked from different worktrees of the same repo disagreed on the path and the downstream auto-detect missed the findings file. User overrides are still taken verbatim
