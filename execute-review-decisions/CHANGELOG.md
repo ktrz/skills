@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Step 3e posts the "Auto-review items addressed" PR comment with a one-line severity-count summary above the fold and the full per-severity detail tucked inside a collapsible `<details>` block, so a large resolved-item batch no longer drops a wall of text on the PR. Documents the blank-line requirement GitHub needs around `<summary>`/`</details>` for the enclosed markdown to render.
+
 ## 1.2.0
 
 - Rename `bot-skim` → `overlap-skim` in lockstep with `review-pr` 1.2.0. Step 3b heading, prose, output lines, and the Trust Boundaries table all updated. The mechanism is unchanged; only the name reflects what it actually does (content overlap, not author class). **Breaking:** any external automation grepping log lines for `Bot-skim suppressed:` needs to switch to `Overlap-skim suppressed:`
