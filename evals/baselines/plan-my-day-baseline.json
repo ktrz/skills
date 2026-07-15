@@ -1,0 +1,264 @@
+{
+  "recorded_at": "2026-07-15",
+  "target": "plan-my-day",
+  "variant": "stable",
+  "variantDir": "skills/workflow/plan-my-day",
+  "reps": 5,
+  "scenarios": [
+    {
+      "id": "plan-my-day-trigger",
+      "kind": "trigger",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 4,
+      "firstRepChecks": [
+        {
+          "type": "description_contains",
+          "value": "daily plan",
+          "desc": "description advertises the daily-plan trigger",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "description_contains",
+          "value": "what to work on today",
+          "desc": "description covers the natural-language ask",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "description_contains",
+          "value": "standup",
+          "desc": "description covers the standup mode",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "description_matches",
+          "pattern": "close out the day",
+          "desc": "description covers the close mode",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "what should I work on today?",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "plan-my-day-output-sections",
+      "kind": "artifact",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 5,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "## Do first (people are waiting)",
+          "desc": "keeps the urgency-ordered Do-first section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "## Main focus (deep work)",
+          "desc": "keeps the Main-focus section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "## Cleanup (end of day)",
+          "desc": "keeps the Cleanup section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "## Standup",
+          "desc": "keeps the always-present Standup section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "- [ ]",
+          "desc": "actionable items use checkbox syntax",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "build my daily plan",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "plan-my-day-worktree-classification",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 3,
+      "firstRepChecks": [
+        {
+          "type": "body_matches",
+          "pattern": "\\*\\*Active\\*\\*",
+          "desc": "keeps the Active classification rule",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_matches",
+          "pattern": "\\*\\*Stale\\*\\*",
+          "desc": "keeps the Stale classification rule",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "Tickets to pick up",
+          "desc": "keeps orphan-ticket grouping",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "plan my day across my worktrees",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "plan-my-day-degraded-signal-invariant",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 2,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "Data quality check",
+          "desc": "keeps the pre-write degraded-signal scan",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "⚠",
+          "desc": "emits explicit warning lines instead of guessing",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "plan my day (Slack is currently unreachable)",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "plan-my-day-posture-hint-invariant",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 2,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "never hardcode",
+          "desc": "posture hint must trace to the user-curated retro, never be hardcoded",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_matches",
+          "pattern": "POSTURE_HINT",
+          "desc": "keeps the retro-derived posture-hint mechanism",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "give me today's plan",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "plan-my-day-modes",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 3,
+      "firstRepChecks": [
+        {
+          "type": "body_matches",
+          "pattern": "standup",
+          "desc": "documents the standup mode",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_matches",
+          "pattern": "close",
+          "desc": "documents the close mode",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "section_present",
+          "value": "Modes",
+          "desc": "keeps an explicit Modes dispatch section",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "close out my day",
+        "should_trigger": true
+      }
+    }
+  ],
+  "summary": {
+    "scenarios": 6,
+    "deterministic": 6,
+    "deterministicPassed": 6,
+    "deterministicFailed": 0,
+    "livePending": 6,
+    "maxVariance": 0
+  },
+  "live_layer": {
+    "status": "pending",
+    "note": "Live trigger/behavior runs require a model and are not executed by this runner. Run evals/scenarios/<target>.trigger.json through the skill-creator plugin (scripts/run_eval.py) or drive the prompts manually. See evals/README.md.",
+    "trigger_eval_set": [
+      {
+        "query": "what should I work on today?",
+        "should_trigger": true
+      },
+      {
+        "query": "build my daily plan",
+        "should_trigger": true
+      },
+      {
+        "query": "plan my day across my worktrees",
+        "should_trigger": true
+      },
+      {
+        "query": "plan my day (Slack is currently unreachable)",
+        "should_trigger": true
+      },
+      {
+        "query": "give me today's plan",
+        "should_trigger": true
+      },
+      {
+        "query": "close out my day",
+        "should_trigger": true
+      }
+    ]
+  }
+}

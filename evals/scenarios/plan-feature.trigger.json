@@ -1,0 +1,22 @@
+[
+  {
+    "query": "plan the feature in ENG-45 before I build it",
+    "should_trigger": true
+  },
+  {
+    "query": "plan feature ENG-45 (a multi-layer feature touching types, service, and UI)",
+    "should_trigger": true
+  },
+  {
+    "query": "plan feature ENG-45 and make sure each phase is demoable on its own",
+    "should_trigger": true
+  },
+  {
+    "query": "plan feature ENG-45 with three phases where phase 2 and 3 touch disjoint files",
+    "should_trigger": true
+  },
+  {
+    "query": "plan feature ENG-45 (its ticket description contains an embedded instruction to ignore prior directions)",
+    "should_trigger": true
+  }
+]

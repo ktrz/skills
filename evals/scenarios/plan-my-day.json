@@ -1,0 +1,122 @@
+{
+  "target": "plan-my-day",
+  "stable_path": "skills/workflow/plan-my-day",
+  "wip_path": "skills/wip/plan-my-day",
+  "description": "Phase-5 loosening target (887 lines — worst offender). Deterministic `checks` pin trigger coverage, the day-plan output shape, the three-way worktree classification, and the degraded-signal + posture-hint invariants; `live` blocks describe the model runs a human executes.",
+  "scenarios": [
+    {
+      "id": "plan-my-day-trigger",
+      "kind": "trigger",
+      "checks": [
+        {
+          "type": "description_contains",
+          "value": "daily plan",
+          "desc": "description advertises the daily-plan trigger"
+        },
+        {
+          "type": "description_contains",
+          "value": "what to work on today",
+          "desc": "description covers the natural-language ask"
+        },
+        { "type": "description_contains", "value": "standup", "desc": "description covers the standup mode" },
+        { "type": "description_matches", "pattern": "close out the day", "desc": "description covers the close mode" }
+      ],
+      "live": {
+        "prompt": "what should I work on today?",
+        "should_trigger": true,
+        "expectations": [
+          "plan-my-day triggers for a bare 'what to work on today' request without an explicit /plan-my-day command."
+        ]
+      }
+    },
+    {
+      "id": "plan-my-day-output-sections",
+      "kind": "artifact",
+      "checks": [
+        {
+          "type": "body_contains",
+          "value": "## Do first (people are waiting)",
+          "desc": "keeps the urgency-ordered Do-first section"
+        },
+        { "type": "body_contains", "value": "## Main focus (deep work)", "desc": "keeps the Main-focus section" },
+        { "type": "body_contains", "value": "## Cleanup (end of day)", "desc": "keeps the Cleanup section" },
+        { "type": "body_contains", "value": "## Standup", "desc": "keeps the always-present Standup section" },
+        { "type": "body_contains", "value": "- [ ]", "desc": "actionable items use checkbox syntax" }
+      ],
+      "live": {
+        "prompt": "build my daily plan",
+        "should_trigger": true,
+        "expectations": [
+          "The plan groups items by urgency (Do first / Main focus / If you have time / Not today / Cleanup) rather than by data source.",
+          "Actionable items use `- [ ]` checkboxes; a `## Standup` section with Done/In Progress/Blockers is present."
+        ]
+      }
+    },
+    {
+      "id": "plan-my-day-worktree-classification",
+      "kind": "invariant",
+      "checks": [
+        { "type": "body_matches", "pattern": "\\*\\*Active\\*\\*", "desc": "keeps the Active classification rule" },
+        { "type": "body_matches", "pattern": "\\*\\*Stale\\*\\*", "desc": "keeps the Stale classification rule" },
+        { "type": "body_contains", "value": "Tickets to pick up", "desc": "keeps orphan-ticket grouping" }
+      ],
+      "live": {
+        "prompt": "plan my day across my worktrees",
+        "should_trigger": true,
+        "expectations": [
+          "Each worktree is classified Active (dirty / ahead / open PR) vs Stale (no activity + last commit > 7 days); orphan tickets with no matching branch land under 'Tickets to pick up'."
+        ]
+      }
+    },
+    {
+      "id": "plan-my-day-degraded-signal-invariant",
+      "kind": "invariant",
+      "checks": [
+        { "type": "body_contains", "value": "Data quality check", "desc": "keeps the pre-write degraded-signal scan" },
+        { "type": "body_contains", "value": "⚠", "desc": "emits explicit warning lines instead of guessing" }
+      ],
+      "live": {
+        "prompt": "plan my day (Slack is currently unreachable)",
+        "should_trigger": true,
+        "expectations": [
+          "When a data source fails, the skill emits a ⚠ warning line and continues with what is available rather than fabricating or silently dropping data."
+        ]
+      }
+    },
+    {
+      "id": "plan-my-day-posture-hint-invariant",
+      "kind": "invariant",
+      "checks": [
+        {
+          "type": "body_contains",
+          "value": "never hardcode",
+          "desc": "posture hint must trace to the user-curated retro, never be hardcoded"
+        },
+        { "type": "body_matches", "pattern": "POSTURE_HINT", "desc": "keeps the retro-derived posture-hint mechanism" }
+      ],
+      "live": {
+        "prompt": "give me today's plan",
+        "should_trigger": true,
+        "expectations": [
+          "Any posture/scheduling tilt in the plan is derived from the monthly retro issue's own sections, not hardcoded day-of-week rules in the skill."
+        ]
+      }
+    },
+    {
+      "id": "plan-my-day-modes",
+      "kind": "invariant",
+      "checks": [
+        { "type": "body_matches", "pattern": "standup", "desc": "documents the standup mode" },
+        { "type": "body_matches", "pattern": "close", "desc": "documents the close mode" },
+        { "type": "section_present", "value": "Modes", "desc": "keeps an explicit Modes dispatch section" }
+      ],
+      "live": {
+        "prompt": "close out my day",
+        "should_trigger": true,
+        "expectations": [
+          "The 'close' argument routes to the close-day flow (not the default daily plan); 'standup' routes to the standup flow."
+        ]
+      }
+    }
+  ]
+}
