@@ -51,7 +51,8 @@ see the field rules below.
 
 ## Field rules
 
-- **`file`** — repo-relative path, forward slashes, no leading `./`. For
+- **`file`** — repo-relative path, forward slashes, no leading `./`, no
+  absolute path, and no `..` segment that would escape the repo root. For
   cross-cutting findings without a single anchor (e.g. naming
   consistency across files), use the most representative file.
 - **`line`** — integer line number in the head ref (the diff's "+"
@@ -163,7 +164,7 @@ node skills/review/review-pr/validate-findings.mjs <path-to-findings.json>
 It enforces: `severity` in the four-bucket enum; non-empty `description` and
 `recommendation`; a non-empty `reported_by` array of non-empty strings;
 `file`/`line` either both `null` (PR-level finding) or both set, with `file`
-repo-relative (no leading `./`, no absolute path, forward slashes) and `line`
+repo-relative (no leading `./`, no absolute path, no `..` escape segment, forward slashes) and `line`
 an integer ≥ 1; and `resolution_status`, when present, in
 `addressed|partial|not-addressed|cant-tell`. Fixtures live in
 `skills/review/review-pr/fixtures/`; the suite is
@@ -172,4 +173,4 @@ an integer ≥ 1; and `resolution_status`, when present, in
 The validator is co-located with `review-pr` and not distributed to other
 skills: `review-pr` is the sole producer of findings JSON, so nothing else
 needs to run it on an installed copy (see `_shared/README.md` →
-"Distributed categories").
+"When a contract validator needs a `bundles:` entry").
