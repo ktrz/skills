@@ -1,10 +1,33 @@
 # Findings schema
 
+> **Contract doc.** This is the owned format specification for a review
+> finding — the normalised shape every sub-agent (and the single-pass
+> fallback) must produce before aggregation. Treat the shape and field rules
+> below as the stable interface: `review-pr` prose may change, but a findings
+> file that conforms here must keep validating.
+
+|               |                                                                   |
+| ------------- | ----------------------------------------------------------------- |
+| **Owner**     | `skills/review/review-pr`                                         |
+| **Consumers** | `review-pr` aggregation; the handover format imports these fields |
+| **Validator** | `skills/review/review-pr/validate-findings.mjs` (zero-dep node)   |
+| **Status**    | contract                                                          |
+
 Canonical shape for a single review finding. This file is the single
 source of truth — `skills/review/review-pr/SKILL.md`, `skills/review/review-pr/references/agents.md`,
 `skills/review/review-pr/references/aggregation.md`, the auto-mode file output, and the
 Phase 2 handover format (`skills/review/investigate-pr-comments/references/handover-format.md`)
 all import from here.
+
+## Contents
+
+- [Shape](#shape)
+- [Field rules](#field-rules)
+- [Severity mapping](#severity-mapping)
+- [Severity ordering](#severity-ordering)
+- [Emoji prefixing (post-time only)](#emoji-prefixing-post-time-only)
+- [Auto-mode file format](#auto-mode-file-format)
+- [Validator usage](#validator-usage)
 
 ## Shape
 
@@ -123,3 +146,30 @@ Minimum keys persisted per item: `file`, `line`, `severity`,
 `description`, `recommendation`, `reported_by`. Severity is persisted
 verbatim — emoji prefixing happens at post time, not file-write time,
 so the document remains a clean structured input for downstream tools.
+
+## Validator usage
+
+`validate-findings.mjs` gates a findings file (a single finding object or a
+JSON array of findings) against the shape and field rules above:
+
+```bash
+node skills/review/review-pr/validate-findings.mjs <path-to-findings.json>
+```
+
+- Exit `0` — every finding conforms. Prints `OK: …`.
+- Exit `1` — prints one `path: message` line per violation, then a count.
+- Exit `2` — usage error or the file could not be read.
+
+It enforces: `severity` in the four-bucket enum; non-empty `description` and
+`recommendation`; a non-empty `reported_by` array of non-empty strings;
+`file`/`line` either both `null` (PR-level finding) or both set, with `file`
+repo-relative (no leading `./`, no absolute path, forward slashes) and `line`
+an integer ≥ 1; and `resolution_status`, when present, in
+`addressed|partial|not-addressed|cant-tell`. Fixtures live in
+`skills/review/review-pr/fixtures/`; the suite is
+`tests/review-pr/validate-findings.test.mjs` (`node --test`).
+
+The validator is co-located with `review-pr` and not distributed to other
+skills: `review-pr` is the sole producer of findings JSON, so nothing else
+needs to run it on an installed copy (see `_shared/README.md` →
+"Distributed categories").

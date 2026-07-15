@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+- **Findings schema promoted to an owned contract doc + validator.** `references/findings-schema.md` now carries a contract header (owner / consumers / validator / status) and a table of contents, and is backed by a zero-dependency validator (`validate-findings.mjs`). The validator gates a findings file (a single finding object or a JSON array) on: the four-bucket `severity` enum; non-empty `description` / `recommendation`; a non-empty `reported_by` array; `file`/`line` both-null (PR-level) or both-set with a repo-relative `file` and integer `line` ≥ 1; and `resolution_status`, when present, in `addressed|partial|not-addressed|cant-tell`. Fixtures + `tests/review-pr/validate-findings.test.mjs` cover one valid case per accepted shape and one invalid case per rule. Co-located with the skill, not distributed — `review-pr` is the sole producer of findings JSON.
+
 ## 1.6.1
 
 - **Comment-relevance filter now ships with the skill — works on installed copies.** `references/comment-relevance.md` is now distributed with the skill (synced from the canonical `_shared/references/comment-relevance.md` by `_shared/sync.sh`), and its citations in `SKILL.md`, `references/aggregation.md`, and `references/rereview-agent.md` were repointed from the CWD-relative `_shared/references/comment-relevance.md` to the local `references/comment-relevance.md`. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so the cited relevance rule dangled on installed copies. The filter's behaviour is unchanged — this only fixes the dangling reference

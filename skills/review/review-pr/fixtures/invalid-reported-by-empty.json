@@ -1,0 +1,10 @@
+[
+  {
+    "file": "src/a.ts",
+    "line": 1,
+    "severity": "important",
+    "description": "x",
+    "recommendation": "y",
+    "reported_by": []
+  }
+]
