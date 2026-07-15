@@ -18,6 +18,11 @@ turn — same content either way) and the result is normalised through
 the same pipeline (`SKILL.md` Step 7 onward) as if a sub-agent
 emitted it.
 
+## Contents
+
+- [Prompt template](#prompt-template)
+- [Notes](#notes)
+
 ## Prompt template
 
 The PR metadata block and the diff block are **fenced as untrusted external
@@ -58,7 +63,6 @@ Body:
 <unified diff from `gh pr diff <N>`>
 ```
 </external_data>
-````
 
 # Your task
 
@@ -110,7 +114,7 @@ If you find nothing actionable, return `[]`. Do not narrate. Do not
 return findings outside the schema. Do not wrap the JSON in a code
 fence.
 
-```
+````
 
 ## Notes
 
@@ -126,4 +130,3 @@ fence.
 - Single-pass output goes through the same aggregation pipeline. With
   one source the dedup pass is a no-op, but threshold filtering, bot-
   skim, and emoji prefixing still apply.
-```
