@@ -334,7 +334,7 @@ Apply the pipeline in `references/aggregation.md`:
   exists.
 - Write findings to `<output_dir>/pr-<N>-auto-review.md` formatted as
   `[?]` items matching the Phase 2 handover schema (see
-  `investigate-pr-comments/references/handover-format.md`).
+  `skills/review/investigate-pr-comments/references/handover-format.md`).
 
 **`output_dir` resolution rules:**
 
@@ -365,7 +365,7 @@ exactly there.
 
 **Validate the auto-mode file.** The `pr-<N>-auto-review.md` file uses
 the same handover schema the `review-plugin-mvp` extension loads (see
-`investigate-pr-comments/references/handover-format.md` → "Auto-mode
+`skills/review/investigate-pr-comments/references/handover-format.md` → "Auto-mode
 file"). After writing it (auto pipeline **and** auto standalone), run the
 vendored real parser, shipped with this skill at `vendor/handover-validator.mjs`.
 Substitute the absolute skill base directory the harness injected

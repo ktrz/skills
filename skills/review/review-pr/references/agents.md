@@ -1,7 +1,7 @@
 # Sub-agent resolution
 
 Rules for turning the `agents:` config key into a list of dispatchable
-Task calls. Used by `review-pr/SKILL.md` Step 4.
+Task calls. Used by `skills/review/review-pr/SKILL.md` Step 4.
 
 ## Defaults
 
@@ -119,7 +119,7 @@ contents minus frontmatter>
 # Output format
 
 Return a JSON array of findings. Each finding must conform to the
-canonical schema documented in `review-pr/references/findings-schema.md`:
+canonical schema documented in `skills/review/review-pr/references/findings-schema.md`:
 
 [
 {

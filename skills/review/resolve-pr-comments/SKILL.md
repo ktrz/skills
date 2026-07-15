@@ -26,7 +26,7 @@ This entry point is for the automated review pipeline (`implement-feature` → `
 When invoked via `--from-doc`:
 
 - Status marker rewriting: `[d]` → `[x]` if user picks the recommended option, `[d]` → `[~]` if user gives a custom instruction or edits, `[d]` → `[-]` if user skips, leave `[d]` if user defers further.
-- Resolution note: write `fix (a)`, `fix (b)`, the custom instruction verbatim, or `reply: <text>` per the schema in `investigate-pr-comments/references/handover-format.md`.
+- Resolution note: write `fix (a)`, `fix (b)`, the custom instruction verbatim, or `reply: <text>` per the schema in `skills/review/investigate-pr-comments/references/handover-format.md`.
 - Do **not** implement code, do **not** post to GitHub, do **not** resolve threads. That is `execute-review-decisions`'s job after the user reviews the updated doc.
 - Skip the dedup pass against GitHub threads — the handover doc already deduped at write time.
 

@@ -1,7 +1,7 @@
 # Aggregation
 
 Rules for combining sub-agent findings into a single output stream.
-Used by `review-pr/SKILL.md` Step 8.
+Used by `skills/review/review-pr/SKILL.md` Step 8.
 
 All operations work on findings already normalised to the canonical
 schema in `findings-schema.md`. Anything that can't be normalised was
