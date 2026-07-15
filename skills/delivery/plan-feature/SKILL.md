@@ -1,6 +1,6 @@
 ---
 name: plan-feature
-version: 1.3.0
+version: 1.4.0
 model: opus[1m]
 description: >
   Deep-plan a feature from a tracker ticket into a phased, parallelism-annotated implementation plan.
@@ -147,7 +147,9 @@ Skipping is appropriate for well-scoped tickets or continuation work.
 
 ## Stage 3: Write the multi-phase plan
 
-Use an existing plan (e.g. `plans.local/<project>/proj-123-example-feature.md`) as the canonical format reference.
+The plan file is a **contract** consumed by `implement-feature` and `execute-phase` — its shape is
+specified in `references/plan-file-format.md`. Follow that doc, and use an existing plan (e.g.
+`plans.local/<project>/proj-123-example-feature.md`) as a worked example.
 
 ### Resolve the write directory
 
@@ -206,6 +208,15 @@ Each phase section should include:
 - The specific files to create or modify (with paths from the exploration subagent)
 - A TDD note: tests written first, then implementation
 - The concrete deliverable a reviewer can verify
+
+After writing the file, gate it against the contract before presenting:
+
+```bash
+node <skill-base-dir>/validate-plan.mjs <resolved-dir>/<slug>.md
+```
+
+Exit 0 means the plan conforms. On a non-zero exit, fix the reported rule violations and re-run —
+a plan that fails here will not parse cleanly for `implement-feature` / `execute-phase`.
 
 ## Stage 4: Present and approve
 
