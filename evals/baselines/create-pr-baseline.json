@@ -1,0 +1,172 @@
+{
+  "recorded_at": "2026-07-15",
+  "target": "create-pr",
+  "variant": "stable",
+  "variantDir": "skills/delivery/create-pr",
+  "reps": 5,
+  "scenarios": [
+    {
+      "id": "create-pr-trigger",
+      "kind": "trigger",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 3,
+      "firstRepChecks": [
+        {
+          "type": "description_contains",
+          "value": "open a pull request",
+          "desc": "description advertises the primary trigger phrase",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "description_contains",
+          "value": "submit their branch for review",
+          "desc": "description covers the review-submission phrasing",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "description_contains",
+          "value": "--draft",
+          "desc": "description surfaces the --draft affordance",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "open a pull request for my branch",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "create-pr-body-template",
+      "kind": "artifact",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 5,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "### Ticket",
+          "desc": "PR body template keeps the Ticket section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "### Description",
+          "desc": "PR body template keeps the Description section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "### Test scenario",
+          "desc": "PR body template keeps the Test scenario section",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_contains",
+          "value": "- [ ]",
+          "desc": "test scenario uses actionable checkbox syntax",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "section_present",
+          "value": "Create the PR",
+          "desc": "a step actually creates the PR via gh",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "create a PR for the current branch (there is a ticket ENG-123 in the branch name and two commits)",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "create-pr-no-self-push-invariant",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 1,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "Do NOT push the branch yourself",
+          "desc": "keeps the 'let gh handle the push' failure-bias invariant",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "create a PR for my unpushed branch",
+        "should_trigger": true
+      }
+    },
+    {
+      "id": "create-pr-stacked-detection-invariant",
+      "kind": "invariant",
+      "passRate": 1,
+      "variance": 0,
+      "deterministicChecks": 2,
+      "firstRepChecks": [
+        {
+          "type": "body_contains",
+          "value": "--base",
+          "desc": "keeps stacked-PR base-branch handling",
+          "pass": true,
+          "reason": "ok"
+        },
+        {
+          "type": "body_matches",
+          "pattern": "stacked",
+          "desc": "documents stacked-branch detection",
+          "pass": true,
+          "reason": "ok"
+        }
+      ],
+      "live": {
+        "status": "pending",
+        "prompt": "open a PR — my branch is stacked on another feature branch, not main",
+        "should_trigger": true
+      }
+    }
+  ],
+  "summary": {
+    "scenarios": 4,
+    "deterministic": 4,
+    "deterministicPassed": 4,
+    "deterministicFailed": 0,
+    "livePending": 4,
+    "maxVariance": 0
+  },
+  "live_layer": {
+    "status": "pending",
+    "note": "Live trigger/behavior runs require a model and are not executed by this runner. Run evals/scenarios/<target>.trigger.json through the skill-creator plugin (scripts/run_eval.py) or drive the prompts manually. See evals/README.md.",
+    "trigger_eval_set": [
+      {
+        "query": "open a pull request for my branch",
+        "should_trigger": true
+      },
+      {
+        "query": "create a PR for the current branch (there is a ticket ENG-123 in the branch name and two commits)",
+        "should_trigger": true
+      },
+      {
+        "query": "create a PR for my unpushed branch",
+        "should_trigger": true
+      },
+      {
+        "query": "open a PR — my branch is stacked on another feature branch, not main",
+        "should_trigger": true
+      }
+    ]
+  }
+}

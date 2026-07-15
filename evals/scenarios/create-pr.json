@@ -1,0 +1,92 @@
+{
+  "target": "create-pr",
+  "stable_path": "skills/delivery/create-pr",
+  "wip_path": "skills/wip/create-pr",
+  "description": "Phase-5 loosening target. Each scenario pins an observable behaviour the rewrite must preserve: deterministic `checks` gate CI and run A/B against stable vs wip; the `live` block is the model-in-the-loop run a human executes (see evals/README.md).",
+  "scenarios": [
+    {
+      "id": "create-pr-trigger",
+      "kind": "trigger",
+      "checks": [
+        {
+          "type": "description_contains",
+          "value": "open a pull request",
+          "desc": "description advertises the primary trigger phrase"
+        },
+        {
+          "type": "description_contains",
+          "value": "submit their branch for review",
+          "desc": "description covers the review-submission phrasing"
+        },
+        { "type": "description_contains", "value": "--draft", "desc": "description surfaces the --draft affordance" }
+      ],
+      "live": {
+        "prompt": "open a pull request for my branch",
+        "should_trigger": true,
+        "expectations": [
+          "The create-pr skill triggers (is read / invoked) for this paraphrased request without an explicit /create-pr command."
+        ]
+      }
+    },
+    {
+      "id": "create-pr-body-template",
+      "kind": "artifact",
+      "checks": [
+        { "type": "body_contains", "value": "### Ticket", "desc": "PR body template keeps the Ticket section" },
+        {
+          "type": "body_contains",
+          "value": "### Description",
+          "desc": "PR body template keeps the Description section"
+        },
+        {
+          "type": "body_contains",
+          "value": "### Test scenario",
+          "desc": "PR body template keeps the Test scenario section"
+        },
+        { "type": "body_contains", "value": "- [ ]", "desc": "test scenario uses actionable checkbox syntax" },
+        { "type": "section_present", "value": "Create the PR", "desc": "a step actually creates the PR via gh" }
+      ],
+      "live": {
+        "prompt": "create a PR for the current branch (there is a ticket ENG-123 in the branch name and two commits)",
+        "should_trigger": true,
+        "expectations": [
+          "The produced PR body contains a `### Ticket` line with a tracker link, a `### Description` section, and a `### Test scenario` section with `- [ ]` checkbox steps.",
+          "The test scenario steps are concrete, reviewer-followable actions — not abstract statements like 'verify it works'."
+        ]
+      }
+    },
+    {
+      "id": "create-pr-no-self-push-invariant",
+      "kind": "invariant",
+      "checks": [
+        {
+          "type": "body_contains",
+          "value": "Do NOT push the branch yourself",
+          "desc": "keeps the 'let gh handle the push' failure-bias invariant"
+        }
+      ],
+      "live": {
+        "prompt": "create a PR for my unpushed branch",
+        "should_trigger": true,
+        "expectations": [
+          "The skill does not run `git push` before `gh pr create`; it lets gh handle the push, and only pushes explicitly if gh reports the branch is missing upstream."
+        ]
+      }
+    },
+    {
+      "id": "create-pr-stacked-detection-invariant",
+      "kind": "invariant",
+      "checks": [
+        { "type": "body_contains", "value": "--base", "desc": "keeps stacked-PR base-branch handling" },
+        { "type": "body_matches", "pattern": "stacked", "desc": "documents stacked-branch detection" }
+      ],
+      "live": {
+        "prompt": "open a PR — my branch is stacked on another feature branch, not main",
+        "should_trigger": true,
+        "expectations": [
+          "The skill detects the stacked base branch and passes `--base <feature-branch>` to gh pr create, and notes the stacking in its report."
+        ]
+      }
+    }
+  ]
+}
