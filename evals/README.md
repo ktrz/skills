@@ -1,0 +1,139 @@
+# Eval harness
+
+A minimal, zero-dependency harness for gating skill changes on **observable
+behaviour**. It exists to answer one question for Phase 5 (bridge-vs-field
+loosening): _when we rewrite a skill to be less prescriptive, did we keep every
+load-bearing behaviour?_ You record a baseline against the stable skill, rewrite
+into a `wip/` variant, then re-run the identical scenarios A/B.
+
+## Why bespoke (not the skill-creator plugin)
+
+The plan assumed we would wire against the `skill-creator` plugin's eval
+support. We **flipped to a bespoke harness** — see the decision below — but kept
+the plugin's schema for the live layer so both paths work.
+
+The plugin's eval/benchmark runner (`scripts/run_eval.py`) drives a real model
+by spawning `claude -p` subprocesses. That is the right tool for measuring
+whether a description actually _fires_, but it:
+
+- is **non-deterministic** (a model in the loop) — can't produce a red/green CI
+  gate;
+- **requires model/API access** at run time — unavailable in CI and in the
+  agent environment that authored this harness;
+- is Python, whereas this repo's entire test layer is zero-dependency
+  `node --test` (`tests/**/*.test.mjs`).
+
+So the harness is split into two layers:
+
+| Layer             | What it checks                                                                     | Runs where            | Determinism    |
+| ----------------- | ---------------------------------------------------------------------------------- | --------------------- | -------------- |
+| **Deterministic** | trigger surface, output-artifact shape, invariant adherence — parsed from SKILL.md | CI, this harness      | 0 variance     |
+| **Live**          | does the description actually trigger? does a real run stay in-contract?           | human / plugin, model | model variance |
+
+The deterministic layer is what `evals/run.mjs` executes and what gates CI. The
+live layer is emitted as specs (`scenarios/*.trigger.json`, plus the `live`
+block on each scenario) for a human to run through the plugin or by hand — the
+runner never fakes a model result.
+
+## Layout
+
+```
+evals/
+  run.mjs                 # runner (node evals/run.mjs …)
+  lib/skill.mjs           # SKILL.md parser + stable/wip variant resolution
+  lib/checks.mjs          # deterministic check evaluators
+  scenarios/<target>.json # scenarios per Phase-5 target (checks + live specs)
+  scenarios/<target>.trigger.json   # skill-creator-compatible trigger eval-set
+  baselines/<target>-baseline.json  # recorded stable baseline (measured + pending)
+tests/evals/              # node --test coverage of the harness itself
+```
+
+## Running it
+
+```bash
+# All targets, against the stable skills, 5 reps, text report:
+node evals/run.mjs
+
+# One target, JSON:
+node evals/run.mjs --target create-pr --json
+
+# A/B: the SAME scenarios against a Phase-5 wip variant (skills/wip/<skill>):
+node evals/run.mjs --target create-pr --variant wip
+
+# Re-record the stable baseline files:
+node evals/run.mjs --write-baseline
+```
+
+The runner exits non-zero if any deterministic check fails — that is the drift
+signal. It never invokes a model.
+
+## A scenario
+
+Each scenario pins one observable behaviour. `checks` are deterministic and run
+now; `live` describes the model run a human executes.
+
+```json
+{
+  "id": "create-pr-no-self-push-invariant",
+  "kind": "invariant",
+  "checks": [{ "type": "body_contains", "value": "Do NOT push the branch yourself", "desc": "…" }],
+  "live": {
+    "prompt": "create a PR for my unpushed branch",
+    "should_trigger": true,
+    "expectations": ["The skill does not run git push before gh pr create…"]
+  }
+}
+```
+
+`kind` is one of `trigger` (does it fire?), `artifact` (is the output shaped
+right?), `invariant` (is a load-bearing behaviour preserved?).
+
+### Check types
+
+| Type                   | Asserts                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| `description_contains` | substring present in the frontmatter description (trigger surface) |
+| `description_matches`  | regex matches the description                                      |
+| `body_contains`        | substring present in the SKILL.md body                             |
+| `body_absent`          | substring **not** present (anti-pattern guard)                     |
+| `body_matches`         | regex matches the body                                             |
+| `section_present`      | a markdown heading containing the value exists                     |
+
+All matching is whitespace-normalised and case-insensitive.
+
+## The A/B loop (Phase 5)
+
+1. **Baseline** — `node evals/run.mjs --write-baseline` against stable (already
+   recorded in `baselines/`).
+2. **Rewrite** — copy the skill to `skills/wip/<skill>/` and loosen it.
+3. **Compare** — `node evals/run.mjs --target <skill> --variant wip`. Every
+   deterministic check that passed for stable must still pass for wip; a failure
+   is a dropped invariant.
+4. **Live parity (optional but recommended)** — run the trigger eval-set through
+   the plugin against both variants and compare trigger rates + variance:
+
+   ```bash
+   # from the skill-creator plugin dir, with a model available:
+   python scripts/run_eval.py \
+     --skill-path skills/wip/create-pr \
+     --eval-set  evals/scenarios/create-pr.trigger.json \
+     --runs-per-query 5
+   ```
+
+   High variance on the **stable** wording is itself useful signal — it means
+   the prescriptive text wasn't binding behaviour anyway, so loosening it is low
+   risk (see the phase progress notes).
+
+## Adding a target
+
+Drop a `scenarios/<name>.json` with `target`, `stable_path`, optional
+`wip_path`, and a `scenarios[]` array. Each scenario needs an `id`, a `kind`,
+deterministic `checks`, and (ideally) a `live` block. Run `--write-baseline` to
+snapshot it. No runner changes needed — it auto-discovers scenario files.
+
+## Sanity check (does the harness actually catch drift?)
+
+`tests/evals/harness.test.mjs` proves it two ways: a good fixture satisfies its
+contract, and a deliberately-drifted copy of the same skill fails on every
+drifted invariant. A live demonstration against a broken copy of the real
+`create-pr` skill is recorded in the Phase-3 progress file.
