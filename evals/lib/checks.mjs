@@ -49,7 +49,24 @@ function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// The payload field each check type reads. A check is a discriminated union on
+// `type`; nothing else enforces the payload, so runCheck validates it here.
+// Without this, a *_matches check whose pattern is misnamed compiles
+// RegExp(undefined) — an always-match that silently PASSES (false green in the
+// exact drift path this harness gates), and a missing `value` crashes the run.
+const REQUIRED_FIELD = {
+  description_contains: "value",
+  description_matches: "pattern",
+  body_contains: "value",
+  body_absent: "value",
+  body_matches: "pattern",
+  section_present: "value",
+};
+
 // Evaluate one check against a loaded skill. Returns { pass, reason }.
+// Fails closed on every malformed input: missing skill, unknown type, missing
+// or empty payload field, and evaluator errors (e.g. an invalid regex) — each
+// with a reason that names the check so the failure is locatable.
 export function runCheck(skill, check) {
   if (!skill.exists) {
     return { pass: false, reason: `no SKILL.md at ${skill.dir}` };
@@ -58,7 +75,22 @@ export function runCheck(skill, check) {
   if (!fn) {
     return { pass: false, reason: `unknown check type: ${check.type}` };
   }
-  const pass = fn(skill, check);
+  const field = REQUIRED_FIELD[check.type];
+  if (typeof check[field] !== "string" || check[field].length === 0) {
+    return {
+      pass: false,
+      reason: `check ${check.type} missing required "${field}" (non-empty string): ${check.desc || JSON.stringify(check)}`,
+    };
+  }
+  let pass;
+  try {
+    pass = fn(skill, check);
+  } catch (err) {
+    return {
+      pass: false,
+      reason: `check ${check.type} threw (${err.message}): ${check.desc || JSON.stringify(check)}`,
+    };
+  }
   return {
     pass,
     reason: pass ? "ok" : `${check.type} failed: ${check.desc || JSON.stringify(check)}`,

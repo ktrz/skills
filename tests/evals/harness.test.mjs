@@ -69,6 +69,37 @@ test("an unknown check type fails closed with a reason", () => {
   assert.match(res.reason, /unknown check type/);
 });
 
+test("a *_matches check missing its pattern fails closed instead of always passing", () => {
+  const skill = loadSkill(fixture("good-skill"));
+  // Payload field misnamed: `value` given where `pattern` is required. Before
+  // validation this compiled RegExp(undefined) — an always-match false green.
+  const res = runCheck(skill, { type: "body_matches", value: "stacked" });
+  assert.equal(res.pass, false);
+  assert.match(res.reason, /missing required "pattern"/);
+});
+
+test("a substring check missing its value fails closed instead of crashing", () => {
+  const skill = loadSkill(fixture("good-skill"));
+  const res = runCheck(skill, { type: "body_contains", desc: "value forgotten" });
+  assert.equal(res.pass, false);
+  assert.match(res.reason, /missing required "value"/);
+});
+
+test("an empty-string payload is rejected like a missing one", () => {
+  const skill = loadSkill(fixture("good-skill"));
+  const res = runCheck(skill, { type: "description_contains", value: "" });
+  assert.equal(res.pass, false);
+  assert.match(res.reason, /missing required "value"/);
+});
+
+test("an invalid regex is reported as a failed check with attribution, not an uncaught throw", () => {
+  const skill = loadSkill(fixture("good-skill"));
+  const res = runCheck(skill, { type: "body_matches", pattern: "([unclosed", desc: "bad regex demo" });
+  assert.equal(res.pass, false);
+  assert.match(res.reason, /body_matches threw/);
+  assert.match(res.reason, /bad regex demo/);
+});
+
 test("a check against a missing skill fails closed", () => {
   const skill = loadSkill(fixture("does-not-exist"));
   const res = runCheck(skill, { type: "body_contains", value: "anything" });
