@@ -13,18 +13,41 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(here, "..", "..");
 
-// Split a SKILL.md into { frontmatter (raw string), body, description }.
+// Every parse/load branch returns this exact key set (plus exists/dir/skillMd/
+// raw from loadSkill), so no consumer can read an undefined field on one path
+// and mis-evaluate instead of failing closed.
+function emptySkillFields() {
+  return {
+    frontmatter: "",
+    body: "",
+    description: "",
+    name: "",
+    version: "",
+    hasFrontmatter: false,
+  };
+}
+
+// Split a SKILL.md into { frontmatter (raw string), body, description, … }.
 // The description is read from YAML frontmatter; it may be a folded/`>` block
 // spanning multiple lines, so we join continuation lines into one string —
 // this is the trigger surface the model actually sees in the skill listing.
+//
+// Tolerates a BOM, CRLF line endings, and leading blank lines. If no
+// frontmatter block is found, `hasFrontmatter` is false — runCheck fails all
+// checks closed on that flag, so a parse failure is reported as itself rather
+// than masquerading as trigger drift (empty description) or letting body
+// checks run against text that still contains the frontmatter block.
 export function parseSkillMd(text) {
-  const fmMatch = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+  const fmMatch = normalized.match(/^\s*---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!fmMatch) {
-    return { frontmatter: "", body: text, description: "", name: "" };
+    return { ...emptySkillFields(), body: normalized };
   }
   const frontmatter = fmMatch[1];
   const body = fmMatch[2];
   return {
+    ...emptySkillFields(),
+    hasFrontmatter: true,
     frontmatter,
     body,
     description: extractYamlScalar(frontmatter, "description"),
@@ -80,11 +103,12 @@ export function resolveVariantDir(scenario, variant) {
   throw new Error(`unknown variant: ${variant}`);
 }
 
-// Load a skill variant into the shape the check evaluators expect.
+// Load a skill variant into the shape the check evaluators expect. Every
+// branch returns the same key set (see emptySkillFields).
 export function loadSkill(dir) {
   const skillMd = path.join(dir, "SKILL.md");
   if (!existsSync(skillMd)) {
-    return { exists: false, dir, skillMd, frontmatter: "", body: "", description: "", name: "" };
+    return { exists: false, dir, skillMd, raw: "", ...emptySkillFields() };
   }
   const text = readFileSync(skillMd, "utf8");
   const parsed = parseSkillMd(text);

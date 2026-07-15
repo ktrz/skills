@@ -71,6 +71,12 @@ export function runCheck(skill, check) {
   if (!skill.exists) {
     return { pass: false, reason: `no SKILL.md at ${skill.dir}` };
   }
+  if (skill.hasFrontmatter === false) {
+    // A SKILL.md without parseable frontmatter is not a valid skill; failing
+    // here (with the real cause) beats generic description-drift failures and
+    // body checks running against text that still includes the frontmatter.
+    return { pass: false, reason: `no parseable frontmatter in ${skill.skillMd}` };
+  }
   const fn = EVALUATORS[check.type];
   if (!fn) {
     return { pass: false, reason: `unknown check type: ${check.type}` };
