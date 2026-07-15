@@ -108,6 +108,16 @@ export function loadScenarioFiles(target) {
 // `reps` times, and fold the reps into a per-scenario pass-rate + variance.
 export function runTarget(spec, variant, reps) {
   const dir = resolveVariantDir(spec, variant);
+  if (!existsSync(dir)) {
+    // Distinct, explicit not-found error: without it a missing wip directory
+    // renders as an all-FAIL drift report, indistinguishable from a rewrite
+    // that dropped every invariant.
+    throw new Error(
+      `variant directory not found: ${path.relative(REPO_ROOT, dir)} ` +
+        `(variant "${variant}" of target "${spec.target}")` +
+        (variant === "wip" ? " — did you create the wip variant yet?" : "")
+    );
+  }
   const scenarioResults = spec.scenarios.map((sc) => {
     const perRep = [];
     for (let r = 0; r < reps; r++) {
@@ -216,7 +226,13 @@ function main() {
     process.exit(2);
   }
 
-  const results = specs.map(({ spec }) => runTarget(spec, args.variant, args.reps));
+  let results;
+  try {
+    results = specs.map(({ spec }) => runTarget(spec, args.variant, args.reps));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
+  }
 
   if (args.writeBaseline) {
     if (!existsSync(BASELINE_DIR)) mkdirSync(BASELINE_DIR, { recursive: true });

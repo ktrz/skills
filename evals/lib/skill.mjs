@@ -6,7 +6,7 @@
 // The harness resolves either from the same scenario file so the exact same
 // checks run A/B against both.
 
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -103,8 +103,25 @@ export function resolveVariantDir(scenario, variant) {
   throw new Error(`unknown variant: ${variant}`);
 }
 
+// A variant's references/*.md, concatenated in filename order. Body-level
+// checks include this text so the progressive-disclosure refactor the repo's
+// review guidelines encourage (moving spec/template text out of SKILL.md into
+// references/) is not reported as drift by the Phase-5 gate.
+function loadReferencesText(dir) {
+  const refDir = path.join(dir, "references");
+  if (!existsSync(refDir)) return "";
+  return readdirSync(refDir, { withFileTypes: true })
+    .filter((e) => e.isFile() && e.name.endsWith(".md"))
+    .map((e) => e.name)
+    .sort()
+    .map((name) => readFileSync(path.join(refDir, name), "utf8"))
+    .join("\n\n");
+}
+
 // Load a skill variant into the shape the check evaluators expect. Every
-// branch returns the same key set (see emptySkillFields).
+// branch returns the same key set (see emptySkillFields). `body` is the
+// SKILL.md body plus the variant's references/*.md (see loadReferencesText);
+// `description` remains the frontmatter trigger surface only.
 export function loadSkill(dir) {
   const skillMd = path.join(dir, "SKILL.md");
   if (!existsSync(skillMd)) {
@@ -112,5 +129,13 @@ export function loadSkill(dir) {
   }
   const text = readFileSync(skillMd, "utf8");
   const parsed = parseSkillMd(text);
-  return { exists: true, dir, skillMd, raw: text, ...parsed };
+  const referencesText = loadReferencesText(dir);
+  return {
+    exists: true,
+    dir,
+    skillMd,
+    raw: text,
+    ...parsed,
+    body: referencesText ? `${parsed.body}\n\n${referencesText}` : parsed.body,
+  };
 }
