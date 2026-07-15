@@ -14,8 +14,10 @@ disarm phrases are prefix-anchored — they must start the prompt to match.
   reminder prepended.
 - `/orchestrate off` or "stop orchestrat…" (case-insensitive) clears the flag.
 - When off, the hook prints nothing and costs zero context. It never blocks a
-  prompt — every failure path (missing `jq`, malformed stdin, missing or
-  path-unsafe session id) exits 0 silently.
+  prompt and never injects failure output into stdout — every failure path
+  (missing `jq`, malformed stdin, missing or path-unsafe session id) exits 0
+  with empty stdout. Flag persistence/removal failures (unwritable state dir,
+  undeletable flag) may log a one-line diagnostic to stderr.
 
 ## Install
 

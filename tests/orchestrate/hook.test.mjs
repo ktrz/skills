@@ -6,10 +6,11 @@
 // stdout, session-keyed flag file under ORCHESTRATE_STATE_DIR.
 //
 // Contract under test:
-//   - Only "/orchestrate ..." (case-SENSITIVE — slash commands are lowercase,
-//     so "/Orchestrate" never loads the skill) arms: it sets the flag and emits
-//     the ACTIVE line; while the flag exists every prompt re-emits it. A bare
-//     "orchestrate:" prefix does NOT arm.
+//   - Only exact "/orchestrate" or "/orchestrate <args>" arms (case-SENSITIVE
+//     and boundary-anchored — slash commands are lowercase whole words, so
+//     "/Orchestrate" and "/orchestratefoo" never load the skill): it sets the
+//     flag and emits the ACTIVE line; while the flag exists every prompt
+//     re-emits it. A bare "orchestrate:" prefix does NOT arm.
 //   - Disarm (case-insensitive) is exact "/orchestrate off", "/orchestrate off
 //     <anything>", or a prompt starting with "stop orchestrat" — cleared
 //     silently. "/orchestrate offload ..." arms (it is not an off-form).
@@ -19,7 +20,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
@@ -79,6 +80,20 @@ test("lowercase orchestrate: prefix no longer arms (skill loads only via slash c
   const out = prompt(dir, "orchestrate: refactor the parser");
   assert.equal(out, "");
   assert.ok(!existsSync(flagPath(dir, "s1")), "orchestrate: prefix must not create a flag");
+});
+
+test("bare /orchestrate (no args) arms", () => {
+  const dir = freshStateDir();
+  const out = prompt(dir, "/orchestrate");
+  assert.match(out, ACTIVE);
+  assert.ok(existsSync(flagPath(dir, "s1")), "bare command should create the flag");
+});
+
+test("/orchestratefoo does not arm (command boundary required)", () => {
+  const dir = freshStateDir();
+  const out = prompt(dir, "/orchestratefoo build X");
+  assert.equal(out, "");
+  assert.ok(!existsSync(flagPath(dir, "s1")), "/orchestratefoo must not create a flag");
 });
 
 test("capitalized /Orchestrate does not arm (slash commands are lowercase; arm is case-sensitive)", () => {
@@ -255,6 +270,28 @@ test("missing jq exits 0 with empty stdout and creates no flag", () => {
   });
   assert.equal(out, "");
   assert.deepEqual(readdirSync(dir), [], "no flag should be created without jq");
+});
+
+// ---- persistence failure: degrade to per-invocation reminder ------------------
+
+test("unwritable state dir still emits ACTIVE on arm, but does not persist", () => {
+  const tmp = freshStateDir();
+  // A regular file where the state dir should be makes mkdir -p fail
+  // deterministically, exercising the active_now fallback.
+  const blocker = path.join(tmp, "not-a-dir");
+  writeFileSync(blocker, "");
+  const run = (text) =>
+    execFileSync("bash", [script], {
+      input: JSON.stringify({ prompt: text, session_id: "s1" }),
+      encoding: "utf8",
+      env: { ...process.env, ORCHESTRATE_STATE_DIR: blocker },
+      stdio: ["pipe", "pipe", "ignore"], // stderr diagnostic allowed, not asserted
+    });
+  const out = run("/orchestrate build X");
+  assert.match(out, ACTIVE);
+  assert.equal(out.trim().split("\n").length, 1, "exactly one reminder line on stdout");
+  // No flag persisted, so a plain follow-up prompt gets no reminder.
+  assert.equal(run("now add tests please"), "", "degrades to per-invocation, not sticky");
 });
 
 // ---- state-dir resolution ----------------------------------------------------

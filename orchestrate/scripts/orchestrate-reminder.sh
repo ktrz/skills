@@ -2,8 +2,10 @@
 # UserPromptSubmit hook: sticky one-line reminder while orchestrate mode is on.
 #
 # Reads the hook payload JSON from stdin and keeps a session-keyed flag file:
-#   on  — "/orchestrate ..." (case-sensitive: slash commands are lowercase, so
-#         "/Orchestrate" never loads the skill and must not arm)
+#   on  — exactly "/orchestrate" or "/orchestrate <args>" (case-sensitive and
+#         boundary-anchored: slash commands are lowercase and whole-word, so
+#         "/Orchestrate" or "/orchestratefoo" never load the skill and must
+#         not arm)
 #   off — "/orchestrate off", "/orchestrate off <anything>", or a prompt
 #         starting with "stop orchestrat" (all case-INsensitive; fail-open off)
 # Prints the ACTIVE reminder line whenever the flag exists. Empty stdout =
@@ -46,7 +48,7 @@ case "$prompt_lc" in
     ;;
   *)
     case "$prompt" in
-      "/orchestrate"*)
+      "/orchestrate" | "/orchestrate "*)
         # Arm: only the exact slash command arms (with disable-model-invocation
         # the skill loads solely via /orchestrate; anything else arming would be
         # reminder-without-protocol). "/orchestrate offload ..." reaches here,
