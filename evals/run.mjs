@@ -3,7 +3,7 @@
 //
 // Usage:
 //   node evals/run.mjs [--target <name>] [--variant stable|wip] [--reps N]
-//                      [--json] [--write-baseline]
+//                      [--scenario-dir <dir>] [--json] [--write-baseline]
 //
 //   --target          run one target (plan-my-day | create-pr | plan-feature);
 //                     default: all scenario files in evals/scenarios/
@@ -14,6 +14,10 @@
 //                     (default 5). Deterministic checks are invariant, so the
 //                     expected variance is 0 — a non-zero value means a check is
 //                     reading something non-stable and is itself a bug.
+//   --scenario-dir    read scenario files from another directory (default:
+//                     evals/scenarios). Used by the harness's own tests to
+//                     drive main()'s exit gate against fixture scenario sets,
+//                     and handy for scratch scenario experiments.
 //   --json            emit machine-readable JSON instead of the text report.
 //   --write-baseline  write evals/baselines/<target>-baseline.json for each
 //                     target run (records measured results + pending live specs).
@@ -37,7 +41,14 @@ const SCENARIO_DIR = path.join(here, "scenarios");
 const BASELINE_DIR = path.join(here, "baselines");
 
 export function parseArgs(argv) {
-  const args = { variant: "stable", reps: 5, target: null, json: false, writeBaseline: false };
+  const args = {
+    variant: "stable",
+    reps: 5,
+    target: null,
+    json: false,
+    writeBaseline: false,
+    scenarioDir: SCENARIO_DIR,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--variant") args.variant = argv[++i];
@@ -51,7 +62,11 @@ export function parseArgs(argv) {
       }
       args.reps = n;
     } else if (a === "--target") args.target = argv[++i];
-    else if (a === "--json") args.json = true;
+    else if (a === "--scenario-dir") {
+      const v = argv[++i];
+      if (!v) throw new Error("--scenario-dir requires a directory path");
+      args.scenarioDir = path.resolve(v);
+    } else if (a === "--json") args.json = true;
     else if (a === "--write-baseline") args.writeBaseline = true;
     else throw new Error(`unknown arg: ${a}`);
   }
@@ -94,13 +109,13 @@ export function validateSpec(spec, file) {
   return { errors, warnings };
 }
 
-export function loadScenarioFiles(target) {
-  const files = readdirSync(SCENARIO_DIR)
+export function loadScenarioFiles(target, dir = SCENARIO_DIR) {
+  const files = readdirSync(dir)
     .filter((f) => f.endsWith(".json") && !f.endsWith(".trigger.json"))
     .filter((f) => !target || f === `${target}.json`);
   return files.map((f) => ({
     file: f,
-    spec: JSON.parse(readFileSync(path.join(SCENARIO_DIR, f), "utf8")),
+    spec: JSON.parse(readFileSync(path.join(dir, f), "utf8")),
   }));
 }
 
@@ -193,7 +208,7 @@ function textReport(results) {
 // A skill-creator-plugin-compatible trigger eval-set: [{query, should_trigger}].
 // The plugin's scripts/run_eval.py consumes exactly this shape for the live
 // trigger layer, so we emit it alongside the baseline for the human to run.
-function triggerEvalSet(spec) {
+export function triggerEvalSet(spec) {
   return spec.scenarios
     .filter((sc) => sc.live && typeof sc.live.should_trigger === "boolean")
     .map((sc) => ({ query: sc.live.prompt, should_trigger: sc.live.should_trigger }));
@@ -207,7 +222,7 @@ function main() {
     console.error(err.message);
     process.exit(2);
   }
-  const specs = loadScenarioFiles(args.target);
+  const specs = loadScenarioFiles(args.target, args.scenarioDir);
   if (specs.length === 0) {
     console.error(`no scenario files found${args.target ? ` for target ${args.target}` : ""}`);
     process.exit(2);

@@ -1,0 +1,16 @@
+{
+  "target": "demo",
+  "stable_path": "tests/evals/fixtures/broken-skill",
+  "description": "Test-only scenario set whose stable_path points at the deliberately drifted fixture — drives the runner's exit-1 drift gate end-to-end.",
+  "scenarios": [
+    {
+      "id": "demo-contract",
+      "kind": "invariant",
+      "checks": [
+        { "type": "description_contains", "value": "open a pull request", "desc": "trigger phrase kept" },
+        { "type": "section_present", "value": "Create the PR", "desc": "PR-creation section kept" },
+        { "type": "body_contains", "value": "Do NOT push the branch yourself", "desc": "push invariant kept" }
+      ]
+    }
+  ]
+}
