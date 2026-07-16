@@ -2,7 +2,7 @@
 
 ## 1.7.1
 
-- Description tightened to triggers + modes — dropped the six-agent enumeration and the aggregation-mechanism summary per review-guidelines §1. Added tables of contents to `references/rereview-agent.md`, `agents.md`, `aggregation.md`, `guidelines-agent.md`, and `review-prompt.md`. Fixed a premature-close fence bug in `agents.md`, `guidelines-agent.md`, and `review-prompt.md`: the 4-backtick prompt-template block closed early (right after the diff) and a stray `​```…`​``` pair then rendered the trailing prose sections ("Severity-score normalisation", "Resolution verifier", "Custom-agent gotchas", "Normalisation", "Interaction with overlap-skim", "Notes") as a code block instead of headings. Documentation only.
+- Description tightened to triggers + modes — dropped the six-agent enumeration and the aggregation-mechanism summary per review-guidelines §1. Added tables of contents to `references/rereview-agent.md`, `agents.md`, `aggregation.md`, and `guidelines-agent.md`. Fixed a premature fence close in agents.md / guidelines-agent.md / review-prompt.md that rendered the trailing prose sections as a code block; they now render as headings. Documentation only.
 
 ## 1.7.0
 
