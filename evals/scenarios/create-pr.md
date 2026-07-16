@@ -19,6 +19,13 @@ See [`../README.md`](../README.md) for how to run them.
 - **Expect:** the `create-pr` skill triggers (is read / invoked) for this
   paraphrased request without an explicit `/create-pr` command.
 
+### `create-pr-negative-trigger` — does it stay quiet on adjacent requests?
+
+- **Prompts:** "review my open PRs"; "check the status of my pull request"
+- **Should trigger:** no
+- **Expect:** neither prompt invokes `create-pr` — reviewing or checking an
+  existing PR is adjacent to, but not, opening a new one.
+
 ### `create-pr-body-template` — is the PR body shaped right?
 
 - **Prompt:** create a PR for the current branch (there is a ticket ENG-123 in

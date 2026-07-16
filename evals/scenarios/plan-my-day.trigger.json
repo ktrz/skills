@@ -22,5 +22,17 @@
   {
     "query": "close out my day",
     "should_trigger": true
+  },
+  {
+    "query": "give me my async standup snapshot",
+    "should_trigger": true
+  },
+  {
+    "query": "plan the new feature rollout",
+    "should_trigger": false
+  },
+  {
+    "query": "draft a project plan for the Q3 migration",
+    "should_trigger": false
   }
 ]

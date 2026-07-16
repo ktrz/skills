@@ -7,9 +7,9 @@
 
 Phase-5 loosening target (the largest and most prescriptive of the three). Each
 scenario pins one observable behaviour — trigger coverage, the day-plan output
-shape, the three-way worktree classification, and the degraded-signal +
-posture-hint invariants. These are **model-in-the-loop** runs; see
-[`../README.md`](../README.md) for how to run them.
+shape, the worktree classification plus the orphan-ticket bucket, and the
+degraded-signal + posture-hint invariants. These are **model-in-the-loop**
+runs; see [`../README.md`](../README.md) for how to run them.
 
 ## Scenarios
 
@@ -19,6 +19,14 @@ posture-hint invariants. These are **model-in-the-loop** runs; see
 - **Should trigger:** yes
 - **Expect:** `plan-my-day` triggers for a bare "what to work on today" request
   without an explicit `/plan-my-day` command.
+
+### `plan-my-day-negative-trigger` — does it stay quiet on adjacent requests?
+
+- **Prompts:** "plan the new feature rollout"; "draft a project plan for the
+  Q3 migration"
+- **Should trigger:** no
+- **Expect:** neither prompt invokes `plan-my-day` — feature/project planning
+  is `plan-feature`'s territory, not daily work triage.
 
 ### `plan-my-day-output-sections` — is the plan grouped by urgency?
 
@@ -30,13 +38,14 @@ posture-hint invariants. These are **model-in-the-loop** runs; see
   - Actionable items use `- [ ]` checkboxes; a `## Standup` section with
     Done / In Progress / Blockers is present.
 
-### `plan-my-day-worktree-classification` — three-way classification
+### `plan-my-day-worktree-classification` — worktree state + orphan-ticket bucket
 
 - **Prompt:** plan my day across my worktrees
 - **Should trigger:** yes
 - **Expect:** each worktree is classified Active (dirty / ahead / open PR) vs
-  Stale (no activity + last commit > 7 days); orphan tickets with no matching
-  branch land under "Tickets to pick up".
+  Stale (no activity + last commit > 7 days) — a two-way worktree
+  classification; separately, orphan tickets with no matching branch land
+  under "Tickets to pick up" (not a worktree state).
 
 ### `plan-my-day-degraded-signal-invariant` — warn, don't fabricate
 
@@ -54,9 +63,16 @@ posture-hint invariants. These are **model-in-the-loop** runs; see
   monthly retro issue's own sections, not hardcoded day-of-week rules in the
   skill.
 
-### `plan-my-day-modes` — mode dispatch
+### `plan-my-day-modes-close` — close-day mode dispatch
 
 - **Prompt:** close out my day
 - **Should trigger:** yes
-- **Expect:** the `close` argument routes to the close-day flow (not the default
-  daily plan); `standup` routes to the standup flow.
+- **Expect:** the `close` argument routes to the close-day flow, not the
+  default daily plan.
+
+### `plan-my-day-modes-standup` — standup mode dispatch
+
+- **Prompt:** give me my async standup snapshot
+- **Should trigger:** yes
+- **Expect:** the `standup` argument routes to the standup flow, not the
+  default daily plan.

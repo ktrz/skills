@@ -21,7 +21,7 @@ a real model, so every eval here is a live call.
 
 ## Layout
 
-```
+```text
 evals/
   README.md                          # this file
   scenarios/<target>.md              # live scenario spec — prompts + expected
@@ -34,9 +34,10 @@ evals/
 Two artifacts per target:
 
 - **`<target>.trigger.json`** — a trigger eval-set in the skill-creator plugin's
-  schema. A non-LLM runner (the plugin's) consumes it, so it stays valid JSON in
-  that exact shape. Answers: _does the description actually fire for these
-  paraphrases?_
+  schema. The JSON format is the non-LLM deterministic contract; the plugin's
+  runner reads it and drives live `claude -p` calls, so the file itself stays
+  valid JSON in that exact shape. Answers: _does the description actually fire
+  for these paraphrases?_
 - **`<target>.md`** — the scenario spec. Its consumer is a human plus a model,
   so it is prose: each scenario gives a prompt, `should_trigger`, and the
   observable behaviours to check. Answers: _does a real run stay in-contract?_
@@ -84,7 +85,8 @@ This is run by hand at graduation, not in CI:
 2. **Rewrite** — copy the skill to `skills/wip/<skill>/` and loosen it.
 3. **Compare (A/B)** — run the identical trigger set and scenario specs against
    the `wip` variant. Every behaviour that held for stable must still hold for
-   wip; a dropped expectation or a worse trigger rate is a regression that
+   wip; a dropped expectation, or a _materially_ worse trigger rate — judged
+   across the 5 runs, not a single-point threshold — is a regression that
    blocks graduation.
 
 Graduation criterion: eval parity or better vs the stable baseline (plus the
@@ -97,4 +99,6 @@ contract validators in `skills/wip/README.md`).
    and the observable behaviours to check.
 2. Add `scenarios/<name>.trigger.json` — a JSON array of `{ "query": …,
 "should_trigger": … }` objects, one per trigger the plugin should exercise.
-   Keep the paraphrases in sync with the spec's trigger scenarios.
+   Keep the paraphrases in sync with the spec's trigger scenarios. Include at
+   least one `should_trigger: false` case — an adjacent-but-wrong prompt a
+   too-loose description might wrongly catch.
