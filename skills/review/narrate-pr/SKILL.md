@@ -333,19 +333,22 @@ the file Step 7 publishes.
 
 **Revalidate the pinned sha first.** Steps 2–6 can run long enough for
 new commits to land on the PR after Step 1's checkout-contract check.
-Re-fetch the head sha and compare it against the `sha` already recorded
-in `walkthrough.json`:
+Re-fetch the remote head sha and re-check the local checkout, same as
+Step 1, and compare both against the `sha` already recorded in
+`walkthrough.json`:
 
 ```bash
 gh pr view <N> --json headRefOid --jq .headRefOid
+git rev-parse HEAD
 ```
 
-- **Match** → proceed to publish.
+- **Match** (both remote head and local `HEAD` still equal the
+  recorded sha) → proceed to publish.
 - **Mismatch** → **STOP** before publishing anything. Tell the user the
-  PR has moved (new commits landed) since this walkthrough was built,
-  so its receipts may no longer describe the current head; ask them to
-  re-run the skill against the new head rather than publish a
-  now-stale document.
+  PR has moved (new commits landed) or the local checkout has changed
+  since this walkthrough was built, so its receipts may no longer
+  describe the current head; ask them to re-run the skill against the
+  new head rather than publish a now-stale document.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:
