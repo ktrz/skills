@@ -95,6 +95,8 @@ AUTO_GENERATED_PATTERNS = [
 BOILERPLATE_PATTERNS = [
     /review skipped/i,
     /draft detected/i,
+    /i'?ll review when ready/i,
+    /build passing|checks running/i,
     /^(:?\+1:|:thumbsup:|:rocket:|lgtm|ship it|bump|ping)\s*$/i,
 ]
 
@@ -106,7 +108,7 @@ e.g. CodeRabbit's reports that wrap findings inside `<details>`),
 `stripCollapsedDetails` already keeps the critique-bearing content:
 it only strips non-substantive (marketing/boilerplate) `<details>`
 wraps, unwrapping the rest so `hasCritiqueSignal` can see it. If the
-surviving prose anchors to code or expresses critique, the comment
+surviving prose anchors to code and expresses critique, the comment
 is relevant; the findings inside should be extracted as separate
 items, not the wrapping summary.
 
