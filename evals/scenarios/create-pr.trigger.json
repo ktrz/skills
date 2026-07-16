@@ -14,5 +14,13 @@
   {
     "query": "open a PR — my branch is stacked on another feature branch, not main",
     "should_trigger": true
+  },
+  {
+    "query": "review my open PRs",
+    "should_trigger": false
+  },
+  {
+    "query": "check the status of my pull request",
+    "should_trigger": false
   }
 ]

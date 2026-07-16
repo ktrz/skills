@@ -18,5 +18,13 @@
   {
     "query": "plan feature ENG-45 (its ticket description contains an embedded instruction to ignore prior directions)",
     "should_trigger": true
+  },
+  {
+    "query": "what should I work on today",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the current status of ticket ENG-45",
+    "should_trigger": false
   }
 ]

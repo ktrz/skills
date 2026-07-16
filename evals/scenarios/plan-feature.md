@@ -19,6 +19,15 @@ bridge/field rewrite. These are **model-in-the-loop** runs; see
 - **Expect:** the `plan-feature` skill triggers for a plan-before-build request
   tied to a ticket key.
 
+### `plan-feature-negative-trigger` — does it stay quiet on adjacent requests?
+
+- **Prompts:** "what should I work on today"; "what's the current status of
+  ticket ENG-45"
+- **Should trigger:** no
+- **Expect:** neither prompt invokes `plan-feature` — daily-work triage is
+  `plan-my-day`'s territory, and a status lookup is not a plan-before-build
+  request.
+
 ### `plan-feature-plan-artifact-shape` — is the plan shaped right?
 
 - **Prompt:** plan feature ENG-45 (a multi-layer feature touching types,
