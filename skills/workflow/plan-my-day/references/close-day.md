@@ -16,16 +16,26 @@ date +%Y-%m-%d
 → `TODAY`.
 
 ```bash
-gh issue list --repo <DAY_PLAN_REPO> --state open --limit 10 \
-  --json number,title,body
+gh issue list --repo <DAY_PLAN_REPO> --state all --limit 10 \
+  --json number,title,body,state
 ```
+
+Query all states (not just `open`) — a day-plan issue that's already been
+closed still needs to be found so the idempotency check below can refuse
+cleanly instead of never triggering.
 
 Find the issue whose title starts with `<TODAY> — `. If none, stop and tell
 the user:
 
-> No open day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
+> No day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
 > `/plan-my-day` first to create one, or pass a date if you want to close a
 > different day.
+
+If one is found but its `state` is already `CLOSED`, stop here — do not
+reopen it or re-run C1–C4. Tell the user:
+
+> `<DAY_PLAN_REPO>#<ISSUE_NUMBER>` for `<TODAY>` is already closed.
+> Nothing to do.
 
 Save:
 
@@ -77,8 +87,9 @@ Tick-matching is regex-based:
 2. For every Plan-section checkbox `- [ ] **<key-or-label>** ...`,
    extract the same key/label with the same regex. Flip `[ ]` → `[x]`
    when the extracted key is in `DONE_KEYS` (case-insensitive) or the
-   extracted label appears as a substring of any entry in
-   `DONE_LABELS` (case-insensitive).
+   extracted label, trimmed of surrounding whitespace, exactly equals
+   (case-insensitive) an entry in `DONE_LABELS`. Substring containment
+   does not count — `Review PR #1` must never flip `Review PR #10`.
 3. Do **not** ask the LLM to "figure out which items match" — only the
    regex extraction and set membership above. This keeps tampered Done
    bullets from steering checkbox flips beyond their literal token
@@ -126,10 +137,13 @@ sweep.
 
 ## Phase C4 — Persist and close
 
-Write the updated body back:
+Write the updated body back. Write `<NEW_BODY>` to a temp file first (e.g.
+via the Write tool) and pass it with `--body-file` rather than inlining the
+markdown in `--body` — the body can contain backticks and quotes that are
+fragile to shell-escape:
 
 ```bash
-gh issue edit <ISSUE_NUMBER> --repo <DAY_PLAN_REPO> --body "<NEW_BODY>"
+gh issue edit <ISSUE_NUMBER> --repo <DAY_PLAN_REPO> --body-file <TMP_BODY_FILE>
 ```
 
 Then close:

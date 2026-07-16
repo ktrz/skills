@@ -18,6 +18,11 @@ trust="untrusted">` before being passed to investigation subagents
 - `references/execute.md`: `[~]` resolution notes from `--from-doc` are
   trusted (user-authored), but verbatim quoted comment content inside them
   is untrusted and must be re-fenced before downstream LLM use
+- CodeRabbit review fix: the `handover-format.md` cross-reference now
+  points at the installed path (`~/.claude/skills/investigate-pr-comments/...`)
+  with the dev-tree path noted alongside, and two fenced examples in
+  `references/execute.md`/`references/investigate.md` gain `xml`/`markdown`/`text`
+  language tags
 
 ## 1.9.0
 

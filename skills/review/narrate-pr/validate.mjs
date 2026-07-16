@@ -21,6 +21,13 @@ const CODE_REF_RE = /^(.+):(\d+)(?:-(\d+))?$/;
 const URL_REF_RE = /^https?:\/\//;
 const REPORT_REF_RE = /^reports\/[A-Za-z0-9._-]+\.md(#[A-Za-z0-9._-]+)?$/;
 const SHA_RE = /^[0-9a-f]{40}$/;
+// packages[].id palette keys: a plain lowercase token. cssId() lowercases ids,
+// so an uppercase/mixed key like "API" would silently collide with "api" —
+// forbid anything that isn't already lowercase kebab/alnum.
+const PKG_ID_RE = /^[a-z][a-z0-9-]*$/;
+// ISO 8601 date-time with an explicit zone (Z or ±HH:MM). Shape-checked, then
+// Date.parse confirms calendar validity (rejects e.g. month 13, day 32).
+const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const MAX_LAYOUT_ROW = 100; // generous ceiling; the renderer allocates maxRow rows
 
 const violations = [];
@@ -36,6 +43,7 @@ const isArr = Array.isArray;
 const isStr = (x) => typeof x === "string";
 const isNonEmptyStr = (x) => isStr(x) && x.length > 0;
 const isInt = (x) => Number.isInteger(x);
+const isIso8601 = (x) => isStr(x) && ISO_8601_RE.test(x) && !Number.isNaN(Date.parse(x));
 
 // Paths already reported as non-objects, so one bad entry yields one
 // structure violation rather than one per field check.
@@ -197,7 +205,7 @@ function checkLane(d, path, pkgIds) {
   if (!requireField(d, path, "lanes", isArr, "an array")) return;
   d.lanes.forEach((lane, i) => {
     const lPath = `${path}.lanes[${i}]`;
-    requireField(lane, lPath, "id", isNonEmptyStr, "a non-empty string");
+    requireId(lane, lPath, "lane.");
     requireField(lane, lPath, "label", isStr, "a string");
     if (!requireField(lane, lPath, "rows", isArr, "an array")) return;
     lane.rows.forEach((row, j) => {
@@ -231,7 +239,8 @@ function checkSequence(d, path, pkgIds) {
   if (requireField(d, path, "actors", isArr, "an array")) {
     d.actors.forEach((actor, i) => {
       const aPath = `${path}.actors[${i}]`;
-      if (requireField(actor, aPath, "id", isNonEmptyStr, "a non-empty string")) actorIds.add(actor.id);
+      requireId(actor, aPath, "actor.");
+      if (isNonEmptyStr(actor.id)) actorIds.add(actor.id);
       requireField(actor, aPath, "label", isStr, "a string");
       checkPkg(actor, aPath, pkgIds);
     });
@@ -264,14 +273,16 @@ function checkDepmap(d, path, pkgIds) {
   if (requireField(d, path, "zones", isArr, "an array")) {
     d.zones.forEach((zone, i) => {
       const zPath = `${path}.zones[${i}]`;
-      if (requireField(zone, zPath, "id", isNonEmptyStr, "a non-empty string")) zoneIds.add(zone.id);
+      requireId(zone, zPath, "zone.");
+      if (isNonEmptyStr(zone.id)) zoneIds.add(zone.id);
       requireField(zone, zPath, "label", isStr, "a string");
     });
   }
   if (requireField(d, path, "nodes", isArr, "an array")) {
     d.nodes.forEach((node, i) => {
       const nPath = `${path}.nodes[${i}]`;
-      if (requireField(node, nPath, "id", isNonEmptyStr, "a non-empty string")) nodeIds.add(node.id);
+      requireId(node, nPath, "node.");
+      if (isNonEmptyStr(node.id)) nodeIds.add(node.id);
       requireField(node, nPath, "label", isStr, "a string");
       if (requireField(node, nPath, "zone", isNonEmptyStr, "a non-empty string") && !zoneIds.has(node.zone)) {
         fail("rule-9-depmap-zone-ref", `${nPath}.zone`, `node references unknown zone "${node.zone}"`);
@@ -347,7 +358,7 @@ function checkDiagram(d, path, pkgIds) {
     fail("structure", path, "diagram must be an object");
     return;
   }
-  requireField(d, path, "id", isNonEmptyStr, "a non-empty string");
+  requireId(d, path, "diagram.");
   requireField(d, path, "title", isStr, "a string");
   if (!DIAGRAM_TYPES.has(d.type)) {
     fail("structure", `${path}.type`, `invalid diagram type ${JSON.stringify(d.type)} (expected lane|sequence|depmap)`);
@@ -387,13 +398,18 @@ export function validate(doc) {
     fail("rule-4-sha", "$.sha", `sha "${doc.sha}" is not exactly 40 lowercase hex characters`);
   }
 
-  requireField(doc, "$", "generatedAt", isNonEmptyStr, "a non-empty string");
+  if (requireField(doc, "$", "generatedAt", isNonEmptyStr, "a non-empty string") && !isIso8601(doc.generatedAt)) {
+    fail("structure", "$.generatedAt", `generatedAt "${doc.generatedAt}" is not an ISO 8601 timestamp (e.g. 2026-07-12T09:00:00Z)`);
+  }
 
   const pkgIds = new Set();
   if (requireField(doc, "$", "packages", isArr, "an array")) {
     doc.packages.forEach((pkg, i) => {
       const pPath = `$.packages[${i}]`;
       if (requireField(pkg, pPath, "id", isNonEmptyStr, "a non-empty string")) {
+        if (!PKG_ID_RE.test(pkg.id)) {
+          fail("structure", `${pPath}.id`, `package id "${pkg.id}" must match ^[a-z][a-z0-9-]*$ (cssId() lowercases ids, so mixed-case keys would silently collide)`);
+        }
         if (pkgIds.has(pkg.id)) {
           fail("structure", `${pPath}.id`, `duplicate package id "${pkg.id}"`);
         }
@@ -532,6 +548,9 @@ export function validate(doc) {
       requireId(entry, path, "qa.");
       requireField(entry, path, "q", isNonEmptyStr, "a non-empty string");
       requireField(entry, path, "a", isNonEmptyStr, "a non-empty string");
+      if (isObj(entry) && entry.revisedAt !== undefined && !isIso8601(entry.revisedAt)) {
+        fail("structure", `${path}.revisedAt`, `revisedAt "${entry.revisedAt}" is not an ISO 8601 timestamp (e.g. 2026-07-12T09:00:00Z)`);
+      }
       checkReceipts(entry, path, { required: true });
     });
   }

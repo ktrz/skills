@@ -11,7 +11,7 @@ Apply this format for every git commit message on this machine.
 
 ## Required Format
 
-```
+```text
 type(scope): TICKET-ID short description
 
 Optional body — explain the "why", not the "what".
@@ -40,7 +40,7 @@ Optional footer — BREAKING CHANGE: ..., Closes #n
 
 ### Valid Examples
 
-```
+```text
 feat(auth): PROJ-123 add OAuth2 login with Google
 fix(api): ENG-456 handle null response from payment gateway
 chore: #789 upgrade dependencies to latest
@@ -49,7 +49,7 @@ docs(readme): 8669abc12 update setup instructions
 
 ### Invalid Examples
 
-```
+```text
 # Missing ticket
 feat(auth): add login flow
 

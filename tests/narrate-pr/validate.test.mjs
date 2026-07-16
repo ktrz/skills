@@ -287,6 +287,96 @@ test("correctly prefixed qa and prComments ids pass", () => {
   assertClean(doc, "prefixed qa/prComments");
 });
 
+// ---- package id must be a lowercase palette token --------------------------
+
+const BAD_PKG_IDS = ["API", "Api", "core!", "web space", "-lead", ""];
+
+for (const id of BAD_PKG_IDS) {
+  test(`package id ${JSON.stringify(id)} is rejected`, () => {
+    const doc = sample();
+    doc.packages[0].id = id;
+    // empty string trips the non-empty check; the rest trip the pattern check.
+    assertViolation(doc, "$.packages[0].id", `pkg id ${JSON.stringify(id)}`);
+  });
+}
+
+test("lowercase kebab package ids pass", () => {
+  const doc = sample();
+  doc.packages = [
+    { id: "core", label: "@acme/core" },
+    { id: "api-v2", label: "@acme/api" },
+    { id: "web3", label: "@acme/web" },
+  ];
+  // node/component pkg refs still resolve (fixture uses core/api/web); realign.
+  doc.packages[1].id = "api";
+  doc.packages[2].id = "web";
+  assertClean(doc, "good pkg ids");
+});
+
+// ---- diagram / lane / actor / zone / node ids need their namespace prefix ---
+
+const PREFIX_CASES = [
+  ["diagram", (doc) => { doc.architecture.diagrams[0].id = "dg.x"; }, "$.architecture.diagrams[0].id", "diagram."],
+  ["lane", (doc) => { doc.architecture.diagrams[0].lanes[0].id = "l.x"; }, "$.architecture.diagrams[0].lanes[0].id", "lane."],
+  ["actor", (doc) => { doc.architecture.diagrams[1].actors[0].id = "a.x"; }, "$.architecture.diagrams[1].actors[0].id", "actor."],
+  ["zone", (doc) => { doc.architecture.diagrams[2].zones[0].id = "z.x"; }, "$.architecture.diagrams[2].zones[0].id", "zone."],
+  ["node", (doc) => { doc.architecture.diagrams[2].nodes[0].id = "nd.x"; }, "$.architecture.diagrams[2].nodes[0].id", "node."],
+];
+
+for (const [label, mutate, idPath, prefix] of PREFIX_CASES) {
+  test(`${label} id in the wrong namespace is rejected`, () => {
+    const doc = sample();
+    mutate(doc);
+    assertViolation(doc, [idPath, prefix], `${label} wrong prefix`);
+  });
+
+  test(`${label} missing an id is rejected`, () => {
+    const doc = sample();
+    mutate(doc);
+    // strip the id entirely: requireId must still flag the missing field
+    const parts = idPath.slice(2, -3).split(/[.[\]]/).filter(Boolean);
+    let obj = doc;
+    for (const p of parts.slice(0, -1)) obj = obj[/^\d+$/.test(p) ? Number(p) : p];
+    delete obj[parts[parts.length - 1]].id;
+    assertViolation(doc, idPath.slice(0, -3), `${label} missing id`);
+  });
+}
+
+// ---- generatedAt / revisedAt must be ISO 8601 ------------------------------
+
+const BAD_TIMESTAMPS = ["yesterday", "2026-07-12", "2026-13-01T00:00:00Z", "2026-07-12 09:00:00", "07/12/2026"];
+
+for (const ts of BAD_TIMESTAMPS) {
+  test(`generatedAt ${JSON.stringify(ts)} is rejected`, () => {
+    const doc = sample();
+    doc.generatedAt = ts;
+    assertViolation(doc, "$.generatedAt", `generatedAt ${ts}`);
+  });
+}
+
+test("ISO 8601 generatedAt with an offset passes", () => {
+  const doc = sample();
+  doc.generatedAt = "2026-07-12T09:00:00.123+02:00";
+  assertClean(doc, "offset timestamp");
+});
+
+test("qa revisedAt that is not ISO 8601 is rejected", () => {
+  const doc = sample();
+  doc.qa = [
+    { id: "qa.x", q: "Q?", a: "A.", revisedAt: "last tuesday", receipts: [{ kind: "code", ref: "src/a.ts:1" }] },
+  ];
+  assertViolation(doc, ["$.qa[0].revisedAt", "ISO 8601"], "bad revisedAt");
+});
+
+test("qa revisedAt that is ISO 8601 passes; absent revisedAt passes", () => {
+  const doc = sample();
+  doc.qa = [
+    { id: "qa.dated", q: "Q1?", a: "A.", revisedAt: "2026-07-12T09:00:00Z", receipts: [{ kind: "code", ref: "src/a.ts:1" }] },
+    { id: "qa.undated", q: "Q2?", a: "A.", receipts: [{ kind: "code", ref: "src/a.ts:1" }] },
+  ];
+  assertClean(doc, "revisedAt ok/absent");
+});
+
 // ---- fix 6: reviewOrder steps must form exactly {1..N} ----------------------
 
 function setSteps(doc, steps) {

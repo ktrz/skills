@@ -291,7 +291,24 @@ function renderDocument(doc, opts) {
       }).join("");
       return `<div class="d-lane"><div class="d-lane-label">${esc(lane.label)}</div>${rowsHtml}</div>`;
     }).join("");
-    const aria = `Lane diagram: ${d.title || ""}. Boxes: ${boxLabels.filter(Boolean).join(", ")}.`;
+    // Relationships: within each row, an arrow cell links its flanking boxes.
+    // Surfacing "<from> <arrow> <to>: <label>" makes the flow legible to AT,
+    // which otherwise sees only the box list.
+    const flows = [];
+    for (const lane of lanes) {
+      for (const row of Array.isArray(lane.rows) ? lane.rows : []) {
+        const cells = Array.isArray(row) ? row : [];
+        cells.forEach((cell, i) => {
+          if (!cell || typeof cell.arrow !== "string") return;
+          const prev = cells[i - 1], next = cells[i + 1];
+          if (prev && prev.label && next && next.label) {
+            flows.push(`${prev.label} ${cell.arrow} ${next.label}${cell.label ? `: ${cell.label}` : ""}`);
+          }
+        });
+      }
+    }
+    const aria = `Lane diagram: ${d.title || ""}. Boxes: ${boxLabels.filter(Boolean).join(", ")}.` +
+      (flows.length ? ` Flows: ${flows.join("; ")}.` : "");
     return `<div class="diagram" role="img" aria-label="${esc(aria)}"><div class="diagram-inner">${lanesHtml}</div></div>${caption(d, "dgm-caption")}`;
   }
 
@@ -338,7 +355,17 @@ function renderDocument(doc, opts) {
 
     const minW = Math.max(N * 150, 480);
     const cols = `repeat(${N}, 1fr)`;
-    const aria = `Sequence diagram: ${d.title || ""}. Actors: ${actors.map((a) => a.label).filter(Boolean).join(", ")}.`;
+    // Relationships: describe each step (msg/self/phase) so AT hears the actual
+    // interaction sequence, not just the actor list.
+    const actorLabel = (id) => { const a = actors[idx.get(id)]; return (a && a.label) || id; };
+    const relSeq = steps.map((s) => {
+      if (s.kind === "msg") return `${actorLabel(s.from)} → ${actorLabel(s.to)}${s.label ? `: ${s.label}` : ""}`;
+      if (s.kind === "self") return `${actorLabel(s.actor)} self${s.label ? `: ${s.label}` : ""}`;
+      if (s.kind === "phase") return `phase${s.label ? `: ${s.label}` : ""}`;
+      return "";
+    }).filter(Boolean);
+    const aria = `Sequence diagram: ${d.title || ""}. Actors: ${actors.map((a) => a.label).filter(Boolean).join(", ")}.` +
+      (relSeq.length ? ` Steps: ${relSeq.join("; ")}.` : "");
     return `<div class="seqwrap" role="img" aria-label="${esc(aria)}"><div class="seq" style="min-width:${minW}px">` +
       `<div class="seq-head" style="grid-template-columns:${cols}">${head}</div>` +
       `<div class="seq-body" style="grid-template-columns:${cols};background-image:${grad}">${body}</div>` +
@@ -523,6 +550,19 @@ function renderDocument(doc, opts) {
       // the source border with a perpendicular first segment; last point on the
       // target border with a perpendicular last segment (fix 1). Bend legs run
       // along gutter centerlines, never through unrelated cells (fix 2).
+      // A straight leg between two node borders is only safe if no OTHER
+      // node's rect straddles it. Endpoints A/B are excluded by reference
+      // identity (route is always called with the shared rect[] objects).
+      function horizClear(A, B, y, x0, x1) {
+        const xlo = Math.min(x0, x1) + CLR, xhi = Math.max(x0, x1) - CLR;
+        for (const n of nodes) {
+          const r = rect[n.id];
+          if (!r || r === A || r === B) continue;
+          if (y > r.y - CLR && y < r.y + r.h + CLR && r.x < xhi && r.x + r.w > xlo) return false;
+        }
+        return true;
+      }
+
       function route(A, B, pa, pb) {
         const vertSep = B.y >= A.y + A.h || B.y + B.h <= A.y;
         const horizSep = B.x >= A.x + A.w || B.x + B.w <= A.x;
@@ -540,7 +580,21 @@ function renderDocument(doc, opts) {
           const lo = Math.max(A.y, B.y), hi = Math.min(A.y + A.h, B.y + B.h);
           const y = clamp((lo + hi) / 2, A.y + CLR, A.y + A.h - CLR);
           const right = B.cx >= A.cx;
-          return [[right ? A.x + A.w : A.x, y], [right ? B.x : B.x + B.w, y]];
+          const sx = right ? A.x + A.w : A.x;
+          const ex = right ? B.x : B.x + B.w;
+          if (horizClear(A, B, y, sx, ex)) return [[sx, y], [ex, y]];
+          // An intermediate node straddles the direct line — detour through a
+          // row-gutter centerline instead (same orthogonal Z as the diagonal
+          // branch: exit/enter the facing HORIZONTAL borders, join in a gutter
+          // that no node occupies).
+          const down = B.cy >= A.cy;
+          const ax = clamp(B.cx, A.x + CLR, A.x + A.w - CLR);
+          const bx = clamp(A.cx, B.x + CLR, B.x + B.w - CLR);
+          const gr = down ? (pa.row + pa.rowSpan - 1) : (pa.row - 1);
+          const gy = rowGutCenter(gr);
+          const sy = down ? A.y + A.h : A.y;
+          const ey = down ? B.y : B.y + B.h;
+          return [[ax, sy], [ax, gy], [bx, gy], [bx, ey]];
         }
         if (horizSep && vertSep) {
           // Diagonal: exit/enter the facing horizontal borders, join with a
@@ -886,11 +940,22 @@ function renderDocument(doc, opts) {
       return `<polyline class="${cls}" points="${points}" marker-end="${marker}"/>`;
     }).join("\n");
 
-    const aria = `Dependency diagram: ${d.title || ""}. Zones: ${zones.map((z) => z.label).filter(Boolean).join(", ")}. Nodes: ${nodes.map((n) => n.label).filter(Boolean).join(", ")}.`;
+    // Relationships: the edges carry the topology. Without them AT hears only
+    // the node list and loses every dependency the diagram exists to show.
+    const nodeLabel = {}; for (const n of nodes) nodeLabel[n.id] = n.label;
+    const kindWord = { call: "calls", net: "network", "type-only": "type-only" };
+    const relEdges = edges.map((e) => {
+      const k = kindWord[e.kind] ? ` (${kindWord[e.kind]})` : "";
+      return `${nodeLabel[e.from] ?? e.from} → ${nodeLabel[e.to] ?? e.to}${e.label ? `: ${e.label}` : ""}${k}`;
+    });
+    const aria = `Dependency diagram: ${d.title || ""}. Zones: ${zones.map((z) => z.label).filter(Boolean).join(", ")}. Nodes: ${nodes.map((n) => n.label).filter(Boolean).join(", ")}.` +
+      (relEdges.length ? ` Edges: ${relEdges.join("; ")}.` : "");
+    const descSvg = relEdges.length ? `<desc>Relationships: ${esc(relEdges.join("; "))}.</desc>` : "";
     const minWidth = Math.min(Math.max(vbW, 560), 1200);
 
     const svg =
       `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" role="img" aria-label="${esc(aria)}" style="min-width:${minWidth}px">` +
+      descSvg +
       `<defs>` +
       `<marker id="dep-arr" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr" d="M0,0 L10,5 L0,10 z"/></marker>` +
       `<marker id="dep-arr-net" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr-net" d="M0,0 L10,5 L0,10 z"/></marker>` +
