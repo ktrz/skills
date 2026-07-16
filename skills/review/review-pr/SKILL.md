@@ -4,11 +4,12 @@ version: 1.7.1
 model: sonnet
 description: >
   Review a pull request and surface findings by severity — written to a file
-  (auto/pipeline + standalone) or interactively triaged before posting (deep
-  mode). Pass --re-review for a follow-up pass that checks whether earlier
-  review comments were addressed without re-raising them. Use when the user
-  says "review PR", "review this PR", "re-review this PR", runs "/review-pr
-  [PR]", or when implement-feature invokes it after opening PRs.
+  in pipeline mode, posted to GitHub immediately in standalone auto mode, or
+  interactively triaged before posting in deep mode. Pass --re-review for a
+  follow-up pass that checks whether earlier review comments were addressed
+  without re-raising them. Use when the user says "review PR", "review this
+  PR", "re-review this PR", runs "/review-pr [PR]", or when implement-feature
+  invokes it after opening PRs.
 ---
 
 # Review PR

@@ -3,6 +3,7 @@
 ## 1.7.1
 
 - Description tightened to triggers + modes — dropped the six-agent enumeration and the aggregation-mechanism summary per review-guidelines §1. Added tables of contents to `references/rereview-agent.md`, `agents.md`, `aggregation.md`, and `guidelines-agent.md`. Fixed a premature fence close in agents.md / guidelines-agent.md / review-prompt.md that rendered the trailing prose sections as a code block; they now render as headings. Documentation only.
+- Fixed a safety-relevant omission in the tightened description: it said findings are "written to a file" for auto mode generally, but standalone auto mode posts to GitHub immediately (see Mode summary table). Description now distinguishes pipeline mode (file only) from standalone auto mode (posted immediately) from deep mode (interactive triage before posting). Documentation only.
 
 ## 1.7.0
 
