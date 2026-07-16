@@ -52,15 +52,17 @@ git rev-parse --show-toplevel
 Call result `REPO_ROOT`. Then check:
 
 ```bash
-test -e "$REPO_ROOT/plans.local" && ls -ld "$REPO_ROOT/plans.local"
+test -d "$REPO_ROOT/plans.local" && ls -ld "$REPO_ROOT/plans.local"
 ```
 
 If `plans.local` missing, stop + tell user:
 
 > No `./plans.local` in this repo. Create the symlink first:
+>
 > ```
 > ln -s ~/projects/plans <REPO_ROOT>/plans.local
 > ```
+>
 > then re-run.
 
 No auto-create symlink — target path personal (how user organises plans across machines). Wrong guess = plans stashed wrong place.
@@ -102,10 +104,10 @@ Respect existing topic dir over flat file: if `plans.local/<project>/<slug>/` al
 
 ### Step 2b — Promote an existing flat file into a topic dir
 
-Check flat file for slug exists:
+Check flat file for slug exists. `SESSION-*` files are named by date (`SESSION-YYYY-MM-DD.md`, see Phase 2), not by slug, so match either form:
 
 ```bash
-ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|SESSION|NOTES)-<slug>\.md$|^<slug>\.md$"
+ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|NOTES)-<slug>\.md$|^SESSION-([0-9]{4}-[0-9]{2}-[0-9]{2}|<slug>)\.md$|^<slug>\.md$"
 ```
 
 Matching flat file there → decide promote to topic dir before new save. Promote when:
@@ -131,10 +133,10 @@ When promoting, do file move + new save as two visible steps so user sees migrat
    ```
 
    Translate KIND/slug pattern for non-PLAN files:
-   - `PLAN-<slug>.md`    → `<slug>/PLAN.md`
-   - `NOTES-<slug>.md`   → `<slug>/NOTES.md`
+   - `PLAN-<slug>.md` → `<slug>/PLAN.md`
+   - `NOTES-<slug>.md` → `<slug>/NOTES.md`
    - `SESSION-<date>.md` → `<slug>/SESSION-<date>.md` (preserve date)
-   - `<slug>.md`         → `<slug>/NOTES.md` (plain files promote to NOTES)
+   - `<slug>.md` → `<slug>/NOTES.md` (plain files promote to NOTES)
 
 3. Continue Phase 2 with topic-dir branch + new filename inside `<slug>/`.
 

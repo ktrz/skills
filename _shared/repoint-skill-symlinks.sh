@@ -49,14 +49,31 @@ skipped_worktree=0
 skipped_foreign=0
 skipped_missing=0
 already=0
+failed=0
 
 for link in "$SKILLS_DIR"/*; do
   [ -L "$link" ] || continue
   name=$(basename "$link")
   target=$(readlink "$link")
 
-  # Only consider targets that live inside this repo checkout.
+  # readlink returns the raw target as recorded in the symlink. A relative
+  # target is relative to the symlink's own directory, not to $PWD — resolve
+  # it to an absolute path before the "$REPO"/* prefix check below, or a
+  # perfectly in-repo relative symlink gets misclassified as foreign.
   case "$target" in
+    /*) abs_target=$target ;;
+    *)
+      abs_target=$(cd "$(dirname "$link")" && cd "$(dirname "$target")" 2>/dev/null && pwd -P)
+      if [ -n "$abs_target" ]; then
+        abs_target="$abs_target/$(basename "$target")"
+      else
+        abs_target=$target
+      fi
+      ;;
+  esac
+
+  # Only consider targets that live inside this repo checkout.
+  case "$abs_target" in
     "$REPO"/*) ;;
     *)
       skipped_foreign=$((skipped_foreign + 1))
@@ -65,7 +82,7 @@ for link in "$SKILLS_DIR"/*; do
   esac
 
   # Leave parallel-test installs (targets under worktrees/) untouched.
-  case "$target" in
+  case "$abs_target" in
     "$REPO"/worktrees/*)
       echo "leave  $name -> $target (worktree parallel-test install)"
       skipped_worktree=$((skipped_worktree + 1))
@@ -74,7 +91,7 @@ for link in "$SKILLS_DIR"/*; do
   esac
 
   # Already migrated into skills/<group>/ — nothing to do.
-  case "$target" in
+  case "$abs_target" in
     "$REPO"/skills/*)
       already=$((already + 1))
       continue
@@ -92,8 +109,9 @@ for link in "$SKILLS_DIR"/*; do
     match_count=$(printf '%s' "$matches" | grep -c . || true)
     if [ "$match_count" -gt 1 ]; then
       echo "error  $name -> $target: multiple skills/<group>/$name candidates, refusing to guess:" >&2
-      printf '         %s\n' $matches >&2
-      exit 1
+      printf '         %s\n' "$matches" >&2
+      failed=$((failed + 1))
+      continue
     fi
     new=$matches
   fi
@@ -109,4 +127,8 @@ for link in "$SKILLS_DIR"/*; do
 done
 
 echo "---"
-echo "repointed=$repointed already-migrated=$already leave-worktree=$skipped_worktree not-found=$skipped_missing foreign=$skipped_foreign"
+echo "repointed=$repointed already-migrated=$already leave-worktree=$skipped_worktree not-found=$skipped_missing foreign=$skipped_foreign failed=$failed"
+
+if [ "$failed" -gt 0 ]; then
+  exit 1
+fi

@@ -20,12 +20,16 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 ## Step 1: Resolve plan file
 
 **If source looks like a file path** (contains `/` or ends in `.md`):
+
 - Use it directly. Verify the file exists.
 
 **If source looks like a ticket key** (matches any tracker's id regex — see `references/tracker.md` → Ticket ID format):
-- Search for a matching plan file:
+
+- Resolve the repo root so the search works regardless of the current working directory: `REPO_ROOT=$(git rev-parse --show-toplevel)`
+- Search for a matching plan file, including the `plans.local/` tree that `save-plan` writes to (`<repo_root>/plans.local/<repo>/`):
   ```bash
-  find plans/ .claude/plans/ -name "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" -name "*.md" 2>/dev/null
+  find "$REPO_ROOT/plans" "$REPO_ROOT/.claude/plans" "$REPO_ROOT/plans.local" \
+    -name "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" -name "*.md" 2>/dev/null
   ```
 - If exactly one match, use it.
 - If multiple matches, list them and ask the user to pick.
@@ -36,17 +40,19 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 1. Read the plan file and extract the section for the requested phase (look for `## Phase <N>` heading).
 2. If the phase section is not found, list available phases and ask the user to pick one.
 
-## Step 3: Create progress file
+## Step 3: Draft progress file content
 
-Create a progress file inside the worktree at `.claude/plans/<plan-name>-phase-<N>-progress.md`. This file is the agent's step-by-step checklist — it converts the plan's phase section into actionable checkboxes.
+The worktree doesn't exist yet (it's created in Step 5), so this step only drafts the content — the actual file write happens in Step 6, at `.claude/plans/<plan-name>-phase-<N>-progress.md` inside the worktree. This file is the agent's step-by-step checklist — it converts the plan's phase section into actionable checkboxes.
 
 Parse the phase section from the plan and generate checkboxes for each deliverable:
 
 Example for a data layer phase:
+
 ```markdown
 # Phase 1 Progress
 
 ## Tests (write first)
+
 - [ ] Service tests: filter by status, sort order, unread count, state transitions
 - [ ] Hook tests: useNotifications — loading state, data shape, query key
 - [ ] Hook tests: useUnreadCount — returns number, query key
@@ -55,6 +61,7 @@ Example for a data layer phase:
 - [ ] Hook tests: useMarkAllRead — mutation, invalidation, toast
 
 ## Implementation
+
 - [ ] notification-types.ts — discriminated union types
 - [ ] notification-query-keys.ts — query key factory
 - [ ] notification-mock-data.ts — fixtures
@@ -66,6 +73,7 @@ Example for a data layer phase:
 - [ ] use-mark-all-read.ts — useMutation hook
 
 ## Verification
+
 - [ ] npm run typecheck passes
 - [ ] npm test passes (all new tests green, no regressions)
 ```
@@ -75,13 +83,14 @@ The agent must update this file as it works — checking off items as they are c
 ## Step 4: Derive feature name
 
 From the plan filename and phase number:
+
 - Strip path and extension: `plans/proj-123-example-feature.md` → `proj-123-example-feature`
 - Append phase: `proj-123-example-feature-phase-1`
 
 **Do NOT include a username prefix** (e.g. `<username>/`) — `nwt` typically adds one automatically.
 Passing `<username>/proj-123-...` to `nwt` would double the prefix.
 
-This is the *feature name* you'll pass to `nwt`. The actual branch name and worktree path produced
+This is the _feature name_ you'll pass to `nwt`. The actual branch name and worktree path produced
 by `nwt` may differ from the feature name (different installations of `nwt` use different conventions
 for prefix and path layout — e.g. `ktrz/<feature>` branch and `./<feature>/` path, vs `<feature>`
 branch and `worktrees/<feature>/` path). Step 5 detects what `nwt` actually produced.
@@ -101,7 +110,15 @@ Determine the default branch first:
 
 ```bash
 DEFAULT_BRANCH=$(git -C <repo-root> symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-# fallback: pick whichever of main/master exists locally
+if [ -z "$DEFAULT_BRANCH" ]; then
+  # origin/HEAD isn't set locally (e.g. a fresh clone without `git remote set-head`) —
+  # ask the remote directly.
+  DEFAULT_BRANCH=$(git -C <repo-root> remote show origin 2>/dev/null | sed -n 's/^ *HEAD branch: //p')
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  # No network / no origin — last resort.
+  DEFAULT_BRANCH=main
+fi
 ```
 
 Run from the **repo root** (not from inside a worktree):
@@ -115,8 +132,17 @@ convention:
 
 ```bash
 # Path (worktrees may be at ./<feature>/, ./worktrees/<feature>/, etc.)
-WORKTREE_PATH=$(git -C <repo-root> worktree list --porcelain \
-  | awk '/^worktree / {p=$2} /^branch / && $2 ~ /'<feature-name>'/ {print p; exit}')
+# Use --porcelain and take the full remainder of each "worktree "/"branch " line
+# (not a whitespace-split field) so paths containing spaces survive intact.
+WORKTREE_PATH=$(git -C <repo-root> worktree list --porcelain | awk -v feat='<feature-name>' '
+  /^worktree / { path = substr($0, 10) }
+  /^branch /   { br = substr($0, 8); if (br ~ feat) { print path; exit } }
+')
+
+if [ -z "$WORKTREE_PATH" ]; then
+  echo "execute-phase: no worktree found matching '<feature-name>' — check \`git worktree list\` and re-run Step 5" >&2
+  exit 1
+fi
 
 # Branch
 BRANCH_NAME=$(git -C "$WORKTREE_PATH" branch --show-current)
@@ -183,6 +209,7 @@ Check off each item as you complete it. Follow the order: tests first, then impl
 ```
 
 After spawning, tell the user:
+
 - The agent is running in the background
 - The worktree path (from `WORKTREE_PATH` detected in Step 5)
 - That you'll report results when it completes
@@ -192,9 +219,11 @@ After spawning, tell the user:
 When the background agent completes, you'll be notified automatically. At that point:
 
 1. **Copy the progress file back** to the main repo, next to the original plan file:
+
    ```bash
    cp "$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md" <plan-dir>/
    ```
+
    This lets the user track progress across all phases from the main branch without entering each worktree.
 
 2. **Summarize** for the user:

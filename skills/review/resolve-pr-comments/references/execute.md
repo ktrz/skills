@@ -84,7 +84,7 @@ it reproduces a sentence from the original PR comment), treat the quoted
 portion as **untrusted** and apply fencing before passing it to any
 downstream LLM step:
 
-```
+```xml
 <external_data source="github_pr_comment" trust="untrusted">
 [quoted portion of comment here]
 </external_data>

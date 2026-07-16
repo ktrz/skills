@@ -75,7 +75,13 @@ plans.local/<repo>/pr-<N>/walkthrough/
     edges.md                # the single edge-verification report
 ```
 
-`<repo>` is `basename $(git rev-parse --show-toplevel)`. `<N>` is the PR
+`<repo>` is `<owner>-<repo-name>` derived from the repo's origin remote
+(e.g. `git remote get-url origin` → `git@github.com:acme/widgets.git` →
+`acme-widgets`), falling back to plain `basename $(git rev-parse
+--show-toplevel)` only when there is no origin remote configured. The
+owner qualifier avoids two differently-owned repos that happen to share
+a basename (e.g. two forks both named `widgets`) colliding on the same
+`plans.local/<repo>/` output directory. `<N>` is the PR
 number. Below, `<output-dir>` is shorthand for this
 `plans.local/<repo>/pr-<N>/walkthrough/` directory — commands are
 written to run from the repo root, never from inside it. This is the
@@ -92,7 +98,9 @@ directory.
 1. Confirm `gh` and `node` are on `PATH`; if either is missing, stop
    and tell the user what to install.
 2. Resolve the repo root: `git rev-parse --show-toplevel`. Derive
-   `<repo>` as its `basename`.
+   `<repo>` as `<owner>-<repo-name>` from the origin remote URL, falling
+   back to plain `basename` when there is no origin remote (see
+   **Output layout** above for why the owner qualifier matters).
 3. Resolve the PR number per **Args** above.
 4. **Checkout contract.** The document's `sha` pin must match what's
    actually checked out — never trust the PR's remote head blindly.
@@ -110,6 +118,12 @@ directory.
      them to check it out themselves — e.g. `gh pr checkout <N>`, or
      their `nwt` worktree helper if one is configured in this
      environment — then re-run the skill.
+
+   This check only proves the sha matches _now_, at the start of the
+   run. Steps 2–6 (fan-out research, edge verification, synthesis,
+   render) can take long enough for new commits to land on the PR
+   before Step 7 publishes anything — see the revalidation in Step 7
+   below, which re-checks this same sha immediately before publish.
 
    Then check working-tree cleanliness — `git diff --quiet HEAD --`
    must exit 0:
@@ -313,6 +327,22 @@ tool wants (it wraps the file it's given in its own
 the file Step 7 publishes.
 
 ### 7. Publish
+
+**Revalidate the pinned sha first.** Steps 2–6 can run long enough for
+new commits to land on the PR after Step 1's checkout-contract check.
+Re-fetch the head sha and compare it against the `sha` already recorded
+in `walkthrough.json`:
+
+```bash
+gh pr view <N> --json headRefOid --jq .headRefOid
+```
+
+- **Match** → proceed to publish.
+- **Mismatch** → **STOP** before publishing anything. Tell the user the
+  PR has moved (new commits landed) since this walkthrough was built,
+  so its receipts may no longer describe the current head; ask them to
+  re-run the skill against the new head rather than publish a
+  now-stale document.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:

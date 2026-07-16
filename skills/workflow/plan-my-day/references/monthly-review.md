@@ -16,13 +16,16 @@ works on macOS and Linux:
 
 ```bash
 CURRENT_MONTH=$(date +%Y-%m)
-PREVIOUS_MONTH=$(date -v-1m +%Y-%m 2>/dev/null || date -d "1 month ago" +%Y-%m)
-PREVIOUS_LABEL=$(date -v-1m +"%B %Y" 2>/dev/null || date -d "1 month ago" +"%B %Y")
+PREVIOUS_MONTH=$(date -v-1m +%Y-%m 2>/dev/null || date -d "$(date +%Y-%m-01) -1 month" +%Y-%m)
+PREVIOUS_LABEL=$(date -v-1m +"%B %Y" 2>/dev/null || date -d "$(date +%Y-%m-01) -1 month" +"%B %Y")
 ```
 
 → `CURRENT_MONTH` (e.g. `2026-05`), `PREVIOUS_MONTH` (e.g. `2026-04`),
 `PREVIOUS_LABEL` (e.g. `April 2026`). Year boundary is handled by `date`
-itself — January resolves to December of the prior year.
+itself — January resolves to December of the prior year. The GNU fallback
+anchors to the first of the current month before subtracting, so it
+doesn't overflow on 31-day months (e.g. running on May 31 correctly
+resolves to April, not skip to March).
 
 `MONTHLY_TITLE` = `<PREVIOUS_MONTH> — Monthly review` (e.g.
 `2026-04 — Monthly review`). The retro is **about** the previous month,

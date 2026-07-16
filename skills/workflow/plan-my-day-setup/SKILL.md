@@ -71,17 +71,17 @@ For each repo path provided:
 
 1. Verify the path exists and is a git repo:
    ```bash
-   ls <path>/.git
+   ls "<path>/.git"
    ```
 2. Auto-detect the GitHub remote:
    ```bash
-   git -C <path> remote -v
+   git -C "<path>" remote -v
    ```
    Parse the `origin` fetch URL to extract the `org/repo` value. Show it to
    the user for confirmation.
 3. Detect branch naming convention by sampling recent branches:
    ```bash
-   git -C <path> branch --sort=-committerdate --format='%(refname:short)' | head -20
+   git -C "<path>" branch --sort=-committerdate --format='%(refname:short)' | head -20
    ```
    Look for patterns:
    - `prefix/key-NNN` (e.g. `jsmith/proj-123`) → suggest `branch_ticket_format: prefix/key-NNN`, extract the prefix.
@@ -183,6 +183,10 @@ repos:
     github_repo: <org/repo>
     branch_ticket_format: <detected-format>
 ```
+
+Quote any user-supplied scalar that contains YAML-special characters
+(`:`, `#`, leading/trailing quotes) — e.g. `name: "my: repo"` — so it
+doesn't corrupt the file.
 
 Tracker settings are **never** embedded in `plan-my-day.yaml` any more —
 they live in `~/.claude/tracker.yaml` (shared) so every skill in the
