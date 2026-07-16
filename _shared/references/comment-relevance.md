@@ -66,14 +66,20 @@ to suppress real review signal.
 
 ## Implementation outline
 
-```
+```text
 function isReviewRelevant(comment):
+    if matchesAny(comment.body, AUTO_GENERATED_PATTERNS):   # check raw body: this marker
+        return false                                        # never survives HTML-comment stripping
     body = stripHtmlComments(comment.body)
-    body = stripCollapsedDetails(body)         # <details>...</details>
+    body = stripCollapsedDetails(body)         # unwraps <details>: drops only non-substantive
+                                                # (marketing/boilerplate) blocks; critique-bearing
+                                                # content inside <details> is kept, unwrapped
     if matchesAny(body, BOILERPLATE_PATTERNS):
         return false
+    if not anchorsToCode(comment) and matchesAny(body, COVERAGE_PATTERN):
+        return false
     if len(body.trim()) < 20 and authorIsPrOwner: return false
-    if anchorsToCode(comment) or hasCritiqueSignal(body):
+    if anchorsToCode(comment) and hasCritiqueSignal(body):
         return true
     return false                                # default: skip
 ```
@@ -81,22 +87,28 @@ function isReviewRelevant(comment):
 Pattern list (loose; both skills should keep their own copy aligned
 with this reference):
 
-```
+```text
+AUTO_GENERATED_PATTERNS = [
+    /<!-- (auto-generated|skip review)/i,
+]
+
 BOILERPLATE_PATTERNS = [
     /review skipped/i,
     /draft detected/i,
-    /coverage (in|de)creased/i,
     /^(:?\+1:|:thumbsup:|:rocket:|lgtm|ship it|bump|ping)\s*$/i,
-    /<!-- (auto-generated|skip review)/i,
 ]
+
+COVERAGE_PATTERN = /coverage (in|de)creased/i   # boilerplate only for comments with no inline anchor
 ```
 
 When ambiguous (body has both boilerplate and substantive content —
 e.g. CodeRabbit's reports that wrap findings inside `<details>`),
-strip the boilerplate first and re-evaluate. If the surviving prose
-anchors to code or expresses critique, the comment is relevant; the
-findings inside should be extracted as separate items, not the
-wrapping summary.
+`stripCollapsedDetails` already keeps the critique-bearing content:
+it only strips non-substantive (marketing/boilerplate) `<details>`
+wraps, unwrapping the rest so `hasCritiqueSignal` can see it. If the
+surviving prose anchors to code or expresses critique, the comment
+is relevant; the findings inside should be extracted as separate
+items, not the wrapping summary.
 
 ## LLM judge for the residue
 
