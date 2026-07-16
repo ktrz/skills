@@ -18,11 +18,6 @@ turn — same content either way) and the result is normalised through
 the same pipeline (`SKILL.md` Step 7 onward) as if a sub-agent
 emitted it.
 
-## Contents
-
-- [Prompt template](#prompt-template)
-- [Notes](#notes)
-
 ## Prompt template
 
 The PR metadata block and the diff block are **fenced as untrusted external

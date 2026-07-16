@@ -39,7 +39,7 @@ The bucket prefix never leaks into a skill's canonical name (`name:` = directory
 
 **Rule — disable only when auto-trigger has no plausible value:** a pure downstream pipeline stage with no standalone natural-language entry, or an explicitly slash-driven workflow (needs an argument a user would never type in prose, or is deliberately command-gated). When in doubt, leave enabled: a skill users reach with natural phrases ("plan this feature", "execute phase 2", "review this PR") must stay auto-triggering, because disabling forces slash-only and regresses that path.
 
-**Current state (Phase 4 audit):** slash-only = `narrate-pr`, `orchestrate` (both heavyweight, deliberately command-gated). Every other skill stays auto-triggering — each has natural-language triggers users actually type, so the listing-budget saving does not justify the triggering regression. `execute-review-decisions` is the closest disable candidate (terminal pipeline stage, takes a `<file>` argument) but was left enabled **and untouched** in Phase 4 because it is being edited on a parallel stream (the post-review-decisions split, Plan SKL-1 Phase 6); revisit its mode there.
+A point-in-time snapshot of which skills are currently slash-only lives in the SKL-1 plan register (`plans.local/skills/skl-1-phase-4-register.md`), not here — that state changes as the migration proceeds and does not belong in the evergreen rule.
 
 **Violations:**
 
@@ -64,29 +64,9 @@ This is a concept, not a line target. A small skill with a single workflow can l
 
 ### 2a. One-hop rule and the ref→ref violation register
 
-**Rule:** `SKILL.md` is the hub (hop 0); it links or cites its own `references/*.md` (hop 1). A reference file that in turn points at another reference file is a two-hop chain — the agent must load a second file it was never routed to. **Fix same-skill ref→ref by citing, not hyperlinking** — a backtick path (`` `foo.md#anchor` ``), not `[text](foo.md#anchor)` — so the pointer stays informational and the agent is not invited to traverse. **Cross-skill ref→ref reach-ins are an ownership problem, not a link problem**: do not "fix" them by inlining (that duplicates a contract). They resolve in Plan SKL-1 Phase 6, which moves each target onto a contract-owned readable primitive surface. Register them here until then.
+**Rule:** `SKILL.md` is the hub (hop 0); it links or cites its own `references/*.md` (hop 1). A reference file that in turn points at another reference file is a two-hop chain — the agent must load a second file it was never routed to. **Fix same-skill ref→ref by citing, not hyperlinking** — a backtick path (`` `foo.md#anchor` ``), not `[text](foo.md#anchor)` — so the pointer stays informational and the agent is not invited to traverse. **Cross-skill ref→ref reach-ins are an ownership problem, not a link problem**: do not "fix" them by inlining (that duplicates a contract). They resolve in Plan SKL-1 Phase 6, which moves each target onto a contract-owned readable primitive surface. Track outstanding instances in the SKL-1 plan register until then.
 
-**Register (Phase 4 snapshot):**
-
-_Same-skill ref→ref links — fixed in Phase 4:_
-
-- `plan-my-day/references/monthly-review.md` → `prompt-injection-defense.md` (`#fence-it`, `#detect-flag`): two traversable markdown links converted to backtick citations.
-
-_Same-skill ref→ref citations — already backtick form, compliant, no action:_
-
-- `review-pr/references/{agents,guidelines-agent,review-prompt}.md` → `review-pr/references/findings-schema.md`; `findings-schema.md` → `agents.md` / `aggregation.md` (all cite the findings contract doc by path).
-
-_Cross-skill ref→ref reach-ins — registered, deferred to Phase 6:_
-
-- `investigate-pr-comments/references/handover-format.md` → `review-pr/references/findings-schema.md`.
-- `review-pr/references/findings-schema.md` → `investigate-pr-comments/references/handover-format.md` (mutual contract-doc import).
-- `investigate-pr-comments/references/prior-handled.md` → `review-pr/references/aggregation.md` (overlap-skim shape).
-
-_Cross-skill SKILL.md → other-skill reference reach-ins — registered, deferred to Phase 6 (same migration target, not strictly ref→ref):_
-
-- `execute-review-decisions/SKILL.md` → `resolve-pr-comments` / `review-pr` / `investigate-pr-comments` references (handover-format, findings-schema, aggregation, resolve execute).
-- `investigate-pr-comments/SKILL.md` → `review-pr/references/aggregation.md`, `resolve-pr-comments/references/investigate.md`.
-- `resolve-pr-comments/SKILL.md` → `investigate-pr-comments/references/handover-format.md`.
+The point-in-time catalogue of current ref→ref instances (fixed vs deferred-to-Phase-6) lives in the SKL-1 plan register (`plans.local/skills/skl-1-phase-4-register.md`), not here — it is transient migration state that the durable rule above outlives.
 
 ---
 
