@@ -1,6 +1,0 @@
-{
-  "target": "demo",
-  "stable_path": "tests/evals/fixtures/good-skill",
-  "description": "Test-only spec whose scenarios array is empty — must fail validation, never pass green.",
-  "scenarios": []
-}

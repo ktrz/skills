@@ -1,6 +1,0 @@
-[
-  {
-    "query": "this bare array must be skipped by loadScenarioFiles — if the *.trigger.json exclusion regresses, loading it as a spec fails the green run",
-    "should_trigger": true
-  }
-]
