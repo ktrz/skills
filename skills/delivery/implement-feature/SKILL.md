@@ -3,8 +3,7 @@ name: implement-feature
 version: 1.3.2
 model: sonnet
 description: >
-  Take a tracker ticket from plan to opened PRs, running phases in parallel
-  worktrees and the review pipeline afterward. Use when the user says
+  Take a tracker ticket from plan to opened PRs. Use when the user says
   "implement feature", "implement ticket", "execute the plan", "run the
   phases", or runs "/implement-feature PROJ-XXX". Plans the feature first if
   no plan file exists yet. Works with jira, linear, github, or clickup
