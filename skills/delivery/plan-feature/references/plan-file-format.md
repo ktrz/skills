@@ -10,7 +10,6 @@
 | ------------- | ------------------------------------------------------------------------------ |
 | **Owner**     | `skills/delivery/plan-feature` (writer)                                        |
 | **Consumers** | `skills/delivery/implement-feature`, `skills/delivery/execute-phase` (readers) |
-| **Validator** | `skills/delivery/plan-feature/validate-plan.mjs` (zero-dep node)               |
 | **Status**    | contract                                                                       |
 
 ## Contents
@@ -24,19 +23,19 @@
   - [Phase sections](#phase-sections)
   - [Optional sections](#optional-sections)
 - [What each consumer reads](#what-each-consumer-reads)
-- [Validation rules](#validation-rules)
-- [Validator usage](#validator-usage)
-- [Distribution](#distribution)
+- [Conformance rules](#conformance-rules)
 
 ## Why this is a contract
 
 `plan-feature` writes a plan; `implement-feature` parses it to schedule phase
 cohorts; `execute-phase` parses a single phase section to brief a worktree
-agent. Three skills, one artifact. Encoding the load-bearing structure here —
-and gating it with a runnable validator — lets the prose in any of the three
-skills evolve without silently breaking the hand-off. The contract captures
-only what a consumer actually parses; everything else in a plan is free-form
-author judgment.
+agent. Three skills, one artifact — all of them models reading markdown, not
+parsers. Encoding the load-bearing structure here lets the prose in any of the
+three skills evolve without silently breaking the hand-off. The contract
+captures only what a consumer actually reads; everything else in a plan is
+free-form author judgment. Conformance is the producing skill's
+responsibility (`plan-feature`, Stage 3 self-check); the consumers are models
+that read this doc.
 
 ## Document shape
 
@@ -120,45 +119,26 @@ Progress tracking is a sibling artifact, not part of the plan file: a phase is
 complete when `<plan-dir>/<plan-name>-phase-<N>-progress.md` exists with every
 checkbox checked (see `implement-feature` Step 2).
 
-## Validation rules
+## Conformance rules
 
-`validate-plan.mjs` enforces, collecting **all** violations before exiting:
+A conforming plan file satisfies **all** of the following:
 
-1. **`rule-1-title`** — exactly one H1 (`# …`) line.
-2. **`rule-2-context`** — a `## Context` section is present.
-3. **`rule-3-execution-order`** — a plan with ≥ 2 phases has an
-   `## Execution Order` section.
-4. **`rule-4-phases`** — at least one `## Phase <N>` section.
-5. **`rule-5-phase-unique`** — no duplicate phase numbers.
-6. **`rule-6-phase-contiguous`** — phase numbers form a contiguous run starting
+1. **Title** — exactly one H1 (`# …`) line.
+2. **Context** — a `## Context` section is present.
+3. **Execution Order** — a plan with ≥ 2 phases has an `## Execution Order`
+   section.
+4. **Phases** — at least one `## Phase <N>` section.
+5. **Phase numbers unique** — no duplicate phase numbers.
+6. **Phase numbers contiguous** — phase numbers form a contiguous run starting
    at 0 or 1 (no gaps).
-7. **`rule-7-phase-body`** — every phase section has a non-empty body.
+7. **Phase body** — every phase section has a non-empty body.
 
-Headings inside fenced code blocks (` ` ```) are ignored, so an embedded
-template or a shell comment never counts as structure.
+Headings inside fenced code blocks (` ` ```) do not count as structure, so an
+embedded template or a shell comment never reads as a section.
 
-## Validator usage
-
-```bash
-node skills/delivery/plan-feature/validate-plan.mjs <path-to-plan.md>
-```
-
-- Exit `0` — the plan conforms. Prints `OK: …`.
-- Exit `1` — prints one `[rule] message` line per violation, then a count.
-- Exit `2` — usage error or the file could not be read.
-
-Fixtures the test suite checks live in
-`skills/delivery/plan-feature/fixtures/` (one valid-* per accepted shape, one
-invalid-* per rule); the suite is `tests/plan-feature/validate-plan.test.mjs`
-(`node --test`).
-
-## Distribution
-
-The validator is **co-located with its owner** (`plan-feature`) and is not
-distributed into the consumer skills. Consumers read a plan file by
-LLM-parsing its markdown, not by shelling out to the validator, so — unlike the
-handover-validator, which each review skill must _run_ from its own directory
-on an installed copy — no cross-skill bundle is needed. This mirrors the
-co-located `narrate-pr/validate.mjs`. See `_shared/README.md` → "When a
-contract validator needs a `bundles:` entry" for when a validator instead
-warrants a `bundles:` entry.
+`plan-feature` owns conformance: Stage 3 writes the file, then self-checks it
+against this doc before presenting. The consumers (`implement-feature`,
+`execute-phase`) are models that LLM-parse the markdown — there is no
+non-model parser in the chain, so this doc is the contract, no validator gates
+it. (Contrast the handover doc, which a real non-LLM parser consumes and which
+therefore keeps a runtime validator — see `_shared/README.md`.)

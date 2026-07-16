@@ -10,7 +10,6 @@
 | ------------- | ----------------------------------------------------------------- |
 | **Owner**     | `skills/review/review-pr`                                         |
 | **Consumers** | `review-pr` aggregation; the handover format imports these fields |
-| **Validator** | `skills/review/review-pr/validate-findings.mjs` (zero-dep node)   |
 | **Status**    | contract                                                          |
 
 Canonical shape for a single review finding. This file is the single
@@ -27,7 +26,7 @@ all import from here.
 - [Severity ordering](#severity-ordering)
 - [Emoji prefixing (post-time only)](#emoji-prefixing-post-time-only)
 - [Auto-mode file format](#auto-mode-file-format)
-- [Validator usage](#validator-usage)
+- [Conformance](#conformance)
 
 ## Shape
 
@@ -148,29 +147,20 @@ Minimum keys persisted per item: `file`, `line`, `severity`,
 verbatim — emoji prefixing happens at post time, not file-write time,
 so the document remains a clean structured input for downstream tools.
 
-## Validator usage
+## Conformance
 
-`validate-findings.mjs` gates a findings file (a single finding object or a
-JSON array of findings) against the shape and field rules above:
+A conforming findings file (a single finding object or a JSON array of
+findings) satisfies the shape and field rules above: `severity` in the
+four-bucket enum; non-empty `description` and `recommendation`; a non-empty
+`reported_by` array of non-empty strings; `file`/`line` either both `null`
+(PR-level finding) or both set, with `file` repo-relative (no leading `./`, no
+absolute path, no `..` escape segment, forward slashes) and `line` an integer
+≥ 1; and `resolution_status`, when present, in
+`addressed|partial|not-addressed|cant-tell`.
 
-```bash
-node skills/review/review-pr/validate-findings.mjs <path-to-findings.json>
-```
-
-- Exit `0` — every finding conforms. Prints `OK: …`.
-- Exit `1` — prints one `path: message` line per violation, then a count.
-- Exit `2` — usage error or the file could not be read.
-
-It enforces: `severity` in the four-bucket enum; non-empty `description` and
-`recommendation`; a non-empty `reported_by` array of non-empty strings;
-`file`/`line` either both `null` (PR-level finding) or both set, with `file`
-repo-relative (no leading `./`, no absolute path, no `..` escape segment, forward slashes) and `line`
-an integer ≥ 1; and `resolution_status`, when present, in
-`addressed|partial|not-addressed|cant-tell`. Fixtures live in
-`skills/review/review-pr/fixtures/`; the suite is
-`tests/review-pr/validate-findings.test.mjs` (`node --test`).
-
-The validator is co-located with `review-pr` and not distributed to other
-skills: `review-pr` is the sole producer of findings JSON, so nothing else
-needs to run it on an installed copy (see `_shared/README.md` →
-"When a contract validator needs a `bundles:` entry").
+`review-pr` owns conformance and is the sole producer of findings JSON — every
+consumer (aggregation, the handover format that imports these fields) is a
+model reading this doc, not a non-LLM parser. There is therefore no runtime
+validator: this doc is the contract. (Contrast the handover doc, which a real
+non-LLM parser consumes and which keeps a runtime validator — see
+`_shared/README.md`.)

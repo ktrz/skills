@@ -2,7 +2,7 @@
 
 ## 1.7.0
 
-- **Findings schema promoted to an owned contract doc + validator.** `references/findings-schema.md` now carries a contract header (owner / consumers / validator / status) and a table of contents, and is backed by a zero-dependency validator (`validate-findings.mjs`). The validator gates a findings file (a single finding object or a JSON array) on: the four-bucket `severity` enum; non-empty `description` / `recommendation`; a non-empty `reported_by` array; `file`/`line` both-null (PR-level) or both-set with a repo-relative `file` and integer `line` ≥ 1; and `resolution_status`, when present, in `addressed|partial|not-addressed|cant-tell`. Fixtures + `tests/review-pr/validate-findings.test.mjs` cover one valid case per accepted shape and one invalid case per rule. Co-located with the skill, not distributed — `review-pr` is the sole producer of findings JSON.
+- **Findings schema promoted to an owned contract doc.** `references/findings-schema.md` now carries a contract header (owner / consumers / status) and a table of contents, specifying a findings file (a single finding object or a JSON array): the four-bucket `severity` enum; non-empty `description` / `recommendation`; a non-empty `reported_by` array; `file`/`line` both-null (PR-level) or both-set with a repo-relative `file` and integer `line` ≥ 1; and `resolution_status`, when present, in `addressed|partial|not-addressed|cant-tell`. `review-pr` is the sole producer of findings JSON and every consumer (aggregation, the handover format that imports these fields) is a model reading the doc — so the doc is the contract, with no runtime validator (nothing but models reads a findings file).
 
 ## 1.6.1
 

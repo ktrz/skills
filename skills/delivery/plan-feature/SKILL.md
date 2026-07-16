@@ -209,14 +209,10 @@ Each phase section should include:
 - A TDD note: tests written first, then implementation
 - The concrete deliverable a reviewer can verify
 
-After writing the file, gate it against the contract before presenting:
-
-```bash
-node <skill-base-dir>/validate-plan.mjs <resolved-dir>/<slug>.md
-```
-
-Exit 0 means the plan conforms. On a non-zero exit, fix the reported rule violations and re-run —
-a plan that fails here will not parse cleanly for `implement-feature` / `execute-phase`.
+After writing the file, re-read `references/plan-file-format.md` and self-check the plan against
+it — one H1 title, a `## Context` section, an `## Execution Order` section once there are ≥ 2
+phases, contiguous phase numbers, a non-empty body per phase. A plan that drifts from the format
+contract will not parse cleanly for `implement-feature` / `execute-phase`.
 
 ## Stage 4: Present and approve
 
