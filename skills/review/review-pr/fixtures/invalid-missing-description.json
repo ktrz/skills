@@ -1,9 +1,0 @@
-[
-  {
-    "file": "src/a.ts",
-    "line": 1,
-    "severity": "important",
-    "recommendation": "y",
-    "reported_by": ["code-reviewer"]
-  }
-]
