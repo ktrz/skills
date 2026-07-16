@@ -2,7 +2,7 @@
 
 ## 0.1.1
 
-- Description tightened to when-to-use triggers only — dropped the pipeline-mechanism summary (scout → fan-out → synthesize → validate → render → publish) per review-guidelines §1. Added a table of contents to `references/schema.md`. Documentation only.
+- Description rewritten to the slash-only form — a capability summary plus "invoked only via /narrate-pr [PR]", replacing the pipeline-mechanism enumeration (scout → fan-out → synthesize → validate → render → publish). Because the skill is `disable-model-invocation: true` its description never enters the model-visible listing and natural language cannot route to it, so the trigger phrasings moved into an Invocation note in the body as usage documentation. Added a table of contents to `references/schema.md`. Documentation only.
 
 ## 0.1.0 - 2026-07-13
 
