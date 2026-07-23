@@ -31,6 +31,20 @@ The bucket prefix never leaks into a skill's canonical name (`name:` = directory
 - New skill description omits trigger phrases the user is likely to type.
 - Description edited away from concrete phrasings toward abstract summary.
 - Two skills claim overlapping triggers without clear precedence (see §8).
+- Description enumerates the workflow ("dispatches N agents, then aggregates, then writes …") instead of the triggers. The mechanism belongs in the body; the description is a routing rule. (Rewrites landed in Phase 4: `narrate-pr`, `review-pr`, `implement-feature`.)
+
+### 1a. Invocation mode — auto-trigger vs slash-only
+
+**Check:** each skill is either **auto-triggering** (default — its `name` + `description` sit in the skill listing every conversation and the model may invoke it by matching the description) or **slash-only** (`disable-model-invocation: true` — the description never enters the listing, the model cannot invoke it, and it is reachable only via `/<name>` or an explicit file Read). Disabling reclaims listing budget (name + description per enabled skill, against a listing cost of ~1% of the window) at the cost of natural-language triggering.
+
+**Rule — disable only when auto-trigger has no plausible value:** a pure downstream pipeline stage with no standalone natural-language entry, or an explicitly slash-driven workflow (needs an argument a user would never type in prose, or is deliberately command-gated). When in doubt, leave enabled: a skill users reach with natural phrases ("plan this feature", "execute phase 2", "review this PR") must stay auto-triggering, because disabling forces slash-only and regresses that path.
+
+A point-in-time snapshot of which skills are currently slash-only lives in the SKL-1 plan register (`plans.local/skills/skl-1-phase-4-register.md`), not here — that state changes as the migration proceeds and does not belong in the evergreen rule.
+
+**Violations:**
+
+- A skill disabled despite having natural-language triggers users type (silently breaks that invocation path).
+- A pure pipeline-internal / argument-only skill left auto-triggering with no natural entry, spending listing budget for triggers no one types.
 
 ---
 
@@ -47,6 +61,12 @@ The bucket prefix never leaks into a skill's canonical name (`name:` = directory
 - New skill ships everything in SKILL.md with no `references/` dir at all when the spec clearly has reusable sub-parts.
 
 This is a concept, not a line target. A small skill with a single workflow can legitimately be all SKILL.md. Flag the bloat, not the absolute size.
+
+### 2a. One-hop rule and the ref→ref violation register
+
+**Rule:** `SKILL.md` is the hub (hop 0); it links or cites its own `references/*.md` (hop 1). A reference file that in turn points at another reference file is a two-hop chain — the agent must load a second file it was never routed to. **Fix same-skill ref→ref by citing, not hyperlinking** — a backtick path (`` `foo.md#anchor` ``), not `[text](foo.md#anchor)` — so the pointer stays informational and the agent is not invited to traverse. **Cross-skill ref→ref reach-ins are an ownership problem, not a link problem**: do not "fix" them by inlining (that duplicates a contract). They resolve in Plan SKL-1 Phase 6, which moves each target onto a contract-owned readable primitive surface. Track outstanding instances in the SKL-1 plan register until then.
+
+The point-in-time catalogue of current ref→ref instances (fixed vs deferred-to-Phase-6) lives in the SKL-1 plan register (`plans.local/skills/skl-1-phase-4-register.md`), not here — it is transient migration state that the durable rule above outlives.
 
 ---
 

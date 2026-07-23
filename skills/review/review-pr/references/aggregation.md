@@ -7,6 +7,16 @@ All operations work on findings already normalised to the canonical
 schema in `findings-schema.md`. Anything that can't be normalised was
 already dropped with a warning at Step 7.
 
+## Contents
+
+- [Pipeline order](#pipeline-order)
+- [Exact-duplicate dedup (always on)](#exact-duplicate-dedup-always-on)
+- [`finding_overlap: group` (default)](#finding_overlap-group-default)
+- [`finding_overlap: merge`](#finding_overlap-merge)
+- [Severity-threshold filter](#severity-threshold-filter)
+- [Overlap-skim suppression](#overlap-skim-suppression)
+- [Output ordering](#output-ordering)
+
 ## Pipeline order
 
 ```

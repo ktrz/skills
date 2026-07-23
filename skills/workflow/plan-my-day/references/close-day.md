@@ -7,6 +7,15 @@ rather than leaving the cleanup to the next morning's run.
 This flow only runs when `DAY_PLAN_REPO` is set. If it isn't, stop and tell
 the user that close-day requires a GitHub-issue-backed day plan.
 
+## Contents
+
+- [Phase C0 — Find today's issue](#phase-c0--find-todays-issue)
+- [Phase C1 — Refresh the Standup section](#phase-c1--refresh-the-standup-section)
+- [Phase C2 — Tick shipped Plan items](#phase-c2--tick-shipped-plan-items)
+- [Phase C3 — Confirm abandoned items](#phase-c3--confirm-abandoned-items)
+- [Phase C4 — Persist and close](#phase-c4--persist-and-close)
+- [Notes](#notes)
+
 ## Phase C0 — Find today's issue
 
 ```bash

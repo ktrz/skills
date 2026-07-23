@@ -13,6 +13,17 @@ subagents (each investigating 5 comments), not 20 single-comment
 agents. This matters because subagent spawn cost dominates runtime —
 fewer agents doing more work each beats many agents doing one thing.
 
+## Contents
+
+- [When to launch](#when-to-launch)
+- [Ordering](#ordering)
+- [What to send the subagent](#what-to-send-the-subagent)
+- [What the subagent returns](#what-the-subagent-returns)
+- [Trust boundaries](#trust-boundaries)
+- [Subagent prompt template](#subagent-prompt-template)
+- [Concurrency caps](#concurrency-caps)
+- [When parallel investigation is not worth it](#when-parallel-investigation-is-not-worth-it)
+
 ## When to launch
 
 - **First batch (synchronous)** — at the start of Phase 1, launch the

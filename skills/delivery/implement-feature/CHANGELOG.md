@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- Description tightened to when-to-use triggers only — dropped the parallel-dispatch and review-pipeline mechanism summary per review-guidelines §1. No behaviour change.
+- Fixed a leftover mechanism clause ("running phases in parallel worktrees and the review pipeline afterward") that survived the tightening pass above — description is now outcome + triggers only, matching the convention used for narrate-pr / review-pr.
+
 ## 1.3.1
 
 - Step 5a step 2: note that a freshly-opened PR normally has zero human reviewer comments and `investigate-pr-comments` still writes the handover doc in that case (auto-review-only, or empty) — always expect the decisions file to exist after this step, and treat a missing file as a failure to surface rather than the expected fresh-PR outcome. Mirrors the always-write invariant added to `investigate-pr-comments` 1.4.0

@@ -9,6 +9,17 @@ report written at Step 9.
 Both parts consume the **prior-findings set** built at Step 2b. Neither
 exists outside `--re-review`.
 
+## Contents
+
+- [Why two layers](#why-two-layers)
+- [Prior-findings set (built at Step 2b)](#prior-findings-set-built-at-step-2b)
+- [Prior-item identity](#prior-item-identity)
+- [Upstream injection block (Step 5)](#upstream-injection-block-step-5)
+- [Verifier prompt (Step 6)](#verifier-prompt-step-6)
+  - [Verifier output handling](#verifier-output-handling)
+- [Resolution report (Step 9)](#resolution-report-step-9)
+- [Worked example (fixture)](#worked-example-fixture)
+
 ## Why two layers
 
 The injection block works _upstream_ — it stops the specialists from

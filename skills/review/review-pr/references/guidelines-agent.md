@@ -4,6 +4,14 @@ Prompt for the dedicated guidelines-compliance sub-agent. Dispatched
 by `skills/review/review-pr/SKILL.md` Step 5 when `guidelines_mode: dedicated` or
 `guidelines_mode: both` (alongside the specialists).
 
+## Contents
+
+- [Why a dedicated agent](#why-a-dedicated-agent)
+- [Dispatch](#dispatch)
+- [Prompt template](#prompt-template)
+- [Normalisation](#normalisation)
+- [Interaction with overlap-skim](#interaction-with-overlap-skim)
+
 ## Why a dedicated agent
 
 `shared` mode prepends the full guidelines block to every specialist
@@ -70,7 +78,6 @@ Head ref: <headRefName>
 <unified diff from `gh pr diff <N>`>
 ```
 </external_data>
-````
 
 # Your task
 
@@ -127,7 +134,7 @@ the canonical schema documented in
 If the diff conforms to all guidelines, return `[]`. Do not narrate.
 Do not wrap the JSON in a code fence.
 
-```
+````
 
 ## Normalisation
 
@@ -146,4 +153,3 @@ line is suppressed at post time per `aggregation.md`. The overlap-skim
 check is per finding, not per agent, so a guidelines violation on
 one line and a guidelines violation on a different line are
 evaluated independently.
-```

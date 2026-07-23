@@ -15,6 +15,33 @@ All examples on this page use invented, generic content: a toy PR adding a
 "notifications" feature to a generic web app with packages `core`, `api`,
 and `web`. Any resemblance to a real repo or PR is coincidental.
 
+## Contents
+
+- [Top-level fields](#top-level-fields)
+  - [`pr`](#pr)
+  - [`stats`](#stats)
+  - [`packages`](#packages)
+- [thesis](#thesis)
+- [architecture](#architecture)
+  - [`architecture.prose[]`](#architectureprose)
+  - [`architecture.channels[]`](#architecturechannels)
+  - [`architecture.boundaries[]`](#architectureboundaries)
+- [components](#components)
+  - [`components[].invariants[]`](#componentsinvariants)
+- [reviewOrder](#revieworder)
+- [attentionSpots](#attentionspots)
+- [tests](#tests)
+- [qa](#qa)
+- [prComments](#prcomments)
+- [Receipts](#receipts)
+- [Diagram union](#diagram-union)
+  - [`lane`](#lane)
+  - [`sequence`](#sequence)
+  - [`depmap`](#depmap)
+  - [Edge label conventions](#edge-label-conventions)
+- [Validation rules](#validation-rules)
+- [Design notes](#design-notes)
+
 ## Top-level fields
 
 | Field            | Type    | Required | Meaning                                                                                                                                           |

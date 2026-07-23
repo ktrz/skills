@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.1
+
+- Added a table of contents to `references/prior-handled.md`. Documentation only.
+- **Fix (`references/comment-relevance.md`, synced from `_shared/`)** — `BOILERPLATE_PATTERNS`'s `review skipped` / `draft detected` entries matched anywhere in a comment body, so a substantive comment that merely mentioned either phrase was dropped before reaching critique detection. Both patterns are now anchored to match only when the entire (trimmed) body is the boilerplate phrase.
+
 ## 1.8.0
 
 - **Handover format promoted to an explicit contract doc.** `references/handover-format.md` now carries a contract header (owner / consumers / validator / status), a table of contents, and a dedicated Validator section documenting the vendored `handover-validator` — how both writers run it, the exit-code contract, and that the flattened `**Source counts:**` line plus `**Head SHA:**` / `**Base SHA:**` header fields already validate against the pinned parser (no upstream change, no re-vendor). Documentation only; the vendored validator and its fixtures are untouched.

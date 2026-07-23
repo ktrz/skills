@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Description rewritten to the slash-only form — a capability summary plus "invoked only via /narrate-pr [PR]", replacing the pipeline-mechanism enumeration (scout → fan-out → synthesize → validate → render → publish). Because the skill is `disable-model-invocation: true` its description never enters the model-visible listing and natural language cannot route to it, so the trigger phrasings moved into an Invocation note in the body as usage documentation. Added a table of contents to `references/schema.md`. Documentation only.
+
 ## 0.1.0 - 2026-07-13
 
 Initial release: a `/narrate-pr` skill that turns a PR into a validated, self-contained HTML walkthrough. Feature-complete and tested, but not yet hardened through repeated real-world use — staying pre-1.0 until it's proven in action.

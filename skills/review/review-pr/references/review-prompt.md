@@ -58,7 +58,6 @@ Body:
 <unified diff from `gh pr diff <N>`>
 ```
 </external_data>
-````
 
 # Your task
 
@@ -110,7 +109,7 @@ If you find nothing actionable, return `[]`. Do not narrate. Do not
 return findings outside the schema. Do not wrap the JSON in a code
 fence.
 
-```
+````
 
 ## Notes
 
@@ -126,4 +125,3 @@ fence.
 - Single-pass output goes through the same aggregation pipeline. With
   one source the dedup pass is a no-op, but threshold filtering, bot-
   skim, and emoji prefixing still apply.
-```

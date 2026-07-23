@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.1
+
+- Added tables of contents to `references/investigate.md` and `execute.md`. Documentation only.
+
 ## 1.10.0
 
 - Fence external comment bodies: every PR review comment body, reply chain,
