@@ -63,8 +63,7 @@ for link in "$SKILLS_DIR"/*; do
   case "$target" in
     /*) abs_target=$target ;;
     *)
-      abs_target=$(cd "$(dirname "$link")" && cd "$(dirname "$target")" 2>/dev/null && pwd -P)
-      if [ -n "$abs_target" ]; then
+      if abs_target=$(cd "$(dirname "$link")" && cd "$(dirname "$target")" 2>/dev/null && pwd -P); then
         abs_target="$abs_target/$(basename "$target")"
       else
         abs_target=$target
@@ -97,6 +96,15 @@ for link in "$SKILLS_DIR"/*; do
       continue
       ;;
   esac
+
+  # Require an exact top-level legacy target: "$REPO/<name>" only. Without
+  # this, a nested or non-canonical path like "$REPO/docs/$name" would fall
+  # through to the lookup below and could be misclassified as a pre-restructure
+  # install and repointed onto an unrelated skills/<group>/$name.
+  if [ "$(dirname "$abs_target")" != "$REPO" ] || [ "$(basename "$abs_target")" != "$name" ]; then
+    skipped_foreign=$((skipped_foreign + 1))
+    continue
+  fi
 
   # At this point the target is a top-level "<repo>/<something>". Only re-point
   # if it names a skill that now lives under skills/<group>/<name>. Exclude
