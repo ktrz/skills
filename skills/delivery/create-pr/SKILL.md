@@ -143,6 +143,7 @@ Adjust before running:
 
 - If the user passed `--draft` (or the invoking skill requested a draft PR), add `--draft` to the command. Use draft for self-review-pending PRs so reviewers know not to look yet.
 - If the PR is stacked on a feature branch (detected in Step 1), add `--base <feature-branch>`.
+- If no ticket could be determined (Step 2), remove the `### Ticket` heading and `<TICKET_LINK>` line from the body — per Step 3, ticketless PRs omit that section entirely.
 
 ## Step 6: Report
 

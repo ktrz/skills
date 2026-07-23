@@ -49,17 +49,33 @@ Find repo root + `plans.local` dir in it.
 git rev-parse --show-toplevel
 ```
 
-Call result `REPO_ROOT`. Then check:
+Call result `REPO_ROOT`. Then check, distinguishing a dangling symlink from a genuinely missing path — `test -d` alone follows symlinks and reports a broken one as simply missing, which would send the user to re-run `ln -s` at a path that already exists (and fails):
 
 ```bash
-test -d "$REPO_ROOT/plans.local" && ls -ld "$REPO_ROOT/plans.local"
+if [ -L "$REPO_ROOT/plans.local" ] && [ ! -e "$REPO_ROOT/plans.local" ]; then
+  echo "dangling"
+elif [ -d "$REPO_ROOT/plans.local" ]; then
+  ls -ld "$REPO_ROOT/plans.local"
+else
+  echo "missing"
+fi
 ```
 
-If `plans.local` missing, stop + tell user:
+If the check reports `dangling`, stop + tell user:
+
+> `./plans.local` exists but is a broken symlink — its target is missing. Repair or replace it, e.g.:
+>
+> ```bash
+> ln -sfn ~/projects/plans <REPO_ROOT>/plans.local
+> ```
+>
+> then re-run.
+
+If the check reports `missing`, stop + tell user:
 
 > No `./plans.local` in this repo. Create the symlink first:
 >
-> ```
+> ```bash
 > ln -s ~/projects/plans <REPO_ROOT>/plans.local
 > ```
 >
@@ -104,10 +120,10 @@ Respect existing topic dir over flat file: if `plans.local/<project>/<slug>/` al
 
 ### Step 2b — Promote an existing flat file into a topic dir
 
-Check flat file for slug exists. `SESSION-*` files are named by date (`SESSION-YYYY-MM-DD.md`, see Phase 2), not by slug, so match either form:
+Check flat file for slug exists. `SESSION-*` files are named by date (`SESSION-YYYY-MM-DD.md`, see Phase 2), not by slug, so match the date form only:
 
 ```bash
-ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|NOTES)-<slug>\.md$|^SESSION-([0-9]{4}-[0-9]{2}-[0-9]{2}|<slug>)\.md$|^<slug>\.md$"
+ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|NOTES)-<slug>\.md$|^SESSION-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$|^<slug>\.md$"
 ```
 
 Matching flat file there → decide promote to topic dir before new save. Promote when:
