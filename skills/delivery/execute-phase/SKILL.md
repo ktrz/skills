@@ -111,10 +111,15 @@ Use `type nwt` or `declare -f nwt` to inspect if needed.
 `nwt` may default its `base-branch` to `main`. If the repo uses `master` (or another default
 branch), pass it explicitly as the second argument.
 
-Determine the default branch first:
+Determine the default branch first. If the command was invoked with the optional third
+`[base-branch]` argument (e.g. for stacked phases), that supplied value wins outright and skips
+autodetection entirely:
 
 ```bash
-DEFAULT_BRANCH=$(git -C <repo-root> symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+DEFAULT_BRANCH="<base-branch argument, if supplied>"
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git -C <repo-root> symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+fi
 if [ -z "$DEFAULT_BRANCH" ]; then
   # origin/HEAD isn't set locally (e.g. a fresh clone without `git remote set-head`) —
   # ask the remote directly.
