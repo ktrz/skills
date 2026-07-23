@@ -223,7 +223,7 @@ a BSD/GNU `date` fallback so this works on macOS and Linux:
 
 ```bash
 LAST_PLAN_TS=$(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s)
-echo $(( ( $(date +%s) - LAST_PLAN_TS ) / 86400 ))
+DAYS_SINCE=$(( ( $(date +%s) - LAST_PLAN_TS ) / 86400 ))
 ```
 
 **If `DAYS_SINCE > 3`**, stop and ask the user before continuing:
@@ -241,7 +241,7 @@ answer to set `LAST_PLAN_DATE` (e.g. yesterday if they pick 24h).
 - `DATE` = `LAST_PLAN_DATE` (used for GitHub `merged:>=` queries)
 - `UNIX_TS` = unix timestamp of that date's midnight, local time:
   ```bash
-  date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s
+  UNIX_TS=$(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s)
   ```
 
 **If no prior plan was found**, fall back to a 24h window:
