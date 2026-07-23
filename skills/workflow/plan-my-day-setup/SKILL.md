@@ -69,30 +69,37 @@ Ask the user: **"What repos do you work in? Give me their local paths."**
 
 For each repo path provided:
 
-1. Verify the path exists and is a git repository (a directory or file
+1. Capture the raw user-supplied path into a shell variable first, rather
+   than interpolating the path literal into each command string below:
+
+   ```bash
+   repo_path="<path>"
+   ```
+
+2. Verify the path exists and is a git repository (a directory or file
    merely named `.git` would pass a plain `ls` check without being one):
 
    ```bash
-   git -C "<path>" rev-parse --show-toplevel
+   git -C "$repo_path" rev-parse --show-toplevel
    ```
 
    If this fails, tell the user the path isn't a git repository and stop
    for that entry.
 
-2. Auto-detect the GitHub remote:
+3. Auto-detect the GitHub remote:
 
    ```bash
-   git -C "<path>" remote -v
+   git -C "$repo_path" remote -v
    ```
 
    Parse the `origin` fetch URL to extract the `org/repo` value. Show it to
    the user for confirmation. If there's no `origin` remote, ask the user
    for the `org/repo` value directly instead of treating it as an error.
 
-3. Detect branch naming convention by sampling recent branches:
+4. Detect branch naming convention by sampling recent branches:
 
    ```bash
-   git -C "<path>" branch --sort=-committerdate --format='%(refname:short)' | head -20
+   git -C "$repo_path" branch --sort=-committerdate --format='%(refname:short)' | head -20
    ```
 
    Look for patterns:
@@ -102,7 +109,7 @@ For each repo path provided:
    - `NNN` (e.g. `567`) → suggest `branch_ticket_format: NNN`.
    - Show the detected pattern and a few example branches to the user for confirmation.
 
-4. Ask the user for a short name for this repo (suggest one based on the
+5. Ask the user for a short name for this repo (suggest one based on the
    directory name, e.g. `my-app`).
 
 ## Step 3 — Gather tracker and output settings

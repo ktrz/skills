@@ -247,8 +247,8 @@ answer to set `LAST_PLAN_DATE` (e.g. yesterday if they pick 24h).
 **If no prior plan was found**, fall back to a 24h window:
 
 ```bash
-date -v-24H +%Y-%m-%d 2>/dev/null || date -d "24 hours ago" +%Y-%m-%d   # → DATE
-date -v-24H +%s 2>/dev/null || date -d "24 hours ago" +%s               # → UNIX_TS
+DATE=$(date -v-24H +%Y-%m-%d 2>/dev/null || date -d "24 hours ago" +%Y-%m-%d)
+UNIX_TS=$(date -v-24H +%s 2>/dev/null || date -d "24 hours ago" +%s)
 ```
 
 ---
