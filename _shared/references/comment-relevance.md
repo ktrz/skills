@@ -74,13 +74,16 @@ function isReviewRelevant(comment):
     body = stripCollapsedDetails(body)         # unwraps <details>: drops only non-substantive
                                                 # (marketing/boilerplate) blocks; critique-bearing
                                                 # content inside <details> is kept, unwrapped
+    if isPureLinkOrImage(body):                # links/images only, no prose
+        return false
+    if anchorsToCode(comment) and hasCritiqueSignal(body):
+        return true                            # substantive content wins even if a boilerplate
+                                                # phrase also appears elsewhere in the body
     if matchesAny(body, BOILERPLATE_PATTERNS):
         return false
     if not anchorsToCode(comment) and matchesAny(body, COVERAGE_PATTERN):
         return false
     if len(body.trim()) < 20 and authorIsPrOwner: return false
-    if anchorsToCode(comment) and hasCritiqueSignal(body):
-        return true
     return false                                # default: skip
 ```
 
@@ -103,14 +106,25 @@ BOILERPLATE_PATTERNS = [
 COVERAGE_PATTERN = /coverage (in|de)creased/i   # boilerplate only for comments with no inline anchor
 ```
 
+`isPureLinkOrImage`, `anchorsToCode`, `hasCritiqueSignal`, and
+`authorIsPrOwner` are structural helpers, not pattern lists — no
+regex backs them; each skill implements the check its name describes
+(e.g. `isPureLinkOrImage` — body is only URLs/markdown images, no
+other prose) directly. The marketing/announcement skip case is
+handled structurally too: `stripCollapsedDetails` (above) is where
+that stripping happens, not a pattern in this list.
+
 When ambiguous (body has both boilerplate and substantive content —
 e.g. CodeRabbit's reports that wrap findings inside `<details>`),
 `stripCollapsedDetails` already keeps the critique-bearing content:
 it only strips non-substantive (marketing/boilerplate) `<details>`
 wraps, unwrapping the rest so `hasCritiqueSignal` can see it. If the
 surviving prose anchors to code and expresses critique, the comment
-is relevant; the findings inside should be extracted as separate
-items, not the wrapping summary.
+is relevant even when a boilerplate phrase also appears in the body
+(e.g. a wrapping "Review skipped" summary around a substantive
+`<details>` finding) — the boilerplate check only rejects bodies that
+don't clear the anchor+critique bar. The findings inside should be
+extracted as separate items, not the wrapping summary.
 
 ## LLM judge for the residue
 
