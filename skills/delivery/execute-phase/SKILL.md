@@ -19,21 +19,25 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 
 ## Step 1: Resolve plan file
 
+Resolve the repo root first so every later step works regardless of the current working directory — this matters once Step 5 changes into the new worktree: `REPO_ROOT=$(git rev-parse --show-toplevel)`
+
 **If source looks like a file path** (contains `/` or ends in `.md`):
 
-- Use it directly. Verify the file exists.
+- Resolve it to an absolute path under `$REPO_ROOT` if it isn't already absolute. Verify the file exists. Store as `PLAN_FILE`.
 
 **If source looks like a ticket key** (matches any tracker's id regex — see `references/tracker.md` → Ticket ID format):
 
-- Resolve the repo root so the search works regardless of the current working directory: `REPO_ROOT=$(git rev-parse --show-toplevel)`
-- Search for a matching plan file, including the `plans.local/` tree that `save-plan` writes to (`<repo_root>/plans.local/<repo>/`):
+- Search for a matching plan file, including the `plans.local/` tree that `save-plan` writes to. `save-plan` may store a plan as a flat file (`plans.local/<project>/PLAN-<ticket-key>.md`) or, for topic-directory plans, drop the identifying slug from the filename entirely and carry it only in the directory name (`plans.local/<project>/<ticket-key>/PLAN.md`) — so match the ticket key against the full candidate path, not just the filename. `plans.local` is typically a symlink, so pass `-L` to traverse into it:
+
   ```bash
-  find "$REPO_ROOT/plans" "$REPO_ROOT/.claude/plans" "$REPO_ROOT/plans.local" \
-    -name "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" -name "*.md" 2>/dev/null
+  find -L "$REPO_ROOT/plans" "$REPO_ROOT/.claude/plans" "$REPO_ROOT/plans.local" \
+    -name "*.md" -ipath "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" 2>/dev/null
   ```
+
 - If exactly one match, use it.
 - If multiple matches, list them and ask the user to pick.
 - If no match, tell the user no plan file was found for that ticket and stop.
+- Store the absolute match as `PLAN_FILE`.
 
 ## Step 2: Validate phase
 
@@ -82,10 +86,11 @@ The agent must update this file as it works — checking off items as they are c
 
 ## Step 4: Derive feature name
 
-From the plan filename and phase number:
+From `PLAN_FILE` and the phase number:
 
-- Strip path and extension: `plans/proj-123-example-feature.md` → `proj-123-example-feature`
-- Append phase: `proj-123-example-feature-phase-1`
+- **Flat-file plans** (`plans/proj-123-example-feature.md`, `plans.local/<project>/PLAN-<slug>.md`): strip path and extension: `proj-123-example-feature.md` → `proj-123-example-feature`.
+- **Topic-directory plans** (`plans.local/<project>/<topic>/PLAN.md` — `save-plan` drops the topic from the filename since the directory already carries it): the filename alone (`PLAN`) isn't a usable feature stem — use the topic directory name instead, e.g. `plans.local/skills/nwt-cli/PLAN.md` → `nwt-cli`.
+- Append phase: `<feature-stem>-phase-1`
 
 **Do NOT include a username prefix** (e.g. `<username>/`) — `nwt` typically adds one automatically.
 Passing `<username>/proj-123-...` to `nwt` would double the prefix.
@@ -116,8 +121,16 @@ if [ -z "$DEFAULT_BRANCH" ]; then
   DEFAULT_BRANCH=$(git -C <repo-root> remote show origin 2>/dev/null | sed -n 's/^ *HEAD branch: //p')
 fi
 if [ -z "$DEFAULT_BRANCH" ]; then
-  # No network / no origin — last resort.
-  DEFAULT_BRANCH=main
+  # No network / no origin — fall back to whichever conventional branch
+  # actually exists locally, rather than assuming "main".
+  if git -C <repo-root> show-ref --verify --quiet refs/heads/main; then
+    DEFAULT_BRANCH=main
+  elif git -C <repo-root> show-ref --verify --quiet refs/heads/master; then
+    DEFAULT_BRANCH=master
+  else
+    echo "execute-phase: could not determine the default branch — no origin/HEAD, no reachable remote, and neither 'main' nor 'master' exists locally. Pass it explicitly as the third argument." >&2
+    exit 1
+  fi
 fi
 ```
 
@@ -134,13 +147,27 @@ convention:
 # Path (worktrees may be at ./<feature>/, ./worktrees/<feature>/, etc.)
 # Use --porcelain and take the full remainder of each "worktree "/"branch " line
 # (not a whitespace-split field) so paths containing spaces survive intact.
+# Require an exact match on the branch suffix (equal to <feature-name>, or
+# ending in "/<feature-name>" for a prefixed branch like "ktrz/<feature-name>")
+# rather than an unanchored substring match — "foo-phase-1" must not also
+# match "foo-phase-10". Collect every match instead of stopping at the first.
 WORKTREE_PATH=$(git -C <repo-root> worktree list --porcelain | awk -v feat='<feature-name>' '
   /^worktree / { path = substr($0, 10) }
-  /^branch /   { br = substr($0, 8); if (br ~ feat) { print path; exit } }
+  /^branch /   {
+    br = substr($0, 8)
+    sub(/^refs\/heads\//, "", br)
+    n = length(feat)
+    if (br == feat || (length(br) > n && substr(br, length(br) - n) == "/" feat)) { print path }
+  }
 ')
 
-if [ -z "$WORKTREE_PATH" ]; then
+WORKTREE_COUNT=$(printf '%s\n' "$WORKTREE_PATH" | grep -c . || true)
+if [ "$WORKTREE_COUNT" -eq 0 ]; then
   echo "execute-phase: no worktree found matching '<feature-name>' — check \`git worktree list\` and re-run Step 5" >&2
+  exit 1
+elif [ "$WORKTREE_COUNT" -gt 1 ]; then
+  echo "execute-phase: multiple worktrees match '<feature-name>' — resolve the ambiguity manually:" >&2
+  printf '  %s\n' "$WORKTREE_PATH" >&2
   exit 1
 fi
 
@@ -160,7 +187,7 @@ Then install dependencies in the worktree:
 
 ```bash
 mkdir -p "$WORKTREE_PATH/.claude/plans"
-cp <plan-file> "$WORKTREE_PATH/.claude/plans/"
+cp "$PLAN_FILE" "$WORKTREE_PATH/.claude/plans/"
 ```
 
 Write the progress file generated in Step 3 to `"$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md"`.
@@ -218,10 +245,10 @@ After spawning, tell the user:
 
 When the background agent completes, you'll be notified automatically. At that point:
 
-1. **Copy the progress file back** to the main repo, next to the original plan file:
+1. **Copy the progress file back** to the main repo, next to the original plan file. Use `$PLAN_FILE` (resolved to an absolute path in Step 1) to derive the destination — Step 5 changed the shell's working directory into the new worktree, so a relative plan-dir path would otherwise resolve inside the worktree instead of the original repo:
 
    ```bash
-   cp "$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md" <plan-dir>/
+   cp "$WORKTREE_PATH/.claude/plans/<plan-name>-phase-<N>-progress.md" "$(dirname "$PLAN_FILE")/"
    ```
 
    This lets the user track progress across all phases from the main branch without entering each worktree.
