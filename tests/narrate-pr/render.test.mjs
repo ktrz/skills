@@ -246,6 +246,41 @@ test("depmap edge over a clear span stays a straight 2-point leg", () => {
   assert.equal(polys[0].length, 2, "unobstructed horizontal route stays direct");
 });
 
+const colDepmap = (withBlocker) => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "diagram.col", type: "depmap", title: "Column",
+      zones: [{ id: "zone.a", label: "A" }],
+      nodes: [
+        { id: "node.a", label: "Aye", zone: "zone.a" },
+        ...(withBlocker ? [{ id: "node.b", label: "Bee", zone: "zone.a" }] : []),
+        { id: "node.c", label: "Cee", zone: "zone.a" },
+      ],
+      edges: [{ from: "node.a", to: "node.c", label: "y", kind: "call" }],
+      layout: {
+        cols: 1,
+        nodes: {
+          "node.a": { col: 1, row: 1 },
+          ...(withBlocker ? { "node.b": { col: 1, row: 2 } } : {}),
+          "node.c": { col: 1, row: withBlocker ? 3 : 2 },
+        },
+      },
+    }],
+  },
+});
+
+test("depmap edge in a single column detours around an intermediate node instead of crossing it", () => {
+  const polys = polylinePoints(render(colDepmap(true)));
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 4, "blocked vertical route must become a 4-point orthogonal detour");
+});
+
+test("depmap edge in a single column over a clear span stays a straight 2-point leg", () => {
+  const polys = polylinePoints(render(colDepmap(false)));
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 2, "unobstructed vertical route stays direct");
+});
+
 // ---------------------------------------------------------------------------
 // Accessibility — diagrams must describe their edges/relationships, not just nodes
 // ---------------------------------------------------------------------------

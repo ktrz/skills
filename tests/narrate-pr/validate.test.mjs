@@ -302,14 +302,11 @@ for (const id of BAD_PKG_IDS) {
 
 test("lowercase kebab package ids pass", () => {
   const doc = sample();
-  doc.packages = [
-    { id: "core", label: "@acme/core" },
-    { id: "api-v2", label: "@acme/api" },
-    { id: "web3", label: "@acme/web" },
-  ];
-  // node/component pkg refs still resolve (fixture uses core/api/web); realign.
-  doc.packages[1].id = "api";
-  doc.packages[2].id = "web";
+  // Append rather than replace: core/api/web stay as-is so existing pkg refs
+  // elsewhere in the fixture keep resolving. The appended ids are the ones
+  // this test actually exercises — kebab-case and a trailing digit — and
+  // don't need to be referenced by anything to be valid.
+  doc.packages.push({ id: "api-v2", label: "@acme/api-v2" }, { id: "web3", label: "@acme/web3" });
   assertClean(doc, "good pkg ids");
 });
 
@@ -344,7 +341,18 @@ for (const [label, mutate, idPath, prefix] of PREFIX_CASES) {
 
 // ---- generatedAt / revisedAt must be ISO 8601 ------------------------------
 
-const BAD_TIMESTAMPS = ["yesterday", "2026-07-12", "2026-13-01T00:00:00Z", "2026-07-12 09:00:00", "07/12/2026"];
+const BAD_TIMESTAMPS = [
+  "yesterday",
+  "2026-07-12",
+  "2026-13-01T00:00:00Z",
+  "2026-07-12 09:00:00",
+  "07/12/2026",
+  // Calendar-invalid but shape-valid: Date.parse() normalizes these instead
+  // of rejecting them (Feb 29 in a non-leap year rolls to Mar 1; Apr 31
+  // rolls to May 1), so shape + Date.parse alone would wrongly accept them.
+  "2026-02-29T00:00:00Z",
+  "2026-04-31T00:00:00Z",
+];
 
 for (const ts of BAD_TIMESTAMPS) {
   test(`generatedAt ${JSON.stringify(ts)} is rejected`, () => {
@@ -358,6 +366,12 @@ test("ISO 8601 generatedAt with an offset passes", () => {
   const doc = sample();
   doc.generatedAt = "2026-07-12T09:00:00.123+02:00";
   assertClean(doc, "offset timestamp");
+});
+
+test("Feb 29 in a leap year passes", () => {
+  const doc = sample();
+  doc.generatedAt = "2024-02-29T00:00:00Z";
+  assertClean(doc, "leap-year Feb 29");
 });
 
 test("qa revisedAt that is not ISO 8601 is rejected", () => {

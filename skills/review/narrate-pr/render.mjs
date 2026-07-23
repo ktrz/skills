@@ -563,6 +563,18 @@ function renderDocument(doc, opts) {
         return true;
       }
 
+      // Vertical-leg counterpart of horizClear: true if no OTHER node's rect
+      // straddles the candidate vertical segment at column x between y0/y1.
+      function vertClear(A, B, x, y0, y1) {
+        const ylo = Math.min(y0, y1) + CLR, yhi = Math.max(y0, y1) - CLR;
+        for (const n of nodes) {
+          const r = rect[n.id];
+          if (!r || r === A || r === B) continue;
+          if (x > r.x - CLR && x < r.x + r.w + CLR && r.y < yhi && r.y + r.h > ylo) return false;
+        }
+        return true;
+      }
+
       function route(A, B, pa, pb) {
         const vertSep = B.y >= A.y + A.h || B.y + B.h <= A.y;
         const horizSep = B.x >= A.x + A.w || B.x + B.w <= A.x;
@@ -572,7 +584,21 @@ function renderDocument(doc, opts) {
           const lo = Math.max(A.x, B.x), hi = Math.min(A.x + A.w, B.x + B.w);
           const x = clamp((lo + hi) / 2, A.x + CLR, A.x + A.w - CLR);
           const down = B.cy >= A.cy;
-          return [[x, down ? A.y + A.h : A.y], [x, down ? B.y : B.y + B.h]];
+          const sy = down ? A.y + A.h : A.y;
+          const ey = down ? B.y : B.y + B.h;
+          if (vertClear(A, B, x, sy, ey)) return [[x, sy], [x, ey]];
+          // An intermediate node straddles the direct vertical line — detour
+          // through a column-gutter centerline instead (mirrors the
+          // horizontal route's row-gutter detour below): exit/enter the
+          // facing VERTICAL borders, join in a gutter that no node occupies.
+          const right = B.cx >= A.cx;
+          const ay = clamp(B.cy, A.y + CLR, A.y + A.h - CLR);
+          const by = clamp(A.cy, B.y + CLR, B.y + B.h - CLR);
+          const gc = right ? (pa.col + pa.colSpan - 1) : (pa.col - 1);
+          const gx = colGutCenter(gc);
+          const sx = right ? A.x + A.w : A.x;
+          const ex = right ? B.x : B.x + B.w;
+          return [[sx, ay], [gx, ay], [gx, by], [ex, by]];
         }
         if (horizSep && !vertSep) {
           // y-spans overlap: single horizontal leg at the shared-span midpoint,
