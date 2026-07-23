@@ -3,6 +3,7 @@
 ## 1.10.1
 
 - Added tables of contents to `references/monthly-review.md`, `close-day.md`, and `standup.md`. Converted two traversable ref→ref links in `monthly-review.md` (pointing at `prompt-injection-defense.md`) into backtick citations, matching the repo's one-hop convention (a reference cites another reference by path, it does not hyperlink to it). Documentation only.
+- **Fix** — Phase 1 Step 2 computed `DAYS_SINCE` but only `echo`'d it instead of assigning the variable, and Step 3's fallback block only printed the 24h-window `DATE`/`UNIX_TS` in a trailing comment instead of assigning them. Both left the named variables unset, silently disabling the long-gap confirmation and breaking downstream GitHub `merged:>=` queries. All three now assign their variable directly.
 
 ## 1.10.0
 
