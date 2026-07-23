@@ -104,8 +104,8 @@ AUTO_GENERATED_PATTERNS = [
 ]
 
 BOILERPLATE_PATTERNS = [
-    /review skipped/i,
-    /draft detected/i,
+    /^\s*review skipped(?:\s*[—-]\s*draft detected)?\s*$/i,
+    /^\s*draft detected\s*$/i,
     /i'?ll review when ready/i,
     /build passing|checks running/i,
     /^(:?\+1:|:thumbsup:|:rocket:|lgtm|ship it|bump|ping)\s*$/i,
