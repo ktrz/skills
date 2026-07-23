@@ -106,4 +106,4 @@ The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/
 > **Migration note (repo restructured to `skills/<group>/`):** the move changed each skill's in-repo path but not its installed name. Two cases, by how the install was created:
 >
 > - **Installs created by `npx skills add`** are recorded in a lockfile that pins each skill's path, so they may not follow the move. If an `npx skills update` reports the relocated skills as removed, re-run `npx skills add ktrz/skills` (add `-g` and/or `--skill …` to match your original install) to re-point them.
-> - **Symlinks you created outside the CLI** (a `~/.claude/skills/<name>` symlink made by hand) only need their target re-pointed — run `bash _shared/repoint-skill-symlinks.sh` to update them to the new `skills/<group>/<name>` locations.
+> - **Symlinks you created outside the CLI** (a `~/.claude/skills/<name>` symlink made by hand) only need their target re-pointed to the new `skills/<group>/<name>` locations.
