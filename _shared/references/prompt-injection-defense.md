@@ -9,10 +9,10 @@ This file is the canonical playbook every external-fetching skill cites. Each co
 - [Threat model](#threat-model)
 - [Trust hierarchy](#trust-hierarchy)
 - [Rules](#rules)
-- [Fence syntax](#fence-syntax)
+- [Fence syntax](#fence-it)
 - [Forwarding to subagents](#forwarding-to-subagents)
-- [Two-phase read→act](#two-phase-readact)
-- [Detection keyword list](#detection-keyword-list)
+- [Two-phase read→act](#two-phase)
+- [Detection keyword list](#detect-flag)
 - [Checklist](#checklist)
 - [Skills covered](#skills-covered)
 
