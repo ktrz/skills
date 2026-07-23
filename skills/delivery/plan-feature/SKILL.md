@@ -210,10 +210,11 @@ Each phase section should include:
 - The concrete deliverable a reviewer can verify
 
 After writing the file, re-read `references/plan-file-format.md` and self-check the plan against
-it — exactly one H1 outside fenced code blocks; a `## Context` section; at least one phase;
-an `## Execution Order` section once there are ≥ 2 phases; unique phase numbers forming a
-contiguous run starting at 0 or 1; and a non-empty body per phase. A plan that drifts from
-the format contract will not parse cleanly for `implement-feature` / `execute-phase`.
+it — exactly one H1 and all structural headings counted only outside fenced code blocks; a
+`## Context` section; at least one phase; an `## Execution Order` section once there are ≥ 2
+phases; unique phase numbers forming a contiguous run starting at 0 or 1; and a non-empty body
+per phase. A plan that drifts from the format contract will not parse cleanly for
+`implement-feature` / `execute-phase`.
 
 ## Stage 4: Present and approve
 
