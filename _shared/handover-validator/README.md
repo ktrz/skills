@@ -12,8 +12,8 @@ node _shared/handover-validator/dist/validate.mjs validate <doc-path>
 ```
 
 `dist/validate.mjs` is the **canonical** bundle. It is also distributed into each consumer
-skill's `vendor/` dir (`review-pr/vendor/handover-validator.mjs`,
-`investigate-pr-comments/vendor/handover-validator.mjs`) by `_shared/sync.sh`, so the skills can
+skill's `vendor/` dir (`skills/review/review-pr/vendor/handover-validator.mjs`,
+`skills/review/investigate-pr-comments/vendor/handover-validator.mjs`) by `_shared/sync.sh`, so the skills can
 run it from their own directory on an installed copy — where `_shared/` is never present. The
 consumer copies are generated; never hand-edit them. Edit the source here, run `npm run build`,
 then `bash _shared/sync.sh` (the pre-commit hook runs `sync.sh` on commit; run `npm run build` yourself first). At runtime the skills call:

@@ -5,7 +5,7 @@
 # Two invocation modes:
 #   1. Pre-commit hook: paths passed as "$@", staged-status checked via porcelain.
 #   2. CI / standalone: no args, file list computed from
-#      `git diff --diff-filter=A --name-only ${BASE_SHA:-HEAD~1}...HEAD -- '*/SKILL.md'`.
+#      `git diff --diff-filter=A --name-only ${BASE_SHA:-HEAD~1}...HEAD -- 'skills/*/*/SKILL.md'`.
 set -euo pipefail
 
 ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator checkpoint orchestrate" # orchestrate: its own direct inputs are the user's prompt and Agent dispatches, no external content of its own; children handling external content are covered by briefing-hygiene in the delegation protocol
@@ -17,7 +17,7 @@ if [ "$#" -eq 0 ]; then
   files=()
   while IFS= read -r line; do
     files+=("$line")
-  done < <(git diff --diff-filter=A --name-only "$base"...HEAD -- '*/SKILL.md' 2>/dev/null || true)
+  done < <(git diff --diff-filter=A --name-only "$base"...HEAD -- 'skills/*/*/SKILL.md' 2>/dev/null || true)
   check_status=0
 else
   files=("$@")

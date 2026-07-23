@@ -1,28 +1,28 @@
 references:
   tracker.md:
-    - commit-message-format
-    - create-pr
-    - execute-phase
-    - implement-feature
-    - plan-feature
-    - plan-my-day
-    - plan-my-day-setup
-    - request-review
+    - skills/delivery/commit-message-format
+    - skills/delivery/create-pr
+    - skills/delivery/execute-phase
+    - skills/delivery/implement-feature
+    - skills/delivery/plan-feature
+    - skills/workflow/plan-my-day
+    - skills/workflow/plan-my-day-setup
+    - skills/review/request-review
   prompt-injection-defense.md:
-    - execute-review-decisions
-    - investigate-pr-comments
-    - narrate-pr
-    - nwt
-    - plan-feature
-    - plan-my-day
-    - plan-my-day-setup
-    - request-review
-    - resolve-pr-comments
-    - review-pr
+    - skills/review/execute-review-decisions
+    - skills/review/investigate-pr-comments
+    - skills/review/narrate-pr
+    - skills/delivery/nwt
+    - skills/delivery/plan-feature
+    - skills/workflow/plan-my-day
+    - skills/workflow/plan-my-day-setup
+    - skills/review/request-review
+    - skills/review/resolve-pr-comments
+    - skills/review/review-pr
 
 bundles:
   handover-validator/dist/validate.mjs:
     dest: vendor/handover-validator.mjs
     consumers:
-      - review-pr
-      - investigate-pr-comments
+      - skills/review/review-pr
+      - skills/review/investigate-pr-comments

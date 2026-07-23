@@ -1,4 +1,4 @@
-// Tests for orchestrate/scripts/orchestrate-reminder.sh — run with:
+// Tests for skills/workflow/orchestrate/scripts/orchestrate-reminder.sh — run with:
 //   node --test "tests/orchestrate/*.test.mjs"
 //
 // Zero dependencies: node:test + node:assert/strict. The hook is exercised
@@ -39,7 +39,7 @@ for (const cmd of ["bash", "jq"]) {
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const script = path.join(here, "..", "..", "orchestrate", "scripts", "orchestrate-reminder.sh");
+const script = path.join(here, "..", "..", "skills", "workflow", "orchestrate", "scripts", "orchestrate-reminder.sh");
 
 // Absolute path to bash so the missing-jq test can run with PATH stripped.
 const bashAbs = execFileSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).trim();

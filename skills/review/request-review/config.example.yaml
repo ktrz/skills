@@ -1,0 +1,21 @@
+# request-review configuration
+# ──────────────────────────────
+# Copy to ~/.claude/request-review.yaml and fill in the Slack fields.
+# Tracker settings are no longer configured here — they're resolved from
+# <repo>/.claude/tracker.yaml (repo-local, optional) or ~/.claude/tracker.yaml
+# (shared default). See _shared/tracker.example.yaml for the schema.
+#
+#   cp ~/.claude/skills/request-review/config.example.yaml ~/.claude/request-review.yaml
+
+# ── Slack ──────────────────────────────────────────────────────────
+
+# Channel ID to post review requests in
+# Find it by right-clicking the channel → "Copy link" — the last segment is the ID
+slack_channel_id: "CXXXXXXXXXX"
+
+# Slack user IDs to @mention as reviewers
+# Find by opening a DM with the person and copying the URL — last segment is the ID
+reviewers:
+  - "UXXXXXXXXXX"  # Reviewer 1
+  - "UXXXXXXXXXX"  # Reviewer 2
+  - "UXXXXXXXXXX"  # Reviewer 3
