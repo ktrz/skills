@@ -59,7 +59,7 @@ tracker:
 | jira | `[A-Z][A-Z0-9]+-\d+` | `PROJ-123` |
 | linear | `[A-Z][A-Z0-9]+-\d+` | `ENG-45` |
 | github | `#?\d+` | `#567` or `567` |
-| clickup | `[a-z0-9]+` (opaque 7–9 chars) | `8669abc12` |
+| clickup | `[a-z0-9]{7,9}` (opaque 7–9 chars) | `8669abc12` |
 
 Jira and Linear share the same regex shape; disambiguate by `tracker.type`.
 
@@ -112,7 +112,7 @@ Pattern depends on `tracker.type`:
 - **clickup**: match `[a-z0-9]{7,9}` in the branch; if none, fall back to the task's custom-id if the team uses one.
 
 If extraction fails:
-1. Check recent commit messages on the branch (`git log --format=%s main..HEAD`).
+1. Check recent commit messages on the branch against the repository's actual default branch (`DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'); DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}; git log --format=%s "$DEFAULT_BRANCH"..HEAD`).
 2. If still empty, ask the user for the key.
 
 ## Notes for skill authors
