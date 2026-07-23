@@ -63,8 +63,22 @@ for link in "$SKILLS_DIR"/*; do
   case "$target" in
     /*) abs_target=$target ;;
     *)
-      if abs_target=$(cd "$(dirname "$link")" && cd "$(dirname "$target")" 2>/dev/null && pwd -P); then
-        abs_target="$abs_target/$(basename "$target")"
+      if dir_resolved=$(cd "$(dirname "$link")" && cd "$(dirname "$target")" 2>/dev/null && pwd -P); then
+        abs_target="$dir_resolved/$(basename "$target")"
+        # The directory portion is now canonical, but if the final path
+        # component is itself a symlink to a directory, it can still point
+        # outside the repo while its own unresolved name makes the "$REPO"/*
+        # prefix check below pass. Resolve it too: cd into it and take
+        # pwd -P. This only fires for a directory symlink that itself
+        # resolves (via -d, which follows the link) — a dangling link or a
+        # symlink-to-file falls through untouched, so a dangling target
+        # still yields today's directory-only resolution and the "never
+        # create a dangling link" guarantee is unaffected.
+        if [ -L "$abs_target" ] && [ -d "$abs_target" ]; then
+          if final_resolved=$(cd "$abs_target" 2>/dev/null && pwd -P); then
+            abs_target=$final_resolved
+          fi
+        fi
       else
         abs_target=$target
       fi
