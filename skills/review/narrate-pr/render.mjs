@@ -597,7 +597,7 @@ function renderDocument(doc, opts) {
           const gc = right ? (pa.col + pa.colSpan - 1) : (pa.col - 1);
           const gx = colGutCenter(gc);
           const sx = right ? A.x + A.w : A.x;
-          const ex = right ? B.x : B.x + B.w;
+          const ex = right ? B.x + B.w : B.x;
           return [[sx, ay], [gx, ay], [gx, by], [ex, by]];
         }
         if (horizSep && !vertSep) {
