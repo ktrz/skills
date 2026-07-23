@@ -68,7 +68,7 @@ If the fork point is reachable from a feature branch (not just main), the PR is 
 Dispatch by `tracker.type` per `references/tracker.md`:
 
 - **jira / linear**: match `[A-Za-z][A-Za-z0-9]+-\d+` in the branch (case-insensitive). Uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys`.
-- **github**: match `\b\d+\b` after stripping any user/feature prefix (`user/`, `feat/`, etc.). If multiple numbers appear, prefer the first 3+ digit run. If still unclear, fall back to the PR title (see Step 4) rather than guessing.
+- **github**: match `\b\d+\b` after stripping any user/feature prefix (`user/`, `feat/`, etc.). If multiple numbers appear, prefer the first 3+ digit run. If still unclear, check the commit-subject line (`git log -1 --format=%s`) for a number; if it's still unresolved, ask the user rather than guessing.
 - **clickup**: match `[a-z0-9]{7,9}`.
 
 If nothing matches, check recent commit messages, then ask the user.
