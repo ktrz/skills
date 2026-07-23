@@ -3,6 +3,7 @@
 ## 1.8.1
 
 - Added a table of contents to `references/prior-handled.md`. Documentation only.
+- **Fix (`references/comment-relevance.md`, synced from `_shared/`)** — `BOILERPLATE_PATTERNS`'s `review skipped` / `draft detected` entries matched anywhere in a comment body, so a substantive comment that merely mentioned either phrase was dropped before reaching critique detection. Both patterns are now anchored to match only when the entire (trimmed) body is the boilerplate phrase.
 
 ## 1.8.0
 
