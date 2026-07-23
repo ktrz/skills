@@ -63,6 +63,7 @@ Fetch before doing anything else — the exploration agent needs the real ticket
 Dispatch by `tracker.type` per `references/tracker.md` → Fetch a ticket:
 
 - **jira**:
+
   ```text
   mcp__plugin_atlassian_atlassian__getJiraIssue
     cloudId: <tracker.jira.cloud_id>
@@ -70,6 +71,7 @@ Dispatch by `tracker.type` per `references/tracker.md` → Fetch a ticket:
     responseContentFormat: "markdown"
     fields: ["summary", "description", "status", "issuetype", "subtasks", "parent", "priority"]
   ```
+
 - **linear**: `mcp__linear-server__get_issue` with `id: <TICKET-KEY>`.
 - **github**: `gh issue view <N> --repo <tracker.github.repo> --json number,title,body,state,labels,assignees,url`.
 - **clickup**: `mcp__claude_ai_ClickUp__clickup_get_task` with `taskId: <TICKET-KEY>`.
