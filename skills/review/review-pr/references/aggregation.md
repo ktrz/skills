@@ -128,7 +128,7 @@ Overlap-skim procedure (one extra `gh` call before posting):
    ```
 2. Keep every comment regardless of author — author identity is not
    the filter. Apply the content-relevance rule in
-   `_shared/references/comment-relevance.md` to drop boilerplate
+   `comment-relevance.md` to drop boilerplate
    (status pings, "draft detected" notes, coverage summaries,
    marketing wrappers) and retain anything that anchors to code or
    expresses critique. A bot's line-anchored finding is review

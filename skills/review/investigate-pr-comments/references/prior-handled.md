@@ -58,7 +58,7 @@ Hygiene, applied at construction time:
   its own fence, then run the keyword scan on the fenced content as
   usual.
 - **Apply the content-relevance filter**
-  (`_shared/references/comment-relevance.md`) to resolved threads too.
+  (`references/comment-relevance.md`) to resolved threads too.
   A resolved boilerplate ping ("Review skipped — draft detected",
   later collapsed) carries no point to match against; admitting it just
   burns judge calls.

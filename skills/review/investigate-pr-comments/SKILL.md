@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.7.0
+version: 1.7.1
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and
@@ -129,7 +129,7 @@ For each unresolved item:
 - Preserve: author login, file path, line number (or `null` for
   review-body items), comment body verbatim, any reply chain.
 - Filter by **content relevance**, not author. Apply the rule in
-  `_shared/references/comment-relevance.md` to every fetched
+  `references/comment-relevance.md` to every fetched
   comment: keep the ones that anchor to code or express critique;
   drop boilerplate (status pings, "draft detected", coverage
   summaries, marketing wrappers). A bot's substantive line-anchored
