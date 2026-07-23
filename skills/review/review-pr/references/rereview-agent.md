@@ -201,7 +201,7 @@ Do not narrate. Do not return entries outside the schema.
 
 Written to `<output_dir>/pr-<N>-rereview-<k>.md` where
 
-```
+```text
 k = (max numeric suffix among files matching pr-<N>-rereview-*.md in
      output_dir, or 0 if none exist) + 1
 ```
