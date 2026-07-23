@@ -101,7 +101,7 @@ Then:
 
 Fetch **all** review threads — resolved and unresolved — plus
 review-body items via the paginated GraphQL queries in
-`resolve-pr-comments/references/`. Do not duplicate those queries here —
+`~/.claude/skills/resolve-pr-comments/references/` (dev tree `skills/review/resolve-pr-comments/references/`). Do not duplicate those queries here —
 load and reuse them verbatim. The thread query already returns
 `isResolved` on every node; **partition on it instead of filtering it
 out**:
@@ -169,7 +169,7 @@ the `prior-handled` set built in Step 1 Source B, following
 when both share `(file, line)` **and** a lightweight LLM judge confirms
 they raise a substantively overlapping point — the same per-finding
 judge shape as `review-pr`'s overlap-skim (see
-`review-pr/references/aggregation.md`), with the resolved body staying
+`~/.claude/skills/review-pr/references/aggregation.md`, dev tree `skills/review/review-pr/references/aggregation.md`), with the resolved body staying
 inside its fence so the judge only ever returns a boolean. On a match,
 **downgrade and annotate — never silently drop**:
 
@@ -220,7 +220,8 @@ codebase anchoring. They're the items that benefit from a subagent
 opening the file, reading the surrounding context, and producing the
 structured fields. Spawn investigation subagents over the
 human-comment subset only, following
-`resolve-pr-comments/references/investigate.md` verbatim. Each
+`~/.claude/skills/resolve-pr-comments/references/investigate.md`
+(dev tree: `skills/review/resolve-pr-comments/references/investigate.md`) verbatim. Each
 subagent investigates a **batch of items**, not a single item.
 
 - Default batch size: 5 items per subagent. For H human items, spawn
@@ -245,7 +246,7 @@ subagent investigates a **batch of items**, not a single item.
   subagent and back; subagents must not strip it before further use.
   See `references/prompt-injection-defense.md#forwarding-to-subagents`.
 - Subagent returns one structured report per item in input order, per
-  the format defined in `resolve-pr-comments/references/investigate.md`.
+  the format defined in `~/.claude/skills/resolve-pr-comments/references/investigate.md` (dev tree `skills/review/resolve-pr-comments/references/investigate.md`).
 
 Collect investigation results for the human subset, then merge them
 back with the pass-through auto-review items in the original queue
@@ -258,7 +259,8 @@ where `<repo>` is the repo directory name from
 `git rev-parse --show-toplevel`.
 
 Write the document conforming to
-`investigate-pr-comments/references/handover-format.md`:
+`~/.claude/skills/investigate-pr-comments/references/handover-format.md`
+(dev tree: `skills/review/investigate-pr-comments/references/handover-format.md`):
 
 - Document header: PR url, branch (`headRef → baseRef`), `Head SHA`
   and `Base SHA` (from `gh pr view --json headRefOid,baseRefOid`),
@@ -374,20 +376,25 @@ their own pace.
   location are kept separate. The user decides which framing to act on;
   automatic merging risks silent signal loss.
 - **Investigation follows the shared batching rules** — the policy in
-  `resolve-pr-comments/references/investigate.md` is authoritative,
+  `~/.claude/skills/resolve-pr-comments/references/investigate.md` (dev tree
+  `skills/review/resolve-pr-comments/references/investigate.md`) is authoritative,
   including its small-queue inline-investigation threshold (< 3 items
   skip subagents entirely). Do not contradict it here.
 - **Subagent logic is not duplicated** — investigation prompt, batch
   sizing, and ordering rules all live in
-  `resolve-pr-comments/references/investigate.md`. This skill follows
+  `~/.claude/skills/resolve-pr-comments/references/investigate.md` (dev tree
+  `skills/review/resolve-pr-comments/references/investigate.md`). This skill follows
   those rules without copying them.
 - **GraphQL fetch is not duplicated** — the paginated GitHub queries live
-  in `resolve-pr-comments/references/`. Load and reuse; do not
+  in `~/.claude/skills/resolve-pr-comments/references/` (dev tree
+  `skills/review/resolve-pr-comments/references/`). Load and reuse; do not
   re-implement.
 - **Handover format is the single source of truth** — all fields written
   to the document conform to
-  `investigate-pr-comments/references/handover-format.md`, which is
-  itself schema-compatible with `review-pr/references/findings-schema.md`.
+  `~/.claude/skills/investigate-pr-comments/references/handover-format.md` (dev tree
+  `skills/review/investigate-pr-comments/references/handover-format.md`), which is
+  itself schema-compatible with `~/.claude/skills/review-pr/references/findings-schema.md`
+  (dev tree `skills/review/review-pr/references/findings-schema.md`).
   Downstream tools (`execute-review-decisions`,
   `resolve-pr-comments --from-doc`) parse the document relying on this
   contract.

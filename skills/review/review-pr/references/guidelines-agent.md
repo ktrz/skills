@@ -1,7 +1,7 @@
 # Guidelines-compliance agent
 
 Prompt for the dedicated guidelines-compliance sub-agent. Dispatched
-by `review-pr/SKILL.md` Step 5 when `guidelines_mode: dedicated` or
+by `skills/review/review-pr/SKILL.md` Step 5 when `guidelines_mode: dedicated` or
 `guidelines_mode: both` (alongside the specialists).
 
 ## Why a dedicated agent
@@ -110,7 +110,7 @@ Do NOT report:
 
 Return ONLY a JSON array of findings. Each finding must conform to
 the canonical schema documented in
-`review-pr/references/findings-schema.md`. Set `reported_by` to
+`skills/review/review-pr/references/findings-schema.md`. Set `reported_by` to
 `["guidelines-agent"]`.
 
 [

@@ -11,11 +11,11 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { validate } from "../../narrate-pr/validate.mjs";
+import { validate } from "../../skills/review/narrate-pr/validate.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const validatorPath = path.join(here, "..", "..", "narrate-pr", "validate.mjs");
-const samplePath = path.join(here, "..", "..", "narrate-pr", "fixtures", "sample-mini.json");
+const validatorPath = path.join(here, "..", "..", "skills", "review", "narrate-pr", "validate.mjs");
+const samplePath = path.join(here, "..", "..", "skills", "review", "narrate-pr", "fixtures", "sample-mini.json");
 
 const sample = () => JSON.parse(readFileSync(samplePath, "utf8"));
 

@@ -74,11 +74,11 @@ when **both** hold:
 
 1. **Same `(file, line)`.** Both fields equal; `null`/`null` counts as
    a match for review-body-level items, mirroring the exact-dup rule in
-   `review-pr/references/aggregation.md`. No fuzzy line ranges — if the
+   `skills/review/review-pr/references/aggregation.md`. No fuzzy line ranges — if the
    code moved, the finding deserves fresh eyes anyway.
 2. **Substantively overlapping point**, confirmed by a lightweight LLM
    judge — the same per-finding judge shape as `review-pr`'s
-   overlap-skim (`review-pr/references/aggregation.md`
+   overlap-skim (`skills/review/review-pr/references/aggregation.md`
    → "Overlap-skim suppression"). Per candidate pair, give the judge
    the new item's description and the fenced resolved bodies and ask:
 

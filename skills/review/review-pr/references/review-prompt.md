@@ -82,7 +82,7 @@ nitpicks unless the project guidelines call them out explicitly.
 
 Return ONLY a JSON array of findings. Each finding must conform to
 the canonical schema documented in
-`review-pr/references/findings-schema.md`:
+`skills/review/review-pr/references/findings-schema.md`:
 
 [
 {

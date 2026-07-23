@@ -1,9 +1,9 @@
 # Findings schema
 
 Canonical shape for a single review finding. This file is the single
-source of truth — `review-pr/SKILL.md`, `review-pr/references/agents.md`,
-`review-pr/references/aggregation.md`, the auto-mode file output, and the
-Phase 2 handover format (`investigate-pr-comments/references/handover-format.md`)
+source of truth — `skills/review/review-pr/SKILL.md`, `skills/review/review-pr/references/agents.md`,
+`skills/review/review-pr/references/aggregation.md`, the auto-mode file output, and the
+Phase 2 handover format (`skills/review/investigate-pr-comments/references/handover-format.md`)
 all import from here.
 
 ## Shape
@@ -115,7 +115,7 @@ the prefix to ⚠️ Important and log a warning.
 When `review-pr` runs in auto mode (pipeline OR standalone), it writes
 findings to `<output_dir>/pr-<N>-auto-review.md` as `[?]` items. Each
 finding becomes one section that conforms to the Phase 2 handover
-schema (see `investigate-pr-comments/references/handover-format.md`).
+schema (see `skills/review/investigate-pr-comments/references/handover-format.md`).
 The format is byte-identical to what `investigate-pr-comments` writes
 so a downstream merge does not need to re-parse.
 

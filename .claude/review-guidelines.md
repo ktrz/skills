@@ -66,10 +66,10 @@ CHANGELOG entries should describe **what changed for the user**, not what files 
 
 - `_shared/tracker.example.yaml` schema — consumed by every tracker-aware skill.
 - `_shared/review.example.yaml` schema — consumed by `review-pr`, `investigate-pr-comments`, `execute-review-decisions`, `resolve-pr-comments --from-doc`.
-- `review-pr/references/findings-schema.md` — single source of truth for the finding shape; `investigate-pr-comments` handover format imports from it.
-- `investigate-pr-comments/references/handover-format.md` — consumed by `execute-review-decisions` and `resolve-pr-comments --from-doc`.
+- `skills/review/review-pr/references/findings-schema.md` — single source of truth for the finding shape; `investigate-pr-comments` handover format imports from it.
+- `skills/review/investigate-pr-comments/references/handover-format.md` — consumed by `execute-review-decisions` and `resolve-pr-comments --from-doc`.
 - `_shared/references/tracker.md` — copied into 8 consumer skills (sync currently manual; Plan 2 Phase 5 will automate).
-- `_shared/handover-validator/dist/validate.mjs` — built validator bundle distributed (via `manifest.yaml` `bundles:` + `sync.sh`) into `review-pr/vendor/` and `investigate-pr-comments/vendor/`. Consumer copies are generated — never hand-edit; edit the canonical bundle source and rebuild. Drift-enforced by `shared-refs-drift.yml`.
+- `_shared/handover-validator/dist/validate.mjs` — built validator bundle distributed (via `manifest.yaml` `bundles:` + `sync.sh`) into `skills/review/review-pr/vendor/` and `skills/review/investigate-pr-comments/vendor/`. Consumer copies are generated — never hand-edit; edit the canonical bundle source and rebuild. Drift-enforced by `shared-refs-drift.yml`.
 
 **Why:** schema edits in one location without updates to consumers ship a broken pipeline that fails at runtime, not at lint time. The pipeline is opt-in per repo, so silent mismatches can sit undiscovered until someone tries the flow end-to-end.
 
