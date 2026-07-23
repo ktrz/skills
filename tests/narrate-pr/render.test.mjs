@@ -200,6 +200,124 @@ test("code receipt with a space in the path is percent-encoded in the blob URL",
 });
 
 // ---------------------------------------------------------------------------
+// Router — a direct edge must not cut through an intermediate node
+// ---------------------------------------------------------------------------
+
+function polylinePoints(html) {
+  const out = [];
+  const re = /<polyline[^>]*points="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(html))) out.push(m[1].trim().split(/\s+/));
+  return out;
+}
+
+// Node rects in declaration order (rendered via `nodes.map(...)`, same order
+// as the fixture's `nodes` array), so the Nth match corresponds to the Nth
+// declared node.
+function nodeRects(html) {
+  const out = [];
+  const re = /<rect class="node" x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)"/g;
+  let m;
+  while ((m = re.exec(html))) out.push({ x: Number(m[1]), y: Number(m[2]), w: Number(m[3]), h: Number(m[4]) });
+  return out;
+}
+
+const rowDepmap = (withBlocker) => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "diagram.row", type: "depmap", title: "Row",
+      zones: [{ id: "zone.a", label: "A" }],
+      nodes: [
+        { id: "node.a", label: "Aye", zone: "zone.a" },
+        ...(withBlocker ? [{ id: "node.b", label: "Bee", zone: "zone.a" }] : []),
+        { id: "node.c", label: "Cee", zone: "zone.a" },
+      ],
+      edges: [{ from: "node.a", to: "node.c", label: "x", kind: "call" }],
+      layout: {
+        cols: 3,
+        nodes: {
+          "node.a": { col: 1, row: 1 },
+          ...(withBlocker ? { "node.b": { col: 2, row: 1 } } : {}),
+          "node.c": { col: 3, row: 1 },
+        },
+      },
+    }],
+  },
+});
+
+test("depmap edge detours around an intermediate node instead of crossing it", () => {
+  const polys = polylinePoints(render(rowDepmap(true)));
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 4, "blocked direct route must become a 4-point orthogonal detour");
+});
+
+test("depmap edge over a clear span stays a straight 2-point leg", () => {
+  const polys = polylinePoints(render(rowDepmap(false)));
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 2, "unobstructed horizontal route stays direct");
+});
+
+const colDepmap = (withBlocker) => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "diagram.col", type: "depmap", title: "Column",
+      zones: [{ id: "zone.a", label: "A" }],
+      nodes: [
+        { id: "node.a", label: "Aye", zone: "zone.a" },
+        ...(withBlocker ? [{ id: "node.b", label: "Bee", zone: "zone.a" }] : []),
+        { id: "node.c", label: "Cee", zone: "zone.a" },
+      ],
+      edges: [{ from: "node.a", to: "node.c", label: "y", kind: "call" }],
+      layout: {
+        cols: 1,
+        nodes: {
+          "node.a": { col: 1, row: 1 },
+          ...(withBlocker ? { "node.b": { col: 1, row: 2 } } : {}),
+          "node.c": { col: 1, row: withBlocker ? 3 : 2 },
+        },
+      },
+    }],
+  },
+});
+
+test("depmap edge in a single column detours around an intermediate node instead of crossing it", () => {
+  const html = render(colDepmap(true));
+  const polys = polylinePoints(html);
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 4, "blocked vertical route must become a 4-point orthogonal detour");
+
+  // Single column ⇒ the detour gutter sits outside the column, to its right,
+  // so the final leg must approach and enter target node C (3rd declared
+  // node: a, b, c) through its RIGHT border — not cut through C's body by
+  // entering on the far (left) side.
+  const rects = nodeRects(html);
+  assert.equal(rects.length, 3, "fixture declares three nodes");
+  const c = rects[2];
+  const [finalX] = polys[0][3].split(",").map(Number);
+  assert.equal(finalX, Math.round(c.x + c.w), "final polyline point must land on C's facing (right) border, not its far border");
+});
+
+test("depmap edge in a single column over a clear span stays a straight 2-point leg", () => {
+  const polys = polylinePoints(render(colDepmap(false)));
+  assert.equal(polys.length, 1, "one edge → one polyline");
+  assert.equal(polys[0].length, 2, "unobstructed vertical route stays direct");
+});
+
+// ---------------------------------------------------------------------------
+// Accessibility — diagrams must describe their edges/relationships, not just nodes
+// ---------------------------------------------------------------------------
+
+test("fixture diagrams expose their relationships to assistive tech", () => {
+  const res = run([FIXTURE]);
+  assert.equal(res.status, 0, res.stderr);
+  const out = res.stdout;
+  assert.match(out, /Flows: [^"]*→/, "lane diagram aria lists box-to-box flows");
+  assert.match(out, /Steps: [^"]*→/, "sequence diagram aria lists step relationships");
+  assert.match(out, /Edges: [^"]*→/, "depmap aria lists edge relationships");
+  assert.ok(out.includes("<desc>Relationships:"), "depmap SVG carries a <desc> relationship description");
+});
+
+// ---------------------------------------------------------------------------
 // Regression — the shipped fixture renders in both modes
 // ---------------------------------------------------------------------------
 

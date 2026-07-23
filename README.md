@@ -2,7 +2,7 @@
 
 Personal collection of [Claude Code](https://docs.claude.com/en/docs/claude-code) skills for ticket-driven development: plan a day, plan a feature, ship it, review it, resolve review comments.
 
-Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline they belong to: `delivery/` (plan → build → PR), `review/` (review → resolve), and `workflow/` (day planning, session hygiene, delegation). `skills/wip/` holds work-in-progress variants and newborn primitives that are excluded from this index until they graduate (see [`skills/wip/README.md`](skills/wip/README.md)). Each skill directory is self-contained (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
+Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline they belong to: `delivery/` (plan → build → PR), `review/` (review → resolve), and `workflow/` (day planning, session hygiene, delegation). `skills/wip/` holds work-in-progress variants and newborn primitives that are excluded from this index until they graduate (see [`skills/wip/README.md`](skills/wip/README.md)). The index below lists model-invocable skills only; skills marked `disable-model-invocation: true` (slash-command-only, e.g. `narrate-pr`) are omitted, as are WIP variants. Each skill directory is self-contained (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
 
 ## Skills
 
@@ -103,4 +103,7 @@ npx skills add ktrz/skills --agent claude-code
 
 The CLI symlinks each skill into your agent's skills directory (e.g. `~/.claude/skills/`). Skills that consume shared assets already ship with their copy bundled — no extra step. This covers both `_shared/references/` docs (e.g. `tracker.md`) and `_shared/` bundles (the `handover-validator` validator, shipped into `review-pr` and `investigate-pr-comments` as `vendor/handover-validator.mjs`).
 
-> **Migration note (repo restructured to `skills/<group>/`):** existing `npx skills` installs pin each skill's exact path in their lockfile and do **not** follow the move — an `npx skills update` treats the relocated skills as deleted upstream. If you installed before this restructure landed, re-run `npx skills add ktrz/skills` (add `-g` and/or `--skill …` to match your original install) to re-point them. Symlink installs (e.g. `~/.claude/skills/<name>`) are unaffected once their targets are re-pointed.
+> **Migration note (repo restructured to `skills/<group>/`):** the move changed each skill's in-repo path but not its installed name. Two cases, by how the install was created:
+>
+> - **Installs created by `npx skills add`** are recorded in a lockfile that pins each skill's path, so they may not follow the move. If an `npx skills update` reports the relocated skills as removed, re-run `npx skills add ktrz/skills` (add `-g` and/or `--skill …` to match your original install) to re-point them.
+> - **Symlinks you created outside the CLI** (a `~/.claude/skills/<name>` symlink made by hand) only need their target re-pointed to the new `skills/<group>/<name>` locations.

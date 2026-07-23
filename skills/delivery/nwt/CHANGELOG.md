@@ -3,6 +3,7 @@
 ## 1.1.0
 
 - Add Trust Boundaries section + carry a copy of `_shared/references/prompt-injection-defense.md` (synced via `_shared/manifest.yaml`). `nwt` only reads `gh api user --jq .login` from outside the trust boundary; the section documents that surface and the constraints that keep it safe.
+- CodeRabbit review fix: `_nwt_resolve_prefix` now distinguishes an explicitly-empty `NWT_BRANCH_PREFIX`/`git config` override ("no prefix") from the source being unset entirely, using each source's own presence signal (`git config --get` exit status, `${VAR+set}`) instead of value-emptiness, so an intentional empty override no longer falls through to the next source in the resolution order.
 
 ## 1.0.0
 

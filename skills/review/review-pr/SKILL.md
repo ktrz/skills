@@ -334,7 +334,8 @@ Apply the pipeline in `references/aggregation.md`:
   exists.
 - Write findings to `<output_dir>/pr-<N>-auto-review.md` formatted as
   `[?]` items matching the Phase 2 handover schema (see
-  `skills/review/investigate-pr-comments/references/handover-format.md`).
+  `~/.claude/skills/investigate-pr-comments/references/handover-format.md`,
+  dev tree `skills/review/investigate-pr-comments/references/handover-format.md`).
 
 **`output_dir` resolution rules:**
 
@@ -365,8 +366,9 @@ exactly there.
 
 **Validate the auto-mode file.** The `pr-<N>-auto-review.md` file uses
 the same handover schema the `review-plugin-mvp` extension loads (see
-`skills/review/investigate-pr-comments/references/handover-format.md` → "Auto-mode
-file"). After writing it (auto pipeline **and** auto standalone), run the
+`~/.claude/skills/investigate-pr-comments/references/handover-format.md`,
+dev tree `skills/review/investigate-pr-comments/references/handover-format.md`
+→ "Auto-mode file"). After writing it (auto pipeline **and** auto standalone), run the
 vendored real parser, shipped with this skill at `vendor/handover-validator.mjs`.
 Substitute the absolute skill base directory the harness injected
 ("Base directory for this skill: …") for `<skill-base-dir>`:
@@ -435,13 +437,16 @@ When `--re-review` ran with a non-empty prior-findings set, write the
 verifier's verdicts to a **numbered** report in addition to the mode's
 normal output:
 
-```
+```text
 <output_dir>/pr-<N>-rereview-<k>.md
-k = (count of existing pr-<N>-rereview-*.md in output_dir) + 1
+k = (max numeric suffix among existing pr-<N>-rereview-*.md in output_dir, or 0 if none exist) + 1
 ```
 
 — first re-review writes `pr-<N>-rereview-1.md`, the second `-2`, and
-so on. Format per `references/rereview-agent.md` ("Resolution
+so on. Use the max existing suffix, not a plain count: if the sequence
+has a gap (e.g. `-1` and `-3` exist but `-2` doesn't), a count-based
+`k` can recompute a number that collides with a file still on disk.
+Format per `references/rereview-agent.md` ("Resolution
 report"). `output_dir` resolves by the same rules as the findings file
 above. The report is written in **all three modes** — deep mode skips
 the findings file because triage happened interactively, but the

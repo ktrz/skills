@@ -68,7 +68,7 @@ If the fork point is reachable from a feature branch (not just main), the PR is 
 Dispatch by `tracker.type` per `references/tracker.md`:
 
 - **jira / linear**: match `[A-Za-z][A-Za-z0-9]+-\d+` in the branch (case-insensitive). Uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys`.
-- **github**: match `\b\d+\b` after stripping any user/feature prefix.
+- **github**: match `\b\d+\b` after stripping any user/feature prefix (`user/`, `feat/`, etc.). If multiple numbers appear, prefer the first 3+ digit run. If still unclear, check the commit-subject line (`git log -1 --format=%s`) for a number; if it's still unresolved, ask the user rather than guessing.
 - **clickup**: match `[a-z0-9]{7,9}`.
 
 If nothing matches, check recent commit messages, then ask the user.
@@ -79,7 +79,7 @@ Build the link using the URL template for the tracker (see `references/tracker.m
 
 Use this exact template:
 
-```
+```markdown
 ### Ticket
 
 <TICKET_LINK> — One-line summary of the ticket
@@ -116,15 +116,11 @@ Common types: `feat`, `fix`, `refactor`, `chore`. Scope is the affected area (e.
 
 ## Step 5: Create the PR
 
-If the user passed `--draft` (or the invoking skill requested a draft PR), add `--draft` to the `gh pr create` command. Use draft for self-review-pending PRs so reviewers know not to look yet.
+Base command (no draft, not stacked):
 
 ```bash
 gh pr create \
   --title "<title>" \
-  # add --draft only if requested
-  [--draft] \
-  # add --base only when stacked on a feature branch
-  [--base <feature-branch>] \
   --body "$(cat <<'EOF'
 ### Ticket
 
@@ -142,6 +138,12 @@ gh pr create \
 EOF
 )"
 ```
+
+Adjust before running:
+
+- If the user passed `--draft` (or the invoking skill requested a draft PR), add `--draft` to the command. Use draft for self-review-pending PRs so reviewers know not to look yet.
+- If the PR is stacked on a feature branch (detected in Step 1), add `--base <feature-branch>`.
+- If no ticket could be determined (Step 2), remove the `### Ticket` heading and `<TICKET_LINK>` line from the body — per Step 3, ticketless PRs omit that section entirely.
 
 ## Step 6: Report
 

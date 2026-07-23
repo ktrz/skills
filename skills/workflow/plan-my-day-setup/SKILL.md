@@ -69,27 +69,47 @@ Ask the user: **"What repos do you work in? Give me their local paths."**
 
 For each repo path provided:
 
-1. Verify the path exists and is a git repo:
+1. Capture the raw user-supplied path into a shell variable first, rather
+   than interpolating the path literal into each command string below:
+
    ```bash
-   ls <path>/.git
+   repo_path="<path>"
    ```
-2. Auto-detect the GitHub remote:
+
+2. Verify the path exists and is a git repository (a directory or file
+   merely named `.git` would pass a plain `ls` check without being one):
+
    ```bash
-   git -C <path> remote -v
+   git -C "$repo_path" rev-parse --show-toplevel
    ```
+
+   If this fails, tell the user the path isn't a git repository and stop
+   for that entry.
+
+3. Auto-detect the GitHub remote:
+
+   ```bash
+   git -C "$repo_path" remote -v
+   ```
+
    Parse the `origin` fetch URL to extract the `org/repo` value. Show it to
-   the user for confirmation.
-3. Detect branch naming convention by sampling recent branches:
+   the user for confirmation. If there's no `origin` remote, ask the user
+   for the `org/repo` value directly instead of treating it as an error.
+
+4. Detect branch naming convention by sampling recent branches:
+
    ```bash
-   git -C <path> branch --sort=-committerdate --format='%(refname:short)' | head -20
+   git -C "$repo_path" branch --sort=-committerdate --format='%(refname:short)' | head -20
    ```
+
    Look for patterns:
    - `prefix/key-NNN` (e.g. `jsmith/proj-123`) → suggest `branch_ticket_format: prefix/key-NNN`, extract the prefix.
    - `key-NNN` (e.g. `proj-123`) → suggest `branch_ticket_format: key-NNN`.
    - `prefix/NNN` (e.g. `jsmith/567`, numeric-only) → suggest `branch_ticket_format: prefix/NNN` (common for github-issues workflows).
    - `NNN` (e.g. `567`) → suggest `branch_ticket_format: NNN`.
    - Show the detected pattern and a few example branches to the user for confirmation.
-4. Ask the user for a short name for this repo (suggest one based on the
+
+5. Ask the user for a short name for this repo (suggest one based on the
    directory name, e.g. `my-app`).
 
 ## Step 3 — Gather tracker and output settings
@@ -183,6 +203,15 @@ repos:
     github_repo: <org/repo>
     branch_ticket_format: <detected-format>
 ```
+
+Write every user-supplied scalar as a double-quoted YAML string, not a
+bare/plain scalar — e.g. `name: "my: repo"`. Double-quoting sidesteps
+plain-scalar parsing rules entirely (`:`, `#`, leading/trailing
+whitespace, and other YAML-special bytes are all safe inside `"..."`),
+provided embedded double quotes and backslashes are themselves escaped
+(`\"`, `\\`) before writing. If a value contains a literal newline,
+don't attempt to inline it — reject it and ask the user to resupply
+the value without one.
 
 Tracker settings are **never** embedded in `plan-my-day.yaml` any more —
 they live in `~/.claude/tracker.yaml` (shared) so every skill in the

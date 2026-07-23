@@ -32,7 +32,19 @@ Graduation is a single `git mv skills/wip/<skill>` into the target group (or
    primitive is composed by explicit path reads, never model invocation).
 3. Swap the skill's `_shared/manifest.yaml` consumer entries to the new path and
    re-run `_shared/sync.sh`.
-4. Re-point the installed symlink target (the symlink _name_ never changes).
+4. Rename the installed symlink to match the dropped suffix. The old
+   `<skill>` symlink pointed at the pre-rework skill this `git mv` just
+   replaced, so remove it; then point a fresh `<skill>` symlink at the
+   new group path and remove `<skill>-v2`:
+
+   ```bash
+   rm ~/.claude/skills/<skill> ~/.claude/skills/<skill>-v2
+   ln -sfn <new-path> ~/.claude/skills/<skill>
+   ```
+
+   Exactly one symlink survives, named `<skill>` with no suffix,
+   matching the frontmatter `name:` from step 2.
+
 5. Add a CHANGELOG entry.
 
 Graduation criteria: eval parity or better vs the stable baseline plus all

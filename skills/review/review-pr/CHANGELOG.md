@@ -3,6 +3,7 @@
 ## 1.6.0
 
 - **Validator now ships with the skill — works on installed copies.** The handover validator the Step 9 check runs is now distributed into this skill as `vendor/handover-validator.mjs` (a generated, byte-for-byte copy of `_shared/handover-validator/dist/validate.mjs`, synced by `_shared/sync.sh`). The invocation changed from the CWD-relative `node _shared/handover-validator/dist/validate.mjs validate <path>` to `node "<skill-base-dir>/vendor/handover-validator.mjs" validate <path>`, resolved from the harness-injected skill base directory. Previously the `_shared/` path was unreachable on any `npx skills add` install (only skill dirs are symlinked, not `_shared/`), so machine validation exited "module not found" and the skill misread that as a malformed doc → hard-fail. The exit-code contract is unchanged (0 → continue; non-zero → regenerate once → hard-fail)
+- CodeRabbit review fixes: `findings-schema.md` cross-references now point at the installed path (`~/.claude/skills/review-pr/references/findings-schema.md`) with the dev-tree path noted alongside; `rereview-agent.md` clarifies that thread `body`/`follow_ups` are stored as raw strings in the prior-findings set and fenced fresh at each forwarding site rather than pre-fenced at fetch time, extends the re-fencing rule to verifier `evidence` that quotes diff hunks (not just comment bodies), and switches the Step 9 report-numbering scheme from a file _count_ to the _max existing numeric suffix_ + 1 so a deleted or gapped report can't collide with a file still on disk.
 
 ## 1.5.0
 
