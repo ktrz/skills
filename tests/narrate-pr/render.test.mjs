@@ -211,6 +211,17 @@ function polylinePoints(html) {
   return out;
 }
 
+// Node rects in declaration order (rendered via `nodes.map(...)`, same order
+// as the fixture's `nodes` array), so the Nth match corresponds to the Nth
+// declared node.
+function nodeRects(html) {
+  const out = [];
+  const re = /<rect class="node" x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)"/g;
+  let m;
+  while ((m = re.exec(html))) out.push({ x: Number(m[1]), y: Number(m[2]), w: Number(m[3]), h: Number(m[4]) });
+  return out;
+}
+
 const rowDepmap = (withBlocker) => makeDoc({
   architecture: {
     diagrams: [{
@@ -270,9 +281,20 @@ const colDepmap = (withBlocker) => makeDoc({
 });
 
 test("depmap edge in a single column detours around an intermediate node instead of crossing it", () => {
-  const polys = polylinePoints(render(colDepmap(true)));
+  const html = render(colDepmap(true));
+  const polys = polylinePoints(html);
   assert.equal(polys.length, 1, "one edge → one polyline");
   assert.equal(polys[0].length, 4, "blocked vertical route must become a 4-point orthogonal detour");
+
+  // Single column ⇒ the detour gutter sits outside the column, to its right,
+  // so the final leg must approach and enter target node C (3rd declared
+  // node: a, b, c) through its RIGHT border — not cut through C's body by
+  // entering on the far (left) side.
+  const rects = nodeRects(html);
+  assert.equal(rects.length, 3, "fixture declares three nodes");
+  const c = rects[2];
+  const [finalX] = polys[0][3].split(",").map(Number);
+  assert.equal(finalX, Math.round(c.x + c.w), "final polyline point must land on C's facing (right) border, not its far border");
 });
 
 test("depmap edge in a single column over a clear span stays a straight 2-point leg", () => {
