@@ -15,7 +15,7 @@ Spin up an isolated worktree and spawn an agent to execute a specific phase from
 
 - `source` — either a path to a plan file (e.g. `plans/proj-123-example-feature.md`) or a ticket key from the configured tracker (e.g. `PROJ-123`, `ENG-45`, `#567`, clickup id)
 - `phase-number` — which phase to execute (1, 2, 3, etc.)
-- `base-branch` — optional, defaults to `main`. Use a feature branch when phases are stacked.
+- `base-branch` — optional, defaults to the repository's detected default branch (see Step 5: `origin/HEAD`, then the remote, then local `main`/`master`) — not always `main`. Use a feature branch when phases are stacked.
 
 ## Step 1: Resolve plan file
 

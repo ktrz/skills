@@ -328,21 +328,32 @@ the file Step 7 publishes.
 
 ### 7. Publish
 
-**Revalidate the pinned sha first.** Steps 2–6 can run long enough for
-new commits to land on the PR after Step 1's checkout-contract check.
-Re-fetch the head sha and compare it against the `sha` already recorded
-in `walkthrough.json`:
+**Revalidate the checkout before publishing.** Steps 2–6 can run long
+enough for new commits to land on the PR, or for the local working
+tree to change underneath this run, after Step 1's checkout-contract
+check. Re-check all three:
 
 ```bash
 gh pr view <N> --json headRefOid --jq .headRefOid
+git rev-parse HEAD
+git diff --quiet HEAD --
 ```
 
-- **Match** → proceed to publish.
-- **Mismatch** → **STOP** before publishing anything. Tell the user the
-  PR has moved (new commits landed) since this walkthrough was built,
-  so its receipts may no longer describe the current head; ask them to
-  re-run the skill against the new head rather than publish a
-  now-stale document.
+- **Remote head and local `HEAD` both match the `sha` recorded in
+  `walkthrough.json`, and `git diff --quiet HEAD --` exits 0** →
+  proceed to publish.
+- **Remote head mismatch** → **STOP** before publishing anything. Tell
+  the user the PR has moved (new commits landed) since this walkthrough
+  was built, so its receipts may no longer describe the current head;
+  ask them to re-run the skill against the new head rather than publish
+  a now-stale document.
+- **Local `HEAD` mismatch, or tracked files are dirty** → **STOP**
+  before publishing anything. Tell the user the local checkout no
+  longer matches the sha this walkthrough's receipts were built from
+  (they may have switched commits or edited tracked files mid-run) and
+  ask them to restore the checkout and re-run the skill. Untracked
+  files — including this skill's own `plans.local/` output — do not
+  trip this check.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:

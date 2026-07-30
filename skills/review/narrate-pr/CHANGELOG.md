@@ -4,6 +4,7 @@
 
 - CodeRabbit review fixes: depmap layout gains an obstacle check so the router won't route lane/sequence edges through unrelated nodes; edge label chips get an accessible-name fallback when unlabelled; `validate.mjs` tightens the package-id pattern, requires the prefixed-id format, and validates `revisedAt` as strict ISO 8601. +28 tests covering the tightened rules.
 - Shared `references/prompt-injection-defense.md` synced: the subagent re-fencing rule's illustrative example now names any verbatim external payload — a comment body, an issue or ticket description, a Slack message, a fetched web page — rather than only a comment body. Wording only; the rule is unchanged.
+- Step 7's pre-publish check now revalidates the whole checkout, not just the pinned sha: alongside the remote PR head it re-checks the local `git rev-parse HEAD` and `git diff --quiet HEAD --`, with a distinct STOP for local drift (switched commits or edited tracked files mid-run) — untracked files, including the skill's own `plans.local/` output, don't trip it. Previously only the remote head was rechecked, so local drift during the multi-minute Steps 2-6 fan-out could publish receipts built from a different tree.
 
 ## 0.1.0 - 2026-07-13
 
