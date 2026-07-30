@@ -30,14 +30,37 @@ busy repo today's day-plan issue could fall outside the window and be
 missed entirely. The title search narrows the candidate set to (almost
 always) a single match regardless of how many other issues exist.
 
-Find the issue whose title starts with `<TODAY> — `. If none, stop and tell
-the user:
+Filter the results to issues whose title starts with `<TODAY> — ` (exact
+prefix, em dash included) — `--search` matches loosely and can return
+near-misses. Then pick exactly one:
 
-> No day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
-> `/plan-my-day` first to create one, or pass a date if you want to close a
-> different day.
+- **No match** → stop and tell the user:
 
-If one is found but its `state` is already `CLOSED`, stop here — do not
+  > No day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
+  > `/plan-my-day` first to create one, or pass a date if you want to
+  > close a different day.
+
+- **Exactly one match** → use it.
+
+- **Several matches, exactly one `OPEN`** → use the open one; ignore the
+  closed siblings. This is the expected shape after a second
+  `/plan-my-day` run on the same day: the daily flow creates a fresh issue
+  and closes the previous one, so a closed same-date sibling is normal
+  history, not an anomaly. The surviving open issue is the authoritative
+  plan.
+
+- **Several matches, none `OPEN`** → every same-date plan is already
+  closed. Take the highest-numbered (most recently created) one and fall
+  through to the already-closed refusal below.
+
+- **More than one `OPEN` match** → genuinely ambiguous; do not guess.
+  Stop and tell the user:
+
+  > Multiple open day-plan issues for `<TODAY>` in `<DAY_PLAN_REPO>`:
+  > `#<N1>`, `#<N2>`. Close or retitle the stale ones, then re-run
+  > `/plan-my-day close`.
+
+If the selected issue's `state` is already `CLOSED`, stop here — do not
 reopen it or re-run C1–C4. Tell the user:
 
 > `<DAY_PLAN_REPO>#<ISSUE_NUMBER>` for `<TODAY>` is already closed.
@@ -87,16 +110,18 @@ Tick-matching is regex-based:
    If the bolded lead-in matches a recognized non-ticket label pattern
    (e.g. `**Review PR #NNN**` or another freeform bolded title —
    anything that isn't a bare tracker id), extract the bolded label
-   verbatim with a `\*\*([^*]+)\*\*` regex into `DONE_LABELS` and stop
-   there — do **not** also run ticket-key extraction on that bullet.
+   verbatim with a `\*\*([^*]+)\*\*` regex, trimmed of surrounding
+   whitespace, into `DONE_LABELS` and stop there — do **not** also run
+   ticket-key extraction on that bullet.
    Otherwise, extract the ticket key using the same `TICKET_ID_REGEX`
-   the daily flow uses (jira/linear: `[A-Za-z][A-Za-z0-9]+-\d+`; github:
-   `\b\d+\b`; clickup: `[a-z0-9]{7,9}`) and collect it into a
+   the daily flow uses for `TRACKER_TYPE` (`references/tracker.md` →
+   **Ticket ID format** — that table is the single source of truth for
+   these patterns, don't restate them here) and collect it into a
    `DONE_KEYS` set, normalised to uppercase for jira/linear. This
    ordering matters for github: without it, the digits inside a label
-   like `**Review PR #1**` would also satisfy `\b\d+\b` and pollute
-   `DONE_KEYS` with a spurious `1`, ticking an unrelated Plan-section
-   item keyed `1`.
+   like `**Review PR #1**` would also match the github ticket pattern
+   and pollute `DONE_KEYS` with a spurious `1`, ticking an unrelated
+   Plan-section item keyed `1`.
 2. For every Plan-section checkbox `- [ ] **<key-or-label>** ...`,
    extract the same key/label with the same regex. Flip `[ ]` → `[x]`
    when the extracted key is in `DONE_KEYS` (case-insensitive) or the

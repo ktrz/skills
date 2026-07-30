@@ -1,5 +1,5 @@
 ---
-version: 1.10.0
+version: 1.11.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -283,10 +283,12 @@ repo's `branch_ticket_format`:
 
 1. Strip the `BRANCH_PREFIX/` or `<any-prefix>/` leading segment if present
    (e.g. `user/proj-123-slug` → `proj-123-slug`).
-2. Apply `TICKET_ID_REGEX` (jira/linear: `[A-Za-z][A-Za-z0-9]+-\d+`;
-   github: `\b\d+\b`; clickup: `[a-z0-9]{7,9}`). Take the first match; for
-   github, if multiple numbers appear, prefer the first 3+ digit run
-   (per `references/tracker.md`).
+2. Apply `TICKET_ID_REGEX`, matched per `references/tracker.md`'s
+   **Extract a ticket key from a git branch name** guidance — that section
+   (not this one) is the source of truth for how the pattern is applied,
+   including case-insensitive matching for jira/linear since branch names
+   are usually lowercased. Take the first match; for github, if multiple
+   numbers remain, prefer the first 3+ digit run.
 3. Normalise:
    - jira/linear: uppercase the match. If `TRACKER_KEYS` is non-empty, prefer
      matches whose prefix appears in `TRACKER_KEYS`.
