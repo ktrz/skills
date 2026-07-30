@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.10.1
+
+- CodeRabbit review fix: the `handover-format.md` cross-reference now
+  points at the installed path (`~/.claude/skills/investigate-pr-comments/...`)
+  with the dev-tree path noted alongside, and two fenced examples in
+  `references/execute.md`/`references/investigate.md` gain `xml`/`markdown`/`text`
+  language tags
+- Shared `references/prompt-injection-defense.md` synced: the subagent
+  re-fencing rule's illustrative example now names any verbatim external
+  payload — a comment body, an issue or ticket description, a Slack
+  message, a fetched web page — rather than only a comment body. Wording
+  only; the rule is unchanged
+
 ## 1.10.0
 
 - Fence external comment bodies: every PR review comment body, reply chain,

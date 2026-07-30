@@ -41,9 +41,14 @@ guidelines:
 # (`pr-<N>-auto-review.md`).
 #
 # Default: `plans.local/<repo>/` — the literal `<repo>` token is
-# substituted with the repo directory name from
-# `basename $(git rev-parse --show-toplevel)`, so a single shared
-# default file gives every repo its own subdirectory automatically.
+# substituted with the repo directory name, derived from the main
+# repo's git directory so it is identical from every worktree:
+#
+#   GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+#   REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+#
+# so a single shared default gives every repo its own subdirectory
+# automatically.
 #
 # When you set `output_dir` here, the value is taken **verbatim** —
 # the skill does not append `<repo>` for you. If you want per-repo

@@ -1,6 +1,6 @@
 ---
 name: plan-feature
-version: 1.3.0
+version: 1.3.1
 model: opus[1m]
 description: >
   Deep-plan a feature from a tracker ticket into a phased, parallelism-annotated implementation plan.
@@ -153,7 +153,8 @@ Use an existing plan (e.g. `plans.local/<project>/proj-123-example-feature.md`) 
 
 Pick the first candidate that applies, and `mkdir -p` it before writing:
 
-1. **`./plans.local/<subdir>/`** — if `./plans.local/` exists and contains subdirectories, match one to the current repo (`basename "$(pwd)"`).
+1. **`./plans.local/<subdir>/`** — if `./plans.local/` exists and contains subdirectories, match one to the current repo.
+   - Derive the repo name from the main repo's `.git` location, not `pwd` — `pwd` reports the current worktree's own path, which would fragment the match across worktrees of the same repo: `REPO_NAME=$(basename "$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)")`. This stays stable (e.g. `skills`) whether run from the main checkout or any linked worktree.
    - Case-insensitive substring match either way (repo contains subdir, or subdir contains repo). Example: repo `your-app-frontend` matches subdir `frontend`.
    - If multiple subdirs match, pick the longest.
    - If none match but only one subdir exists, use it.

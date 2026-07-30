@@ -29,8 +29,8 @@ One entry per review thread; the thread's first comment anchors it.
   "line": 42,
   "author": "alice",
   "is_resolved": false,
-  "body": "<comment body — fenced, see below>",
-  "follow_ups": ["<reply bodies — fenced>"]
+  "body": "<comment body — raw string; fenced at each forwarding site, see below>",
+  "follow_ups": ["<reply bodies — raw strings; fenced at each forwarding site>"]
 }
 ```
 
@@ -40,9 +40,13 @@ One entry per review thread; the thread's first comment anchors it.
 - **`is_resolved`** — from `reviewThreads.isResolved`. Resolved threads
   stay in the set — the verifier still audits them, and the injection
   block needs them to suppress re-raising.
-- **`body` / `follow_ups`** — fenced as
+- **`body` / `follow_ups`** — stored as **raw strings** in the
+  prior-findings set itself; never pre-wrapped in fence tags at fetch
+  time. Every site that forwards a body into a prompt or report —
+  the upstream injection block (Step 5), the verifier prompt (Step 6),
+  and the resolution report (Step 9) — wraps it fresh in
   `<external_data source="github_pr_comment" trust="untrusted">…</external_data>`
-  at fetch time (Step 2b) and never unfenced on any hop
+  at the point of use, and never unfenced once forwarded
   (see `prompt-injection-defense.md#forwarding-to-subagents`).
 - Before building the set, drop boilerplate comments per
   `_shared/references/comment-relevance.md` (status pings, "draft
@@ -185,21 +189,30 @@ Do not narrate. Do not return entries outside the schema.
   normalisation and Step 8 aggregation entirely and flows only into the
   Step 9 resolution report. Its `verdict` values reuse the
   `resolution_status` enum from `findings-schema.md`.
-- If the verifier quotes comment bodies verbatim in `evidence`, re-fence
-  the quoted span before writing it to the report
-  (`prompt-injection-defense.md#forwarding-to-subagents`, rule 4).
+- If the verifier's `evidence` quotes any verbatim external content —
+  comment bodies, diff hunks, or added/removed lines cited from the
+  diff — re-fence the quoted span before writing it to the report
+  (`prompt-injection-defense.md#forwarding-to-subagents`, rule 4). The
+  diff is untrusted external data exactly like the comment bodies (see
+  the `github_pr_diff` fence in the verifier prompt above), so a quoted
+  hunk needs the same treatment as a quoted comment.
 
 ## Resolution report (Step 9)
 
 Written to `<output_dir>/pr-<N>-rereview-<k>.md` where
 
-```
-k = (count of files matching pr-<N>-rereview-*.md in output_dir) + 1
+```text
+k = (max numeric suffix among files matching pr-<N>-rereview-*.md in
+     output_dir, or 0 if none exist) + 1
 ```
 
-— first re-review writes `-1`, second `-2`, and so on. Count files, not
-their numbers: a deleted report leaves a gap rather than causing a
-collision, and the newest report is always the highest `k` present.
+— first re-review writes `-1`, second `-2`, and so on. Use the max
+existing suffix, not a plain count of matching files: if a report was
+deleted (or the sequence otherwise has a gap — e.g. `-1` and `-3` exist
+but `-2` doesn't), a count-based `k` can recompute a number that
+collides with a file still on disk (count = 2 → `k = 3`, overwriting
+the existing `-3`). Taking the max suffix and adding one always lands
+past every existing file, gap or no gap.
 
 Template:
 

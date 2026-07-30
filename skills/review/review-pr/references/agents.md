@@ -119,7 +119,9 @@ contents minus frontmatter>
 # Output format
 
 Return a JSON array of findings. Each finding must conform to the
-canonical schema documented in `skills/review/review-pr/references/findings-schema.md`:
+canonical schema documented in
+`~/.claude/skills/review-pr/references/findings-schema.md` (dev tree
+`skills/review/review-pr/references/findings-schema.md`):
 
 [
 {

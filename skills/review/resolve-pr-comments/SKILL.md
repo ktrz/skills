@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-version: 1.10.0
+version: 1.10.1
 model: sonnet
 description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Also supports `--from-doc <file>` mode for processing only `[d]`-flagged items from a review handover document produced by `investigate-pr-comments`. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
 ---
@@ -26,7 +26,7 @@ This entry point is for the automated review pipeline (`implement-feature` → `
 When invoked via `--from-doc`:
 
 - Status marker rewriting: `[d]` → `[x]` if user picks the recommended option, `[d]` → `[~]` if user gives a custom instruction or edits, `[d]` → `[-]` if user skips, leave `[d]` if user defers further.
-- Resolution note: write `fix (a)`, `fix (b)`, the custom instruction verbatim, or `reply: <text>` per the schema in `skills/review/investigate-pr-comments/references/handover-format.md`.
+- Resolution note: write `fix (a)`, `fix (b)`, the custom instruction verbatim, or `reply: <text>` per the schema in `~/.claude/skills/investigate-pr-comments/references/handover-format.md` (dev tree `skills/review/investigate-pr-comments/references/handover-format.md`).
 - Do **not** implement code, do **not** post to GitHub, do **not** resolve threads. That is `execute-review-decisions`'s job after the user reviews the updated doc.
 - Skip the dedup pass against GitHub threads — the handover doc already deduped at write time.
 

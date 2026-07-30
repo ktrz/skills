@@ -1,6 +1,6 @@
 ---
 name: nwt
-version: 1.1.0
+version: 1.1.1
 description: Create a new git worktree using the `nwt` zsh function — auto-detects umbrella vs regular repo layout, branches as `<prefix><feature>` (prefix from git-config, env, or gh handle), and seeds the new worktree with local env/IDE/Claude config copied from the source worktree. Use whenever the user says "spin up a worktree", "new worktree for <ticket>", "nwt <something>", "start a fresh branch in a worktree", or whenever an automation needs an isolated worktree for parallel work (multiple agents, stacked features, hotfix while keeping main untouched). Prefer this over raw `git worktree add` — `nwt` also copies `.env.local`, `.npmrc`, `.idea/`, `.claude/settings.local.json`, `.claude/plans/.local/`, and symlinks `plans.local/` so the new worktree is immediately usable.
 ---
 

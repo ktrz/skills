@@ -16,13 +16,16 @@ works on macOS and Linux:
 
 ```bash
 CURRENT_MONTH=$(date +%Y-%m)
-PREVIOUS_MONTH=$(date -v-1m +%Y-%m 2>/dev/null || date -d "1 month ago" +%Y-%m)
-PREVIOUS_LABEL=$(date -v-1m +"%B %Y" 2>/dev/null || date -d "1 month ago" +"%B %Y")
+PREVIOUS_MONTH=$(date -v-1m +%Y-%m 2>/dev/null || date -d "$(date +%Y-%m-01) -1 month" +%Y-%m)
+PREVIOUS_LABEL=$(date -v-1m +"%B %Y" 2>/dev/null || date -d "$(date +%Y-%m-01) -1 month" +"%B %Y")
 ```
 
 → `CURRENT_MONTH` (e.g. `2026-05`), `PREVIOUS_MONTH` (e.g. `2026-04`),
 `PREVIOUS_LABEL` (e.g. `April 2026`). Year boundary is handled by `date`
-itself — January resolves to December of the prior year.
+itself — January resolves to December of the prior year. The GNU fallback
+anchors to the first of the current month before subtracting, so it
+doesn't overflow on 31-day months (e.g. running on May 31 correctly
+resolves to April, not skip to March).
 
 `MONTHLY_TITLE` = `<PREVIOUS_MONTH> — Monthly review` (e.g.
 `2026-04 — Monthly review`). The retro is **about** the previous month,
@@ -39,9 +42,38 @@ gh issue list --repo <DAY_PLAN_REPO> --state all --limit 20 \
   --json number,title,state,url
 ```
 
-Pick the result whose title equals `MONTHLY_TITLE` exactly. If found,
-save `MONTHLY_REVIEW_NUMBER`, `MONTHLY_REVIEW_URL`,
-`MONTHLY_REVIEW_STATE`, and return — never edit the body, never reopen a
+Filter the results to those whose title equals `MONTHLY_TITLE` **exactly**
+— `--search` matches loosely, so near-misses like
+`2026-04 — Monthly review (draft)` can come back too. Then pick exactly
+one:
+
+- **Exactly one match** → save `MONTHLY_REVIEW_NUMBER`,
+  `MONTHLY_REVIEW_URL`, `MONTHLY_REVIEW_STATE`, and return.
+
+- **Several matches, exactly one `OPEN`** → use the open one, save the
+  same three variables, and return. The open retro is the live one; a
+  hand-closed sibling is filed history.
+
+- **Several matches, none `OPEN`** → take the highest-numbered (most
+  recently created) one, save the same three variables, and return. A
+  closed retro still feeds the posture hint (see M2).
+
+- **More than one `OPEN` match** → ambiguous; do not guess, and do **not**
+  create another. Leave `MONTHLY_REVIEW_NUMBER` unset, emit one warning
+  line, and return:
+
+  > WARNING: multiple open `<MONTHLY_TITLE>` issues in `<DAY_PLAN_REPO>`:
+  > `#<N1>`, `#<N2>`. Skipping the posture hint — close or retitle the
+  > duplicates.
+
+  M2 already skips when `MONTHLY_REVIEW_NUMBER` is unset, so the daily
+  plan still runs and only the posture line is dropped. This is
+  deliberately softer than the day-plan lookups, which hard-stop: a
+  duplicated retro shouldn't cost the user their morning brief.
+
+- **No match** → fall through to the creation path below.
+
+On every branch that returns a match: never edit the body, never reopen a
 closed retro.
 
 If not found, the retro for the previous month hasn't been created yet —

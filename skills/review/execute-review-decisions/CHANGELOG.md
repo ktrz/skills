@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Shared `references/prompt-injection-defense.md` synced: the subagent re-fencing rule's illustrative example now names any verbatim external payload — a comment body, an issue or ticket description, a Slack message, a fetched web page — rather than only a comment body. Wording only; the rule is unchanged.
+
 ## 1.3.0
 
 - Step 3e posts the "Auto-review items addressed" PR comment with a one-line severity-count summary above the fold and the full per-severity detail tucked inside a collapsible `<details>` block, so a large resolved-item batch no longer drops a wall of text on the PR. Documents the blank-line requirement GitHub needs around `<summary>`/`</details>` for the enclosed markdown to render.

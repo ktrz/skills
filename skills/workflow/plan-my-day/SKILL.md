@@ -1,5 +1,5 @@
 ---
-version: 1.10.0
+version: 1.11.0
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees
@@ -218,10 +218,13 @@ date +%Y-%m-%d
 
 → save as TODAY.
 
-Compute `DAYS_SINCE` = whole days between `LAST_PLAN_DATE` and `TODAY`:
+Compute `DAYS_SINCE` = whole days between `LAST_PLAN_DATE` and `TODAY`. Use
+a BSD/GNU `date` fallback so this works on macOS and Linux:
 
 ```bash
-echo $(( ( $(date +%s) - $(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s) ) / 86400 ))
+LAST_PLAN_TS=$(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s)
+TODAY_TS=$(date -j -f "%Y-%m-%d" "$TODAY" +%s 2>/dev/null || date -d "$TODAY" +%s)
+DAYS_SINCE=$(( ( TODAY_TS - LAST_PLAN_TS ) / 86400 ))
 ```
 
 **If `DAYS_SINCE > 3`**, stop and ask the user before continuing:
@@ -239,14 +242,14 @@ answer to set `LAST_PLAN_DATE` (e.g. yesterday if they pick 24h).
 - `DATE` = `LAST_PLAN_DATE` (used for GitHub `merged:>=` queries)
 - `UNIX_TS` = unix timestamp of that date's midnight, local time:
   ```bash
-  date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s
+  UNIX_TS=$(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s)
   ```
 
 **If no prior plan was found**, fall back to a 24h window:
 
 ```bash
-date -v-24H +%Y-%m-%d   # → DATE
-date -v-24H +%s         # → UNIX_TS
+DATE=$(date -v-24H +%Y-%m-%d 2>/dev/null || date -d "24 hours ago" +%Y-%m-%d)
+UNIX_TS=$(date -v-24H +%s 2>/dev/null || date -d "24 hours ago" +%s)
 ```
 
 ---
@@ -281,8 +284,12 @@ repo's `branch_ticket_format`:
 
 1. Strip the `BRANCH_PREFIX/` or `<any-prefix>/` leading segment if present
    (e.g. `user/proj-123-slug` → `proj-123-slug`).
-2. Apply `TICKET_ID_REGEX` (jira/linear: `[A-Za-z][A-Za-z0-9]+-\d+`;
-   github: `\b\d+\b`; clickup: `[a-z0-9]{7,9}`). Take the first match.
+2. Apply `TICKET_ID_REGEX`, matched per `references/tracker.md`'s
+   **Extract a ticket key from a git branch name** guidance — that section
+   (not this one) is the source of truth for how the pattern is applied,
+   including case-insensitive matching for jira/linear since branch names
+   are usually lowercased. Take the first match; for github, if multiple
+   numbers remain, prefer the first 3+ digit run.
 3. Normalise:
    - jira/linear: uppercase the match. If `TRACKER_KEYS` is non-empty, prefer
      matches whose prefix appears in `TRACKER_KEYS`.
@@ -452,7 +459,7 @@ out one command per tool call sidesteps the restriction entirely.
 
 - **jira**: `searchJiraIssuesUsingJql` with
   - cloudId: CLOUD_ID
-  - jql: `assignee = currentUser() AND updated >= -7d ORDER BY updated DESC`
+  - jql: `assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC`
   - fields: `["key", "summary", "status", "priority"]` (must be an array of strings)
   - maxResults: `30` (must be a number, not a string)
 - **linear**: `mcp__linear-server__list_issues` with
@@ -803,10 +810,13 @@ Section rules:
   refreshes them one final time before closing the issue. See
   `references/standup.md`.
 
-Create the issue:
+Create the issue. Write `<body>` to a temp file first (e.g. via the Write
+tool) and pass it with `--body-file` rather than inlining the markdown in
+`--body` — the body can contain backticks and quotes that are fragile to
+shell-escape:
 
 ```bash
-gh issue create --repo <DAY_PLAN_REPO> --title "<title>" --body "<body>"
+gh issue create --repo <DAY_PLAN_REPO> --title "<title>" --body-file <TMP_BODY_FILE>
 ```
 
 **Close the previous plan issue** — if Phase 1 found `LAST_PLAN_NUMBER` and

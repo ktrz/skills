@@ -26,12 +26,16 @@ _nwt_default_prefix() {
 
 _nwt_resolve_prefix() {
   local p
-  p="$(git config --get nwt.branchPrefix 2>/dev/null)"
-  if [ -n "$p" ]; then
+  # Use each source's own presence signal, not value-emptiness — `git config
+  # --get`'s exit status (0 = key present, even if set to ""; 1 = absent) and
+  # `${VAR+set}` for the env var — so an explicitly empty override ("no
+  # prefix", per SKILL.md) is distinguishable from the source being unset and
+  # doesn't fall through to the next source.
+  if p="$(git config --get nwt.branchPrefix 2>/dev/null)"; then
     printf '%s' "$p"
     return
   fi
-  if [ -n "${NWT_BRANCH_PREFIX-}" ]; then
+  if [ "${NWT_BRANCH_PREFIX+set}" = set ]; then
     printf '%s' "$NWT_BRANCH_PREFIX"
     return
   fi

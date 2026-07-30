@@ -1,6 +1,6 @@
 ---
 name: review-pr
-version: 1.6.0
+version: 1.6.1
 model: sonnet
 description: >
   Review a pull request by dispatching specialized sub-agents in parallel
@@ -113,9 +113,12 @@ Defaults applied when keys are missing (see `review.example.yaml` for
 documentation):
 
 - `guidelines: []`
-- `output_dir: plans.local/<repo>/` (the `<repo>` token is substituted
-  from `basename $(git rev-parse --show-toplevel)`; user overrides are
-  taken verbatim — see Step 9 for the full resolution rules)
+- `output_dir: $REPO_ROOT/plans.local/<repo>/` (the `<repo>` token is
+  substituted from the repo directory name, derived so it stays stable
+  across worktrees of the same repo, and `$REPO_ROOT` anchors the
+  prefix to the repo root rather than the agent's CWD — see Step 9 for
+  the exact derivation and full resolution rules; user overrides are
+  taken verbatim)
 - `severity_threshold: suggestion`
 - `focus: []`
 - `agents:` omitted → defaults
@@ -334,15 +337,42 @@ Apply the pipeline in `references/aggregation.md`:
   exists.
 - Write findings to `<output_dir>/pr-<N>-auto-review.md` formatted as
   `[?]` items matching the Phase 2 handover schema (see
-  `skills/review/investigate-pr-comments/references/handover-format.md`).
+  `~/.claude/skills/investigate-pr-comments/references/handover-format.md`,
+  dev tree `skills/review/investigate-pr-comments/references/handover-format.md`).
 
 **`output_dir` resolution rules:**
 
-- **Default** (key missing or empty): `plans.local/<repo>/`. The
-  literal `<repo>` token is substituted with the repo directory name
-  derived from `basename $(git rev-parse --show-toplevel)`. Multiple
-  repos sharing the default get per-repo subdirectories
-  automatically.
+- **Default** (key missing or empty): `$REPO_ROOT/plans.local/<repo>/`.
+  The literal `<repo>` token is substituted with the repo directory
+  name, derived with:
+
+  ```bash
+  GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+  REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+  REPO_ROOT=$(git rev-parse --show-toplevel)   # prefix anchor — not the agent's CWD
+  ```
+
+  `--git-common-dir` points at the main repo's `.git` even when run
+  from a linked worktree, and the `cd … && pwd` wrapper canonicalizes
+  its output (which isn't always absolute — a plain checkout reports a
+  relative `.git` or `../.git`) before taking the basename. This is
+  what keeps `<repo>` identical across every worktree of the same
+  repo — do not simplify it back to
+  `basename $(git rev-parse --show-toplevel)`, which resolves to the
+  _worktree_ name instead. `REPO_ROOT` anchors the `plans.local/`
+  prefix itself to the repo root instead of leaving it a bare relative
+  path resolved against the agent's current working directory — a
+  bare `plans.local/…` would otherwise land inside whatever
+  subdirectory the skill happened to be invoked from. `plans.local` is
+  conventionally a symlink to a tree shared by every worktree (created
+  by `nwt`), which is what makes `review-pr` and
+  `investigate-pr-comments` agree on this path when they run from
+  different worktrees of the same repo; if a worktree has its own real
+  `plans.local/` directory instead of the symlink, its artifacts stay
+  local to that worktree — pass `--auto-review-file` explicitly to
+  `investigate-pr-comments` in that case. Multiple repos sharing the
+  default get per-repo subdirectories automatically.
+
 - **User override** (key present): the value is taken **verbatim** —
   no automatic `<repo>` append. The user is in control. Tilde (`~`),
   environment variables, and absolute paths are honoured. If the user
@@ -365,8 +395,9 @@ exactly there.
 
 **Validate the auto-mode file.** The `pr-<N>-auto-review.md` file uses
 the same handover schema the `review-plugin-mvp` extension loads (see
-`skills/review/investigate-pr-comments/references/handover-format.md` → "Auto-mode
-file"). After writing it (auto pipeline **and** auto standalone), run the
+`~/.claude/skills/investigate-pr-comments/references/handover-format.md`,
+dev tree `skills/review/investigate-pr-comments/references/handover-format.md`
+→ "Auto-mode file"). After writing it (auto pipeline **and** auto standalone), run the
 vendored real parser, shipped with this skill at `vendor/handover-validator.mjs`.
 Substitute the absolute skill base directory the harness injected
 ("Base directory for this skill: …") for `<skill-base-dir>`:
@@ -435,13 +466,16 @@ When `--re-review` ran with a non-empty prior-findings set, write the
 verifier's verdicts to a **numbered** report in addition to the mode's
 normal output:
 
-```
+```text
 <output_dir>/pr-<N>-rereview-<k>.md
-k = (count of existing pr-<N>-rereview-*.md in output_dir) + 1
+k = (max numeric suffix among existing pr-<N>-rereview-*.md in output_dir, or 0 if none exist) + 1
 ```
 
 — first re-review writes `pr-<N>-rereview-1.md`, the second `-2`, and
-so on. Format per `references/rereview-agent.md` ("Resolution
+so on. Use the max existing suffix, not a plain count: if the sequence
+has a gap (e.g. `-1` and `-3` exist but `-2` doesn't), a count-based
+`k` can recompute a number that collides with a file still on disk.
+Format per `references/rereview-agent.md` ("Resolution
 report"). `output_dir` resolves by the same rules as the findings file
 above. The report is written in **all three modes** — deep mode skips
 the findings file because triage happened interactively, but the

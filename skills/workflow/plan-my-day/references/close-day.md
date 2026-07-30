@@ -16,16 +16,55 @@ date +%Y-%m-%d
 → `TODAY`.
 
 ```bash
-gh issue list --repo <DAY_PLAN_REPO> --state open --limit 10 \
-  --json number,title,body
+gh issue list --repo <DAY_PLAN_REPO> --state all --limit 30 \
+  --search "in:title \"<TODAY> —\"" \
+  --json number,title,body,state
 ```
 
-Find the issue whose title starts with `<TODAY> — `. If none, stop and tell
-the user:
+Query all states (not just `open`) — a day-plan issue that's already been
+closed still needs to be found so the idempotency check below can refuse
+cleanly instead of never triggering. Scope the lookup with `--search
+in:title` rather than relying on the plain `--limit` default: `gh issue
+list` without a search term returns only the most recent issues, so on a
+busy repo today's day-plan issue could fall outside the window and be
+missed entirely. The title search narrows the candidate set to (almost
+always) a single match regardless of how many other issues exist.
 
-> No open day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
-> `/plan-my-day` first to create one, or pass a date if you want to close a
-> different day.
+Filter the results to issues whose title starts with `<TODAY> — ` (exact
+prefix, em dash included) — `--search` matches loosely and can return
+near-misses. Then pick exactly one:
+
+- **No match** → stop and tell the user:
+
+  > No day-plan issue for `<TODAY>` in `<DAY_PLAN_REPO>`. Run
+  > `/plan-my-day` first to create one, or pass a date if you want to
+  > close a different day.
+
+- **Exactly one match** → use it.
+
+- **Several matches, exactly one `OPEN`** → use the open one; ignore the
+  closed siblings. This is the expected shape after a second
+  `/plan-my-day` run on the same day: the daily flow creates a fresh issue
+  and closes the previous one, so a closed same-date sibling is normal
+  history, not an anomaly. The surviving open issue is the authoritative
+  plan.
+
+- **Several matches, none `OPEN`** → every same-date plan is already
+  closed. Take the highest-numbered (most recently created) one and fall
+  through to the already-closed refusal below.
+
+- **More than one `OPEN` match** → genuinely ambiguous; do not guess.
+  Stop and tell the user:
+
+  > Multiple open day-plan issues for `<TODAY>` in `<DAY_PLAN_REPO>`:
+  > `#<N1>`, `#<N2>`. Close or retitle the stale ones, then re-run
+  > `/plan-my-day close`.
+
+If the selected issue's `state` is already `CLOSED`, stop here — do not
+reopen it or re-run C1–C4. Tell the user:
+
+> `<DAY_PLAN_REPO>#<ISSUE_NUMBER>` for `<TODAY>` is already closed.
+> Nothing to do.
 
 Save:
 
@@ -67,18 +106,28 @@ if the issue body was tampered with, so structural parsing only.
 
 Tick-matching is regex-based:
 
-1. Extract the ticket key on each `### Done` bullet using the same
-   `TICKET_ID_REGEX` the daily flow uses (jira/linear:
-   `[A-Za-z][A-Za-z0-9]+-\d+`; github: `\b\d+\b`; clickup:
-   `[a-z0-9]{7,9}`). Collect into a `DONE_KEYS` set, normalised to
-   uppercase for jira/linear. For non-ticket labels (e.g.
-   `**Review PR #NNN**` or freeform titles) extract the bolded label
-   verbatim with a `\*\*([^*]+)\*\*` regex into `DONE_LABELS`.
+1. Classify each `### Done` bullet before extracting anything from it.
+   If the bolded lead-in matches a recognized non-ticket label pattern
+   (e.g. `**Review PR #NNN**` or another freeform bolded title —
+   anything that isn't a bare tracker id), extract the bolded label
+   verbatim with a `\*\*([^*]+)\*\*` regex, trimmed of surrounding
+   whitespace, into `DONE_LABELS` and stop there — do **not** also run
+   ticket-key extraction on that bullet.
+   Otherwise, extract the ticket key using the same `TICKET_ID_REGEX`
+   the daily flow uses for `TRACKER_TYPE` (`references/tracker.md` →
+   **Ticket ID format** — that table is the single source of truth for
+   these patterns, don't restate them here) and collect it into a
+   `DONE_KEYS` set, normalised to uppercase for jira/linear. This
+   ordering matters for github: without it, the digits inside a label
+   like `**Review PR #1**` would also match the github ticket pattern
+   and pollute `DONE_KEYS` with a spurious `1`, ticking an unrelated
+   Plan-section item keyed `1`.
 2. For every Plan-section checkbox `- [ ] **<key-or-label>** ...`,
    extract the same key/label with the same regex. Flip `[ ]` → `[x]`
    when the extracted key is in `DONE_KEYS` (case-insensitive) or the
-   extracted label appears as a substring of any entry in
-   `DONE_LABELS` (case-insensitive).
+   extracted label, trimmed of surrounding whitespace, exactly equals
+   (case-insensitive) an entry in `DONE_LABELS`. Substring containment
+   does not count — `Review PR #1` must never flip `Review PR #10`.
 3. Do **not** ask the LLM to "figure out which items match" — only the
    regex extraction and set membership above. This keeps tampered Done
    bullets from steering checkbox flips beyond their literal token
@@ -126,10 +175,13 @@ sweep.
 
 ## Phase C4 — Persist and close
 
-Write the updated body back:
+Write the updated body back. Write `<NEW_BODY>` to a temp file first (e.g.
+via the Write tool) and pass it with `--body-file` rather than inlining the
+markdown in `--body` — the body can contain backticks and quotes that are
+fragile to shell-escape:
 
 ```bash
-gh issue edit <ISSUE_NUMBER> --repo <DAY_PLAN_REPO> --body "<NEW_BODY>"
+gh issue edit <ISSUE_NUMBER> --repo <DAY_PLAN_REPO> --body-file <TMP_BODY_FILE>
 ```
 
 Then close:
