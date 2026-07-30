@@ -223,7 +223,8 @@ a BSD/GNU `date` fallback so this works on macOS and Linux:
 
 ```bash
 LAST_PLAN_TS=$(date -j -f "%Y-%m-%d" "<LAST_PLAN_DATE>" +%s 2>/dev/null || date -d "<LAST_PLAN_DATE>" +%s)
-DAYS_SINCE=$(( ( $(date +%s) - LAST_PLAN_TS ) / 86400 ))
+TODAY_TS=$(date -j -f "%Y-%m-%d" "$TODAY" +%s 2>/dev/null || date -d "$TODAY" +%s)
+DAYS_SINCE=$(( ( TODAY_TS - LAST_PLAN_TS ) / 86400 ))
 ```
 
 **If `DAYS_SINCE > 3`**, stop and ask the user before continuing:

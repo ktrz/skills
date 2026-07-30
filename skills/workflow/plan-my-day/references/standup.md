@@ -22,6 +22,7 @@ date +%Y-%m-%d
 
 ```bash
 gh issue list --repo <DAY_PLAN_REPO> --state open --limit 10 \
+  --search "in:title \"<TODAY> —\"" \
   --json number,title,body
 ```
 
