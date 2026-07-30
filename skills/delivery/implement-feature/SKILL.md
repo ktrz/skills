@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-version: 1.3.1
+version: 1.3.2
 model: sonnet
 description: >
   Execute a multi-phase feature plan using parallel worktree agents, then open PRs. Use when you

@@ -1,6 +1,6 @@
 ---
 name: request-review
-version: 1.3.0
+version: 1.3.1
 description: Request a code review by posting to Slack and transitioning the ticket to "In Review". Use this whenever the user asks to request a review, send an LFR, post to Slack for review, or mark a ticket as in review. Posts in the "LFR please" format to the configured Slack channel and transitions the tracker issue automatically.
 model: haiku
 ---

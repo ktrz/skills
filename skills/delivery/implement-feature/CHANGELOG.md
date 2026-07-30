@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- Sync `references/tracker.md` from `_shared/`: the ticket-ID patterns now have a single source of truth (the Ticket ID format table) instead of being restated per extraction rule; the `github` fallback requires an explicit `#<n>` reference, so a bare number in prose is no longer read as a ticket key; the `clickup` matcher's token boundaries exclude uppercase; and the default-branch snippet resolves the discovered branch name to a revision the clone actually has (`refs/heads/<b>` → `origin/<b>` → skip) rather than assuming a local branch exists.
+
 ## 1.3.1
 
 - Step 5a step 2: note that a freshly-opened PR normally has zero human reviewer comments and `investigate-pr-comments` still writes the handover doc in that case (auto-review-only, or empty) — always expect the decisions file to exist after this step, and treat a missing file as a failure to surface rather than the expected fresh-PR outcome. Mirrors the always-write invariant added to `investigate-pr-comments` 1.4.0

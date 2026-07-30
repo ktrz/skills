@@ -1,7 +1,7 @@
 ---
 name: commit-message-format
 description: This skill should be used whenever creating, writing, or validating a git commit message. Apply when the user asks to commit, when staged changes are present, or when reviewing a commit message draft.
-version: 1.2.0
+version: 1.2.1
 model: sonnet
 ---
 

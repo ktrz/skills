@@ -1,5 +1,5 @@
 ---
-version: 1.5.0
+version: 1.5.1
 name: plan-my-day-setup
 description: >
   Interactive setup wizard for the plan-my-day skill. Walks users through

@@ -55,12 +55,12 @@ tracker:
 
 ## Ticket ID format
 
-| Backend | Regex                                                                    | Example         |
-| ------- | ------------------------------------------------------------------------ | --------------- |
-| jira    | `[A-Z][A-Z0-9]+-\d+`                                                     | `PROJ-123`      |
-| linear  | `[A-Z][A-Z0-9]+-\d+`                                                     | `ENG-45`        |
-| github  | `#?\d+`                                                                  | `#567` or `567` |
-| clickup | `(?<![a-z0-9])[a-z0-9]{7,9}(?![a-z0-9])` (opaque 7–9 chars, whole token) | `8669abc12`     |
+| Backend | Regex                                                                          | Example         |
+| ------- | ------------------------------------------------------------------------------ | --------------- |
+| jira    | `[A-Z][A-Z0-9]+-\d+`                                                           | `PROJ-123`      |
+| linear  | `[A-Z][A-Z0-9]+-\d+`                                                           | `ENG-45`        |
+| github  | `#?\d+`                                                                        | `#567` or `567` |
+| clickup | `(?<![A-Za-z0-9])[a-z0-9]{7,9}(?![A-Za-z0-9])` (opaque 7–9 chars, whole token) | `8669abc12`     |
 
 Jira and Linear share the same regex shape; disambiguate by `tracker.type`.
 
@@ -108,15 +108,15 @@ If the transition fails (invalid id, missing state, label not present), report t
 
 ### Extract a ticket key from a git branch name
 
-Pattern depends on `tracker.type`:
+Match the pattern for `tracker.type` from the **Ticket ID format** table above against the branch name — that table is the single source of truth for these regexes, don't restate them here. Branch-specific handling on top of it:
 
-- **jira / linear**: match `[A-Za-z][A-Za-z0-9]+-\d+` anywhere in the branch, uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys` when multiple candidates exist.
-- **github**: match `\b\d+\b` after stripping any user prefix (`user/`, `feat/`, etc.). If multiple numbers, prefer the first 3+ digit run. If unclear, fall back to PR title.
-- **clickup**: match `(?<![a-z0-9])[a-z0-9]{7,9}(?![a-z0-9])` in the branch; if none, fall back to the task's custom-id if the team uses one.
+- **jira / linear**: match anywhere in the branch, case-insensitively (branch names are usually lowercased), then uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys` when multiple candidates exist.
+- **github**: strip any leading prefix segment (`user/`, `feat/`, etc.) before matching. If multiple numbers remain, prefer the first 3+ digit run. If the branch yields nothing, fall back to the PR title **when a PR already exists**, otherwise to the commit subject (`git log -1 --format=%s`). In either fallback only an explicit `#<n>` reference counts — `#567`, or `closes`/`fixes`/`refs #567`. A bare number in prose is **not** a ticket reference: `fix(auth): handle 401 errors` yields no key, never `401`. If no explicit reference is found, ask the user.
+- **clickup**: match anywhere in the branch; if none, fall back to the task's custom-id if the team uses one.
 
 If extraction fails:
 
-1. Check recent commit messages on the branch against the repository's actual default branch. Don't hard-default to `main` — derive it the same way `execute-phase` does (origin/HEAD → `git remote show origin` → local `main`/`master` probe → leave empty rather than erroring):
+1. Check recent commit messages on the branch against the repository's actual default branch. Don't hard-default to `main` — derive it the same way `execute-phase` does (origin/HEAD → `git remote show origin` → local `main`/`master` probe → leave empty rather than erroring), then resolve that **name** to a revision this clone actually has (`refs/heads/<branch>` → `origin/<branch>` → empty):
 
    ```bash
    DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
@@ -134,12 +134,24 @@ If extraction fails:
        DEFAULT_BRANCH=master
      fi
    fi
+   # The steps above yield a branch *name*, which is not necessarily a revision
+   # this clone can resolve — `gh pr checkout`, `git clone --single-branch` and
+   # shallow CI clones all leave the default branch with no local ref. Resolve
+   # the name to a usable revision before handing it to `git log`.
+   BASE_REV=""
    if [ -n "$DEFAULT_BRANCH" ]; then
-     git log --format=%s "$DEFAULT_BRANCH"..HEAD
+     if git show-ref --verify --quiet "refs/heads/$DEFAULT_BRANCH"; then
+       BASE_REV="$DEFAULT_BRANCH"
+     elif git show-ref --verify --quiet "refs/remotes/origin/$DEFAULT_BRANCH"; then
+       BASE_REV="origin/$DEFAULT_BRANCH"
+     fi
+   fi
+   if [ -n "$BASE_REV" ]; then
+     git log --format=%s "$BASE_REV"..HEAD
    fi
    ```
 
-   If `DEFAULT_BRANCH` is still empty (no origin/HEAD, no reachable remote, and neither `main` nor `master` exists locally), skip this check rather than guessing.
+   If `BASE_REV` ends up empty — no default branch discovered (no origin/HEAD, no reachable remote, neither `main` nor `master` locally), or a name was discovered but has neither a local branch nor an `origin/` remote-tracking ref — skip this check rather than guessing a base.
 
 2. If still empty, ask the user for the key.
 

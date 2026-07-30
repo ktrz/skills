@@ -1,6 +1,6 @@
 ---
 name: execute-review-decisions
-version: 1.3.0
+version: 1.3.1
 model: sonnet
 description: >
   Execute approved decisions from a review handover document — implement
