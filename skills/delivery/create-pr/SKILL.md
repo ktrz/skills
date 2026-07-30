@@ -1,6 +1,6 @@
 ---
 name: create-pr
-version: 1.3.0
+version: 1.3.1
 description: Create a GitHub pull request following the project's PR template. Use this whenever the user asks to create a PR, open a pull request, or submit their branch for review. Automatically detects stacked branches, fills in the ticket reference, description, and test scenario from context. Pass `--draft` to open the PR as a draft.
 model: haiku
 ---
@@ -65,13 +65,9 @@ If the fork point is reachable from a feature branch (not just main), the PR is 
 
 ## Step 2: Extract ticket reference
 
-Dispatch by `tracker.type` per `references/tracker.md`:
+Dispatch by `tracker.type` and extract the ticket ID from the branch name per `references/tracker.md` — it defines the ID pattern and branch-extraction rule for each tracker type (jira, linear, github, clickup), including per-type fallbacks.
 
-- **jira / linear**: match `[A-Za-z][A-Za-z0-9]+-\d+` in the branch (case-insensitive). Uppercase the result. Prefer matches whose prefix appears in `project_keys` / `team_keys`.
-- **github**: match `\b\d+\b` after stripping any user/feature prefix (`user/`, `feat/`, etc.). If multiple numbers appear, prefer the first 3+ digit run. If still unclear, check the commit-subject line (`git log -1 --format=%s`) for a number; if it's still unresolved, ask the user rather than guessing.
-- **clickup**: match `[a-z0-9]{7,9}`.
-
-If nothing matches, check recent commit messages, then ask the user.
+If extraction fails or stays ambiguous after those rules, check recent commit messages (e.g. `git log -1 --format=%s`) for a ticket reference. If it's still unresolved, ask the user rather than guessing.
 
 Build the link using the URL template for the tracker (see `references/tracker.md` → Link format). Store as `<TICKET_LINK>` for the body.
 

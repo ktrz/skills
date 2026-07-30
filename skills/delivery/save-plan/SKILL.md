@@ -1,6 +1,6 @@
 ---
 name: save-plan
-version: 1.0.0
+version: 1.0.1
 model: sonnet
 description: >
   Save the current conversation's plan, design, or strategy discussion into
@@ -16,6 +16,9 @@ allowedTools:
   - Write
   - Bash(git rev-parse:*)
   - Bash(basename:*)
+  - Bash(dirname:*)
+  - Bash(cd:*)
+  - Bash(pwd:*)
   - Bash(ls:*)
   - Bash(mkdir -p:*)
   - Bash(mv:*)
@@ -87,7 +90,16 @@ No auto-create symlink — target path personal (how user organises plans across
 
 ### Step 1 — Project subdir
 
-Default to `basename $REPO_ROOT` (so in `~/projects/skills` project subdir = `skills`). Peek existing layout to reuse:
+Derive the project subdir name from the repo's stable identity, not from `$REPO_ROOT` — `REPO_ROOT` is this worktree's own path, and a plain `basename` of it would fragment plans per-worktree instead of sharing one project subdir:
+
+```bash
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+```
+
+`--git-common-dir` resolves to the main repo's `.git` even from a linked worktree, which is what keeps `REPO_NAME` identical across every worktree of this repo. Its output isn't always absolute — a plain (non-worktree) checkout reports a relative `.git` or `../.git` — so the `cd … && pwd` wrapper is required to canonicalize before taking the basename; do not simplify this to `basename $(git rev-parse --show-toplevel)`, which silently returns the _worktree_ name instead of the repo name.
+
+Default project subdir to `$REPO_NAME` (so in `~/projects/skills` project subdir = `skills`, and stays `skills` from any of its worktrees). Peek existing layout to reuse:
 
 ```bash
 ls -1 "$REPO_ROOT/plans.local/"
@@ -120,13 +132,21 @@ Respect existing topic dir over flat file: if `plans.local/<project>/<slug>/` al
 
 ### Step 2b — Promote an existing flat file into a topic dir
 
-Check flat file for slug exists. `SESSION-*` files are named by date (`SESSION-YYYY-MM-DD.md`, see Phase 2), not by slug, so match the date form only:
+Check flat file for slug exists — only slug-bearing names count:
 
 ```bash
-ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|NOTES)-<slug>\.md$|^SESSION-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$|^<slug>\.md$"
+ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^(PLAN|NOTES)-<slug>\.md$|^<slug>\.md$"
 ```
 
-Matching flat file there → decide promote to topic dir before new save. Promote when:
+Separately, list any `SESSION-*` files in the project dir:
+
+```bash
+ls -1 "$REPO_ROOT/plans.local/<project>/" 2>/dev/null | grep -E "^SESSION-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$"
+```
+
+`SESSION-*` files are named by date (`SESSION-YYYY-MM-DD.md`, see Phase 2), not by slug — an unrelated session file from some other topic will always match that pattern, so a `SESSION-*` hit never by itself means this slug already exists. Only fold one into the topic dir if the user confirms it's actually about this topic.
+
+Matching flat file (slug form) there → decide promote to topic dir before new save. Promote when:
 
 - New save adds **different KIND** alongside existing (e.g. existing `PLAN-foo.md`, now saving decisions log or session summary).
 - User signals topic outgrowing single file ("add a decisions doc", "keep notes for this topic", "this has gotten big", "we'll keep coming back to this").
@@ -151,7 +171,7 @@ When promoting, do file move + new save as two visible steps so user sees migrat
    Translate KIND/slug pattern for non-PLAN files:
    - `PLAN-<slug>.md` → `<slug>/PLAN.md`
    - `NOTES-<slug>.md` → `<slug>/NOTES.md`
-   - `SESSION-<date>.md` → `<slug>/SESSION-<date>.md` (preserve date)
+   - `SESSION-<date>.md` → `<slug>/SESSION-<date>.md` (preserve date; only migrate if user confirms this session belongs to the topic — date alone doesn't establish that)
    - `<slug>.md` → `<slug>/NOTES.md` (plain files promote to NOTES)
 
 3. Continue Phase 2 with topic-dir branch + new filename inside `<slug>/`.

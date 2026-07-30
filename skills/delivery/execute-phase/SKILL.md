@@ -1,6 +1,6 @@
 ---
 name: execute-phase
-version: 1.2.0
+version: 1.3.0
 model: sonnet
 description: Execute a phase from an implementation plan in an isolated git worktree. Use when the user says "execute phase", "run phase N", "start phase", or wants to kick off implementation of a plan phase in a worktree. Accepts plan paths or ticket keys from any supported tracker (jira, linear, github, clickup) via references/tracker.md.
 ---
@@ -30,9 +30,26 @@ Resolve the repo root first so every later step works regardless of the current 
 - Search for a matching plan file, including the `plans.local/` tree that `save-plan` writes to. `save-plan` may store a plan as a flat file (`plans.local/<project>/PLAN-<ticket-key>.md`) or, for topic-directory plans, drop the identifying slug from the filename entirely and carry it only in the directory name (`plans.local/<project>/<ticket-key>/PLAN.md`) — so match the ticket key against the full candidate path, not just the filename. `plans.local` is typically a symlink, so pass `-L` to traverse into it:
 
   ```bash
-  find -L "$REPO_ROOT/plans" "$REPO_ROOT/.claude/plans" "$REPO_ROOT/plans.local" \
-    -name "*.md" -ipath "*$(echo <TICKET-KEY> | tr '[:upper:]' '[:lower:]')*" 2>/dev/null
+  KEY=$(printf '%s' "<TICKET-KEY>" | tr -d '#' | tr '[:upper:]' '[:lower:]')
+  (cd "$REPO_ROOT" && find -L plans .claude/plans plans.local -name "*.md" 2>/dev/null) \
+    | grep -Ei "(^|[^a-z0-9])$KEY([^a-z0-9]|$)" \
+    | awk -v root="$REPO_ROOT" '{ print root "/" $0 }'
   ```
+
+  Three details that snippet depends on — don't simplify them away:
+
+  - **Normalise the key first.** Strip a leading `#`: GitHub ids are written `#567` but nothing on
+    disk carries the `#` (`references/tracker.md` → Ticket ID format). Substitute the key through
+    `printf`, never `echo` — a raw `#567` inside `$(echo …)` opens a shell comment, so the command
+    substitution is never closed and the whole command fails to parse.
+  - **Match the key as a whole token.** The `(^|[^a-z0-9])` / `([^a-z0-9]|$)` guards require the key
+    to be bounded by non-alphanumeric characters or the ends of the path, so `PROJ-1` selects
+    `PROJ-1` but not `PROJ-10`. A plain substring test — `find … -ipath "*proj-1*"` — does not.
+  - **Search relative to `$REPO_ROOT`, then re-absolutise with `awk`.** The repo root's own path must
+    stay out of the matched text: this repo checks phases out under `worktrees/<feature>/`, so with
+    absolute paths a worktree named `skl-1-move` would make key `SKL-1` match _every_ plan file.
+    `plans.local` usually symlinks to a central tree covering every project, so an over-broad pattern
+    has a very large blast radius.
 
 - If exactly one match, use it.
 - If multiple matches, list them and ask the user to pick.
@@ -137,7 +154,30 @@ if [ -z "$DEFAULT_BRANCH" ]; then
     exit 1
   fi
 fi
+
+# `nwt` hands this straight to `git worktree add <path> -b <feature> <base-branch>`, which
+# resolves <base-branch> as a *local* branch. The first two probes above read the branch name
+# off the remote, so it may well have no local ref — and a remote-only name misbehaves in two
+# different ways, neither of them useful:
+#   - exactly one remote carries it → git silently ignores `-b <feature>` and instead creates
+#     and checks out a local branch named after the *base*, so the phase worktree ends up
+#     sitting on the default branch and Step 5's branch match below finds nothing;
+#   - two or more remotes carry it  → `fatal: invalid reference: <base-branch>`.
+# Materialise a local tracking branch first so `-b <feature>` is honoured.
+if ! git -C <repo-root> show-ref --verify --quiet "refs/heads/$DEFAULT_BRANCH"; then
+  if git -C <repo-root> show-ref --verify --quiet "refs/remotes/origin/$DEFAULT_BRANCH"; then
+    git -C <repo-root> branch --track "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH" || exit 1
+  else
+    echo "execute-phase: base branch '$DEFAULT_BRANCH' exists neither locally nor as 'origin/$DEFAULT_BRANCH' — nwt needs a local branch. Create it first, or pass an existing local branch as the third argument." >&2
+    exit 1
+  fi
+fi
 ```
+
+`DEFAULT_BRANCH` now names a branch that exists locally, which is what `nwt` requires (see
+`../nwt/SKILL.md` → "When to use vs. raw `git worktree add`"). The block is a no-op whenever the
+branch is already local — including every case where the third argument was supplied explicitly for
+a stacked phase, so that value still wins outright.
 
 Run from the **repo root** (not from inside a worktree):
 

@@ -38,10 +38,11 @@ Graduation is a single `git mv skills/wip/<skill>` into the target group (or
    new group path and remove `<skill>-v2`:
 
    ```bash
-   rm ~/.claude/skills/<skill> ~/.claude/skills/<skill>-v2
-   ln -sfn <new-path> ~/.claude/skills/<skill>
+   rm -f ~/.claude/skills/<skill> ~/.claude/skills/<skill>-v2
+   ln -sfn <abs-repo-root>/skills/<group>/<skill> ~/.claude/skills/<skill>
    ```
 
+   The symlink target must be absolute; a relative path would resolve against `~/.claude/skills/`.
    Exactly one symlink survives, named `<skill>` with no suffix,
    matching the frontmatter `name:` from step 2.
 
