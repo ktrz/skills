@@ -1,6 +1,6 @@
 ---
 name: investigate-pr-comments
-version: 1.7.0
+version: 1.7.1
 model: sonnet
 description: >
   Investigate all review sources for a PR — auto-review findings file and
@@ -79,11 +79,22 @@ Resolve the auto-review file path before reading:
 
 - If `--auto-review-file <path>` was passed, use it verbatim.
 - If it was **not** passed, auto-detect the default location
-  `plans.local/<repo>/pr-<N>-auto-review.md` (where `<repo>` is the repo
-  directory name from `basename $(git rev-parse --show-toplevel)`) before
-  concluding there is no Source A. `review-pr` auto-mode writes here by
-  default, so the file usually exists even when the caller forgot to pass
-  the flag.
+  `plans.local/<repo>/pr-<N>-auto-review.md` before concluding there is
+  no Source A. `<repo>` is the repo directory name, derived the same
+  stable way as in `review-pr` Step 9 (`git rev-parse --git-common-dir`,
+  then canonicalize and take the basename) — **not**
+  `basename $(git rev-parse --show-toplevel)`, which would resolve to
+  the current _worktree_'s name and miss the file `review-pr` actually
+  wrote when the two skills run from different worktrees of the same
+  repo:
+
+  ```bash
+  GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+  REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+  ```
+
+  `review-pr` auto-mode writes here by default, so the file usually
+  exists even when the caller forgot to pass the flag.
 
 Then:
 
@@ -255,8 +266,10 @@ order from Step 2 before proceeding to Step 4.
 ### Step 4: Write the handover document
 
 Resolve output path: `plans.local/<repo>/pr-<N>-review-decisions.md`,
-where `<repo>` is the repo directory name from
-`git rev-parse --show-toplevel`.
+where `<repo>` is derived the same way as in Step 1 Source A above
+(`git rev-parse --git-common-dir`, canonicalized, then basename) so
+this write lands in the same per-repo directory regardless of which
+worktree this skill runs from.
 
 Write the document conforming to
 `~/.claude/skills/investigate-pr-comments/references/handover-format.md`

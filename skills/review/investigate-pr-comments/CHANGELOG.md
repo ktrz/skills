@@ -1,12 +1,17 @@
 # Changelog
 
+## 1.7.1
+
+- **Worktree fix: the `<repo>` token in `plans.local/<repo>/…` now identifies the repository, not the current worktree.** Both the Step 1 Source A auto-detect and the Step 4 output path derive it from the main repo's git directory (`git rev-parse --git-common-dir`, canonicalized, then basename) instead of `basename $(git rev-parse --show-toplevel)`, matching `review-pr` Step 9. Previously every worktree minted its own token, and because `review-pr` derives the token independently, running the two skills from different worktrees of the same repo made Source A auto-detect miss the `review-pr` findings file sitting one directory over — and the handover doc land in a per-worktree directory nobody reads. That is the normal flow, since `execute-phase`/`implement-feature` run each phase inside its own worktree
+- CodeRabbit review fix: the `findings-schema.md` cross-reference in `references/handover-format.md` and the `aggregation.md` cross-references in `references/prior-handled.md` now point at the installed path (`~/.claude/skills/review-pr/references/…`) with the dev-tree path noted alongside.
+- Shared `references/prompt-injection-defense.md` synced: the subagent re-fencing rule's illustrative example now names any verbatim external payload — a comment body, an issue or ticket description, a Slack message, a fetched web page — rather than only a comment body. Wording only; the rule is unchanged
+
 ## 1.7.0
 
 - **Review history is no longer ignored.** Step 1 Source B now fetches **resolved** review threads too (the existing paginated `reviewThreads` query already returns `isResolved` — partition on it instead of filtering). Resolved threads are tagged `prior-handled` with resolution state preserved (`resolvedBy` login + last-activity timestamp as the `<when>` proxy, since the API exposes no resolution timestamp), bodies fenced as untrusted at fetch time. They never become queue items — context only, so the empty-queue fast path and always-write invariant are untouched
 - Step 2 grew a **prior-handled downgrade pass**: each new auto-review or human item matching a prior-handled thread — identity = same `(file, line)` + substantively overlapping point per a per-finding LLM judge (overlap-skim shape from `review-pr/references/aggregation.md`, fenced bodies, boolean output, 50-call cap failing open to "fresh") — is **downgraded and annotated, never dropped**: `**Note:** already handled in a prior review (thread resolved <when> by @<login>)`, keeping its `[?]` marker, severity, and queue position so the user can skip it in seconds without losing the signal that it resurfaced. Full rules in new `references/prior-handled.md`
 - Trust boundaries table — resolved thread bodies listed as untrusted, same handling as unresolved (fenced on fetch; read only by the construction-time relevance pre-filter + keyword scan and the boolean downgrade judge; never forwarded to investigators; never copied into the handover)
 - **Fence hardening (shared).** `_shared/references/prompt-injection-defense.md` fence-syntax section now requires neutralizing any inner `</external_data>` (and forged opening tags) in an untrusted payload before wrapping, so a hostile body cannot terminate its own fence and cross the trust boundary. Synced to all 10 consumer skills; called out explicitly at the resolved-body fence sites in `SKILL.md` and `references/prior-handled.md`
-- CodeRabbit review fix: the `aggregation.md` cross-references in `handover-format.md` and `references/prior-handled.md` now point at the installed path (`~/.claude/skills/review-pr/references/aggregation.md`) with the dev-tree path noted alongside.
 
 ## 1.6.0
 

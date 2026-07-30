@@ -1,6 +1,6 @@
 ---
 name: review-pr
-version: 1.6.0
+version: 1.6.1
 model: sonnet
 description: >
   Review a pull request by dispatching specialized sub-agents in parallel
@@ -114,8 +114,9 @@ documentation):
 
 - `guidelines: []`
 - `output_dir: plans.local/<repo>/` (the `<repo>` token is substituted
-  from `basename $(git rev-parse --show-toplevel)`; user overrides are
-  taken verbatim — see Step 9 for the full resolution rules)
+  from the repo directory name, derived so it stays stable across
+  worktrees of the same repo — see Step 9 for the exact derivation and
+  full resolution rules; user overrides are taken verbatim)
 - `severity_threshold: suggestion`
 - `focus: []`
 - `agents:` omitted → defaults
@@ -340,10 +341,24 @@ Apply the pipeline in `references/aggregation.md`:
 **`output_dir` resolution rules:**
 
 - **Default** (key missing or empty): `plans.local/<repo>/`. The
-  literal `<repo>` token is substituted with the repo directory name
-  derived from `basename $(git rev-parse --show-toplevel)`. Multiple
-  repos sharing the default get per-repo subdirectories
-  automatically.
+  literal `<repo>` token is substituted with the repo directory name,
+  derived with:
+
+  ```bash
+  GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+  REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+  ```
+
+  `--git-common-dir` points at the main repo's `.git` even when run
+  from a linked worktree, and the `cd … && pwd` wrapper canonicalizes
+  its output (which isn't always absolute — a plain checkout reports a
+  relative `.git` or `../.git`) before taking the basename. This is
+  what keeps `<repo>` identical across every worktree of the same
+  repo — do not simplify it back to
+  `basename $(git rev-parse --show-toplevel)`, which resolves to the
+  _worktree_ name instead. Multiple repos sharing the default get
+  per-repo subdirectories automatically.
+
 - **User override** (key present): the value is taken **verbatim** —
   no automatic `<repo>` append. The user is in control. Tilde (`~`),
   environment variables, and absolute paths are honoured. If the user
