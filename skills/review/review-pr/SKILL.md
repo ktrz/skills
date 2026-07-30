@@ -1,6 +1,6 @@
 ---
 name: review-pr
-version: 1.6.3
+version: 1.6.2
 model: sonnet
 description: >
   Review a pull request by dispatching specialized sub-agents in parallel
