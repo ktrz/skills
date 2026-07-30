@@ -67,7 +67,7 @@ If the fork point is reachable from a feature branch (not just main), the PR is 
 
 Dispatch by `tracker.type` and extract the ticket ID from the branch name per `references/tracker.md` — it defines the ID pattern and branch-extraction rule for each tracker type (jira, linear, github, clickup), including per-type fallbacks.
 
-If extraction fails or stays ambiguous after those rules, check recent commit messages (e.g. `git log -1 --format=%s`) for a ticket reference. If it's still unresolved, ask the user rather than guessing.
+If extraction fails or stays ambiguous after those rules — and, for github, only when no PR exists — check recent commit messages (e.g. `git log -1 --format=%s`) for a ticket reference. If it's still unresolved, ask the user rather than guessing.
 
 Build the link using the URL template for the tracker (see `references/tracker.md` → Link format). Store as `<TICKET_LINK>` for the body.
 

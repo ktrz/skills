@@ -114,6 +114,8 @@ Match the pattern for `tracker.type` from the **Ticket ID format** table above a
 - **github**: strip any leading prefix segment (`user/`, `feat/`, etc.) before matching. If multiple numbers remain, prefer the first 3+ digit run. If the branch yields nothing, fall back to the PR title **when a PR already exists**, otherwise to the commit subject (`git log -1 --format=%s`). In either fallback only an explicit `#<n>` reference counts — `#567`, or `closes`/`fixes`/`refs #567`. A bare number in prose is **not** a ticket reference: `fix(auth): handle 401 errors` yields no key, never `401`. If no explicit reference is found, ask the user.
 - **clickup**: match anywhere in the branch; if none, fall back to the task's custom-id if the team uses one.
 
+The **github** bullet is terminal: once a PR exists, its title is the only fallback and "ask the user" ends the chain — do not re-scan commits. The generic steps below apply to jira / linear / clickup, and to github only when no PR exists.
+
 If extraction fails:
 
 1. Check recent commit messages on the branch against the repository's actual default branch. Don't hard-default to `main` — derive it the same way `execute-phase` does (origin/HEAD → `git remote show origin` → local `main`/`master` probe → leave empty rather than erroring), then resolve that **name** to a revision this clone actually has (`refs/heads/<branch>` → `origin/<branch>` → empty):
