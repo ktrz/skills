@@ -79,22 +79,30 @@ Resolve the auto-review file path before reading:
 
 - If `--auto-review-file <path>` was passed, use it verbatim.
 - If it was **not** passed, auto-detect the default location
-  `plans.local/<repo>/pr-<N>-auto-review.md` before concluding there is
-  no Source A. `<repo>` is the repo directory name, derived the same
-  stable way as in `review-pr` Step 9 (`git rev-parse --git-common-dir`,
-  then canonicalize and take the basename) — **not**
-  `basename $(git rev-parse --show-toplevel)`, which would resolve to
-  the current _worktree_'s name and miss the file `review-pr` actually
-  wrote when the two skills run from different worktrees of the same
-  repo:
+  `$REPO_ROOT/plans.local/<repo>/pr-<N>-auto-review.md` before
+  concluding there is no Source A. `<repo>` is the repo directory
+  name, derived the same stable way as in `review-pr` Step 9
+  (`git rev-parse --git-common-dir`, then canonicalize and take the
+  basename) — **not** `basename $(git rev-parse --show-toplevel)`,
+  which would resolve to the current _worktree_'s name and miss the
+  file `review-pr` actually wrote when the two skills run from
+  different worktrees of the same repo:
 
   ```bash
   GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
   REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+  REPO_ROOT=$(git rev-parse --show-toplevel)   # prefix anchor — not the agent's CWD
   ```
 
   `review-pr` auto-mode writes here by default, so the file usually
-  exists even when the caller forgot to pass the flag.
+  exists even when the caller forgot to pass the flag. `plans.local` is
+  conventionally a symlink to a tree shared by every worktree (created
+  by `nwt`), which is what makes `review-pr` and
+  `investigate-pr-comments` agree on this path when they run from
+  different worktrees of the same repo; if a worktree has its own real
+  `plans.local/` directory instead of the symlink, its artifacts stay
+  local to that worktree — pass `--auto-review-file` explicitly in
+  that case.
 
 Then:
 
@@ -265,10 +273,12 @@ order from Step 2 before proceeding to Step 4.
 
 ### Step 4: Write the handover document
 
-Resolve output path: `plans.local/<repo>/pr-<N>-review-decisions.md`,
-where `<repo>` is derived the same way as in Step 1 Source A above
-(`git rev-parse --git-common-dir`, canonicalized, then basename) so
-this write lands in the same per-repo directory regardless of which
+Resolve output path:
+`$REPO_ROOT/plans.local/<repo>/pr-<N>-review-decisions.md`, where
+`<repo>` and `REPO_ROOT` are derived the same way as in Step 1 Source A
+above (`git rev-parse --git-common-dir`, canonicalized, then basename
+for `<repo>`; `git rev-parse --show-toplevel` for `REPO_ROOT`) so this
+write lands in the same per-repo directory regardless of which
 worktree this skill runs from.
 
 Write the document conforming to

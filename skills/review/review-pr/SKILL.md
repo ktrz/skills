@@ -113,10 +113,12 @@ Defaults applied when keys are missing (see `review.example.yaml` for
 documentation):
 
 - `guidelines: []`
-- `output_dir: plans.local/<repo>/` (the `<repo>` token is substituted
-  from the repo directory name, derived so it stays stable across
-  worktrees of the same repo — see Step 9 for the exact derivation and
-  full resolution rules; user overrides are taken verbatim)
+- `output_dir: $REPO_ROOT/plans.local/<repo>/` (the `<repo>` token is
+  substituted from the repo directory name, derived so it stays stable
+  across worktrees of the same repo, and `$REPO_ROOT` anchors the
+  prefix to the repo root rather than the agent's CWD — see Step 9 for
+  the exact derivation and full resolution rules; user overrides are
+  taken verbatim)
 - `severity_threshold: suggestion`
 - `focus: []`
 - `agents:` omitted → defaults
@@ -340,13 +342,14 @@ Apply the pipeline in `references/aggregation.md`:
 
 **`output_dir` resolution rules:**
 
-- **Default** (key missing or empty): `plans.local/<repo>/`. The
-  literal `<repo>` token is substituted with the repo directory name,
-  derived with:
+- **Default** (key missing or empty): `$REPO_ROOT/plans.local/<repo>/`.
+  The literal `<repo>` token is substituted with the repo directory
+  name, derived with:
 
   ```bash
   GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
   REPO_NAME=$(basename "$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)")
+  REPO_ROOT=$(git rev-parse --show-toplevel)   # prefix anchor — not the agent's CWD
   ```
 
   `--git-common-dir` points at the main repo's `.git` even when run
@@ -356,8 +359,19 @@ Apply the pipeline in `references/aggregation.md`:
   what keeps `<repo>` identical across every worktree of the same
   repo — do not simplify it back to
   `basename $(git rev-parse --show-toplevel)`, which resolves to the
-  _worktree_ name instead. Multiple repos sharing the default get
-  per-repo subdirectories automatically.
+  _worktree_ name instead. `REPO_ROOT` anchors the `plans.local/`
+  prefix itself to the repo root instead of leaving it a bare relative
+  path resolved against the agent's current working directory — a
+  bare `plans.local/…` would otherwise land inside whatever
+  subdirectory the skill happened to be invoked from. `plans.local` is
+  conventionally a symlink to a tree shared by every worktree (created
+  by `nwt`), which is what makes `review-pr` and
+  `investigate-pr-comments` agree on this path when they run from
+  different worktrees of the same repo; if a worktree has its own real
+  `plans.local/` directory instead of the symlink, its artifacts stay
+  local to that worktree — pass `--auto-review-file` explicitly to
+  `investigate-pr-comments` in that case. Multiple repos sharing the
+  default get per-repo subdirectories automatically.
 
 - **User override** (key present): the value is taken **verbatim** —
   no automatic `<repo>` append. The user is in control. Tilde (`~`),
