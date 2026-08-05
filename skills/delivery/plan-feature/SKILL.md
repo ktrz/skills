@@ -1,6 +1,6 @@
 ---
 name: plan-feature
-version: 1.4.0
+version: 1.4.1
 model: opus[1m]
 description: >
   Deep-plan a feature from a tracker ticket into a phased, parallelism-annotated implementation plan.
