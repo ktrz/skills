@@ -1,5 +1,5 @@
 ---
-version: 1.11.0
+version: 1.11.1
 name: plan-my-day
 description: >
   Build a prioritised work-item list for today by reading git worktrees

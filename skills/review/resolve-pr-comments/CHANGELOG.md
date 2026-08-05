@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.2
+
+- Added tables of contents to `references/investigate.md` and `execute.md`. Documentation only.
+
 ## 1.10.1
 
 - CodeRabbit review fix: the `handover-format.md` cross-reference now

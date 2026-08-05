@@ -3,6 +3,16 @@
 Rules for turning the `agents:` config key into a list of dispatchable
 Task calls. Used by `skills/review/review-pr/SKILL.md` Step 4.
 
+## Contents
+
+- [Defaults](#defaults)
+- [Resolution rules](#resolution-rules)
+- [Fallback semantics](#fallback-semantics)
+- [Per-agent prompt template](#per-agent-prompt-template)
+- [Severity-score normalisation](#severity-score-normalisation)
+- [Resolution verifier (`--re-review` only)](#resolution-verifier---re-review-only)
+- [Custom-agent gotchas](#custom-agent-gotchas)
+
 ## Defaults
 
 When `agents:` is **omitted** from `.claude/review.yaml`, dispatch the 6
@@ -108,7 +118,6 @@ Body:
 <unified diff from `gh pr diff <N>`>
 ```
 </external_data>
-````
 
 # Your task
 
@@ -137,7 +146,7 @@ canonical schema documented in
 If you find nothing actionable, return an empty array. Do not narrate.
 Do not return findings outside the schema.
 
-```
+````
 
 The `reported_by` value the agent emits is overridden at normalisation
 time with the canonical agent name from `agents:` so custom prompts
@@ -190,4 +199,3 @@ config resolution above:
   defaults.
 - Path-based custom agents are resolved relative to the **repo root**
   (where `.claude/review.yaml` lives), not the skill directory.
-```

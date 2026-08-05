@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1
+
+- Description tightened to triggers + modes — dropped the six-agent enumeration and the aggregation-mechanism summary per review-guidelines §1. Added tables of contents to `references/rereview-agent.md`, `agents.md`, `aggregation.md`, and `guidelines-agent.md`. Fixed a premature fence close in agents.md / guidelines-agent.md / review-prompt.md that rendered the trailing prose sections as a code block; they now render as headings. Documentation only.
+- Fixed a safety-relevant omission in the tightened description: it said findings are "written to a file" for auto mode generally, but standalone auto mode posts to GitHub immediately (see Mode summary table). Description now distinguishes pipeline mode (file only) from standalone auto mode (posted immediately) from deep mode (interactive triage before posting). Documentation only.
+- **Fix (`references/comment-relevance.md`, synced from `_shared/`)** — `BOILERPLATE_PATTERNS`'s `review skipped` / `draft detected` entries matched anywhere in a comment body, so a substantive comment that merely mentioned either phrase was dropped before reaching critique detection. Both patterns are now anchored to match only when the entire (trimmed) body is the boilerplate phrase.
+
 ## 1.7.0
 
 - **Findings schema promoted to an owned contract doc.** `references/findings-schema.md` now carries a contract header (owner / consumers / status) and a table of contents, specifying a findings file (a single finding object or a JSON array): the four-bucket `severity` enum; non-empty `description` / `recommendation`; a non-empty `reported_by` array; `file`/`line` both-null (PR-level) or both-set with a repo-relative `file` and integer `line` ≥ 1; and `resolution_status`, when present, in `addressed|partial|not-addressed|cant-tell`. `review-pr` is the sole producer of findings JSON and every consumer (aggregation, the handover format that imports these fields) is a model reading the doc — so the doc is the contract, with no runtime validator (nothing but models reads a findings file).

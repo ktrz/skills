@@ -4,6 +4,19 @@ Skills that touch an issue tracker (fetch a ticket, transition status, list assi
 
 Supported backends: **jira**, **linear**, **github**, **clickup**.
 
+## Contents
+
+- [Config resolution](#config-resolution)
+- [Config schema](#config-schema)
+- [Ticket ID format](#ticket-id-format)
+- [Link format](#link-format)
+- [Operations](#operations)
+  - [Fetch a ticket (id → title/description/status)](#fetch-a-ticket-id--titledescriptionstatus)
+  - [Transition a ticket to "In Review"](#transition-a-ticket-to-in-review)
+  - [List tickets assigned to the current user (not done)](#list-tickets-assigned-to-the-current-user-not-done)
+  - [Extract a ticket key from a git branch name](#extract-a-ticket-key-from-a-git-branch-name)
+- [Notes for skill authors](#notes-for-skill-authors)
+
 ## Config resolution
 
 Two config locations, checked in this order (first hit wins — no merging):

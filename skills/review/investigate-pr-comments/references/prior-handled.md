@@ -4,6 +4,14 @@ Rules for cross-referencing new review items against **resolved** GitHub
 review threads. Used by `investigate-pr-comments` Step 1 Source B (set
 construction) and Step 2 (downgrade pass).
 
+## Contents
+
+- [Why](#why)
+- [Building the prior-handled set (Step 1 Source B)](#building-the-prior-handled-set-step-1-source-b)
+- [Matching rule (prior-comment identity)](#matching-rule-prior-comment-identity)
+- [Downgrade rule](#downgrade-rule)
+- [Invariants](#invariants)
+
 ## Why
 
 `review-pr` re-reviews a PR from scratch on every run, and human

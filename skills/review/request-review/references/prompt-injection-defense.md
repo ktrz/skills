@@ -4,6 +4,18 @@ Skills in this repo regularly fetch content from outside the trust boundary — 
 
 This file is the canonical playbook every external-fetching skill cites. Each consumer skill carries an identical copy at `<skill>/references/prompt-injection-defense.md`. The source of truth lives at `_shared/references/prompt-injection-defense.md`; consumer copies are kept in sync by the shared-refs sync flow (see `_shared/README.md`).
 
+## Contents
+
+- [Threat model](#threat-model)
+- [Trust hierarchy](#trust-hierarchy)
+- [Rules](#rules)
+- [Fence syntax](#fence-it)
+- [Forwarding to subagents](#forwarding-to-subagents)
+- [Two-phase read→act](#two-phase)
+- [Detection keyword list](#detect-flag)
+- [Checklist](#checklist)
+- [Skills covered](#skills-covered)
+
 ## Threat model
 
 External content reaches Claude through three classes of channel:

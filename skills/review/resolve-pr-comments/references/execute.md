@@ -4,6 +4,16 @@ This file is loaded fresh at the Phase 2 boundary so the rules below sit at
 the top of context, not buried under the long Phase 1 decision transcript.
 Read this before making a single code change.
 
+## Contents
+
+- [Golden rule — TDD for every bug fix](#golden-rule--tdd-for-every-bug-fix)
+- [Ordering](#ordering)
+- [Committing](#committing)
+- [Hold GitHub interaction until the end](#hold-github-interaction-until-the-end)
+- [Trust in `--from-doc` resolution notes](#trust-in---from-doc-resolution-notes)
+- [Reply-only items](#reply-only-items)
+- [Wrap-up](#wrap-up)
+
 ## Golden rule — TDD for every bug fix
 
 If a decision is labelled **Fix** and the reviewer is pointing at a bug (wrong
