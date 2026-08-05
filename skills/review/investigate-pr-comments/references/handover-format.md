@@ -1,9 +1,35 @@
 # Handover document format
 
+> **Contract doc.** This is the owned format specification for the handover
+> document `pr-NNN-review-decisions.md`. Treat the schema below as the stable
+> interface between the writers and the reader: prose in any of the three
+> skills may change, but a handover doc that conforms here must keep parsing —
+> and it is checked against the **real** plugin parser by a vendored validator
+> (see [Validator](#validator)).
+
+|               |                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------- |
+| **Owner**     | `skills/review/investigate-pr-comments` (writer)                                    |
+| **Consumers** | `review-pr` (auto-mode file output, writer), `execute-review-decisions` (reader)    |
+| **Validator** | `_shared/handover-validator/` (vendored from `review-plugin-mvp`; CI drift-checked) |
+| **Status**    | contract                                                                            |
+
 Canonical schema for `pr-NNN-review-decisions.md`. This file is the single
 source of truth for the handover document format. `review-pr` (auto-mode
 file output), `investigate-pr-comments` (writer), and
 `execute-review-decisions` (reader) all conform to it.
+
+## Contents
+
+- [Document header](#document-header)
+- [Item schema](#item-schema)
+  - [Source tag format](#source-tag-format)
+- [Status markers](#status-markers)
+- [Item ordering](#item-ordering)
+- [Schema compatibility with findings-schema.md](#schema-compatibility-with-findings-schemamd)
+- [Auto-mode file (`pr-NNN-auto-review.md`)](#auto-mode-file-pr-nnn-auto-reviewmd)
+- [Validator](#validator)
+- [Full example](#full-example)
 
 ## Document header
 
@@ -140,6 +166,33 @@ is byte-identical to the items that `investigate-pr-comments` would
 produce for those same findings — so a downstream merge needs no
 re-parsing. Items in this file always use `[?]` markers and
 `auto:<severity>` source tags.
+
+## Validator
+
+This contract is enforced by a **vendored** validator that wraps the real
+parser the `review-plugin-mvp` VS Code extension uses to load the doc — so a
+handover doc this repo emits and one the plugin can open never diverge. Both
+writers run it before emitting: `investigate-pr-comments` (Step 4) and
+`review-pr` auto-mode (Step 9). On an installed copy each skill runs its own
+distributed bundle:
+
+```bash
+node "<skill-base-dir>/vendor/handover-validator.mjs" validate <doc-path>
+```
+
+- Exit `0` — the doc parses; the plugin would load it (`OK: … (N item(s))`).
+- Exit `1` — malformed; prints the parser's `ParseError` list.
+- Exit `2` — usage error or unreadable path.
+
+The bundle is vendored and drift-checked, not hand-maintained here: the
+canonical source lives at `_shared/handover-validator/` (pinned upstream commit
+in its `SOURCE.md`, enforced by the `handover-validator-drift` CI job), and
+`_shared/sync.sh` distributes the built `dist/validate.mjs` into each consumer
+skill's `vendor/` dir via the `bundles:` entry in `_shared/manifest.yaml`. The
+flattened `**Source counts:**` line and the `**Head SHA:**` / `**Base SHA:**`
+header fields are already in the pinned parser's `KNOWN_HEADER_KEYS`, so this
+format validates against the current pin with no upstream change. Do not
+hand-edit the vendored files.
 
 ## Full example
 

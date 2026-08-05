@@ -1,10 +1,32 @@
 # Findings schema
 
+> **Contract doc.** This is the owned format specification for a review
+> finding — the normalised shape every sub-agent (and the single-pass
+> fallback) must produce before aggregation. Treat the shape and field rules
+> below as the stable interface: `review-pr` prose may change, but a findings
+> file that conforms here must keep validating.
+
+|               |                                                                   |
+| ------------- | ----------------------------------------------------------------- |
+| **Owner**     | `skills/review/review-pr`                                         |
+| **Consumers** | `review-pr` aggregation; the handover format imports these fields |
+| **Status**    | contract                                                          |
+
 Canonical shape for a single review finding. This file is the single
 source of truth — `skills/review/review-pr/SKILL.md`, `skills/review/review-pr/references/agents.md`,
 `skills/review/review-pr/references/aggregation.md`, the auto-mode file output, and the
 Phase 2 handover format (`skills/review/investigate-pr-comments/references/handover-format.md`)
 all import from here.
+
+## Contents
+
+- [Shape](#shape)
+- [Field rules](#field-rules)
+- [Severity mapping](#severity-mapping)
+- [Severity ordering](#severity-ordering)
+- [Emoji prefixing (post-time only)](#emoji-prefixing-post-time-only)
+- [Auto-mode file format](#auto-mode-file-format)
+- [Conformance](#conformance)
 
 ## Shape
 
@@ -28,7 +50,8 @@ see the field rules below.
 
 ## Field rules
 
-- **`file`** — repo-relative path, forward slashes, no leading `./`. For
+- **`file`** — repo-relative path, forward slashes, no leading `./`, no
+  absolute path, and no `..` segment that would escape the repo root. For
   cross-cutting findings without a single anchor (e.g. naming
   consistency across files), use the most representative file.
 - **`line`** — integer line number in the head ref (the diff's "+"
@@ -123,3 +146,21 @@ Minimum keys persisted per item: `file`, `line`, `severity`,
 `description`, `recommendation`, `reported_by`. Severity is persisted
 verbatim — emoji prefixing happens at post time, not file-write time,
 so the document remains a clean structured input for downstream tools.
+
+## Conformance
+
+A conforming findings file (a single finding object or a JSON array of
+findings) satisfies the shape and field rules above: `severity` in the
+four-bucket enum; non-empty `description` and `recommendation`; a non-empty
+`reported_by` array of non-empty strings; `file`/`line` either both `null`
+(PR-level finding) or both set, with `file` repo-relative (no leading `./`, no
+absolute path, no `..` escape segment, forward slashes) and `line` an integer
+≥ 1; and `resolution_status`, when present, in
+`addressed|partial|not-addressed|cant-tell`.
+
+`review-pr` owns conformance and is the sole producer of findings JSON — every
+consumer (aggregation, the handover format that imports these fields) is a
+model reading this doc, not a non-LLM parser. There is therefore no runtime
+validator: this doc is the contract. (Contrast the handover doc, which a real
+non-LLM parser consumes and which keeps a runtime validator — see
+`_shared/README.md`.)

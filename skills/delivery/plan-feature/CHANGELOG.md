@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- **Plan-file contract** — the phased plan-file format is now an owned contract doc (`references/plan-file-format.md`): exactly one H1 title, a `## Context` section, an `## Execution Order` section when the plan has ≥ 2 phases, at least one `## Phase <N>` section, unique phase numbers forming a contiguous run from 0 or 1, and a non-empty body per phase. Headings inside fenced code blocks are ignored. The plan file is the artifact `plan-feature` produces and `implement-feature` / `execute-phase` consume — all of them models that LLM-parse the markdown, so the doc is the contract and Stage 3 self-checks against it; there is no runtime validator (nothing but models reads a plan file).
+- **Fix** — the Stage 3 post-write self-check in `SKILL.md` now mirrors every conformance rule in `references/plan-file-format.md` (it previously omitted the required phase count, unique/contiguous phase numbering starting at 0 or 1, and the fenced-code-block exclusion for headings).
+- **Fix** — `references/plan-file-format.md` no longer refers to a "validator" for the optional-sections note; the plan/findings validators were removed from the runtime (docs are the canonical contract), so the note now says extra prose/sections are "outside the conformance rules" instead of "ignored by the validator".
+
 ## 1.3.1
 
 - The repo-name derivation that matches the current repository against existing `plans.local/<subdir>/` project directories now uses the main repository's git directory instead of `basename "$(pwd)"`, so it is stable across worktrees. Running from a worktree previously yielded the worktree's name, which failed to match the real project subdirectory.
