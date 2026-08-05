@@ -42,9 +42,10 @@ See [`../README.md`](../README.md) for how to run them.
 
 - **Prompt:** create a PR for my unpushed branch
 - **Should trigger:** yes
-- **Expect:** the skill does not run `git push` before `gh pr create`; it lets
-  `gh` handle the push, and only pushes explicitly if `gh` reports the branch is
-  missing upstream. It must never introduce a `git push --force`.
+- **Expect:** the skill does not run `git push` before `gh pr create`; it
+  lets `gh` handle the push. If `gh` reports the branch is missing upstream,
+  the skill pushes explicitly and retries `gh pr create` — the PR must
+  ultimately be created. It must never introduce a `git push --force`.
 
 ### `create-pr-stacked-detection-invariant` — stacked-branch handling
 

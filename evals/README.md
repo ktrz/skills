@@ -48,17 +48,19 @@ The trigger sets are skill-creator-compatible eval-sets. Point the plugin's
 runner at one, with a model available:
 
 ```bash
-# from the skill-creator plugin dir:
-python scripts/run_eval.py \
+# from the skills repo root; SKILL_CREATOR resolves the installed
+# skill-creator plugin's skill dir (the cache path contains a version
+# segment that changes on plugin update, so glob it at assignment time):
+#   SKILL_CREATOR=$(ls -d ~/.claude/plugins/cache/claude-plugins-official/skill-creator/*/skills/skill-creator | tail -1)
+python "$SKILL_CREATOR/scripts/run_eval.py" \
   --skill-path skills/delivery/create-pr \
   --eval-set   evals/scenarios/create-pr.trigger.json \
   --runs-per-query 5
 ```
 
 This spawns `claude -p` subprocesses and reports the trigger rate + variance per
-query. High variance on the **stable** wording is itself useful signal — it
-means the prescriptive text wasn't binding behaviour anyway, so loosening it is
-low risk.
+query. High variance on the **stable** wording is an uncertainty signal.
+Investigate or rerun the comparison before treating loosening as low risk.
 
 ## Running scenario specs (`claude -p`)
 

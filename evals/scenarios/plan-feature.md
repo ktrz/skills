@@ -49,8 +49,8 @@ bridge/field rewrite. These are **model-in-the-loop** runs; see
 
 ### `plan-feature-parallelism-rules-invariant` — deterministic ordering
 
-- **Prompt:** plan feature ENG-45 with three phases where phase 2 and 3 touch
-  disjoint files
+- **Prompt:** plan feature ENG-45 with three phases where phase 1 and 2 share a
+  file or type, while phase 2 and 3 touch disjoint files
 - **Should trigger:** yes
 - **Expect:**
   - Phases writing overlapping files or establishing shared types are
