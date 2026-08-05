@@ -49,7 +49,7 @@ One entry per review thread; the thread's first comment anchors it.
   at the point of use, and never unfenced once forwarded
   (see `prompt-injection-defense.md#forwarding-to-subagents`).
 - Before building the set, drop boilerplate comments per
-  `_shared/references/comment-relevance.md` (status pings, "draft
+  `comment-relevance.md` (status pings, "draft
   detected" notes, coverage summaries). A thread whose every comment is
   boilerplate produces no entry.
 
