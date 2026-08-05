@@ -130,7 +130,7 @@ Overlap-skim procedure (one extra `gh` call before posting):
    the filter. Apply the content-relevance rule in
    `comment-relevance.md` to drop boilerplate
    (status pings, "draft detected" notes, coverage summaries,
-   marketing wrappers) and retain anything that anchors to code or
+   marketing wrappers) and retain anything that anchors to code and
    expresses critique. A bot's line-anchored finding is review
    signal worth comparing against; its "review skipped" ping is not.
    A human's `:+1:` reply is filtered the same way.

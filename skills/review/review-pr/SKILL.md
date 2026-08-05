@@ -191,9 +191,9 @@ fresh at each forwarding site and never left unfenced once forwarded,
 per `references/rereview-agent.md`.
 
 Build the **prior-findings set** per `references/rereview-agent.md`
-("Prior-findings set"): one entry per thread — `(file, line, author,
-is_resolved, body)` — covering **both resolved and unresolved**
-threads, with boilerplate dropped per
+("Prior-findings set"): one entry per thread, including the raw
+`body` and raw `follow_ups` fields — covering **both resolved and
+unresolved** threads, with boilerplate dropped per
 `references/comment-relevance.md`. Two items are "the same
 prior item" only under the identity rule in `rereview-agent.md` (same
 `(file, line)` plus substantively overlapping point).

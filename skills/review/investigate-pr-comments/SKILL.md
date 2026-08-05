@@ -149,7 +149,7 @@ For each unresolved item:
   review-body items), comment body verbatim, any reply chain.
 - Filter by **content relevance**, not author. Apply the rule in
   `references/comment-relevance.md` to every fetched
-  comment: keep the ones that anchor to code or express critique;
+  comment: keep the ones that anchor to code and express critique;
   drop boilerplate (status pings, "draft detected", coverage
   summaries, marketing wrappers). A bot's substantive line-anchored
   findings are review signal and stay in; a human's `:+1:` reply is
