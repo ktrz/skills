@@ -105,7 +105,7 @@ heading may carry a trailing label — `## Phase 1 (PR 1): Data layer` — but t
   alongside Context. Use it for UI phases.
 - `## Open Questions` — carried for the human; consumers ignore it.
 
-Any additional prose or sections are permitted and ignored by the validator.
+Any additional prose or sections are permitted and are outside the conformance rules.
 
 ## What each consumer reads
 
