@@ -1,0 +1,26 @@
+[
+  {
+    "query": "open a pull request for my branch",
+    "should_trigger": true
+  },
+  {
+    "query": "create a PR for the current branch (there is a ticket ENG-123 in the branch name and two commits)",
+    "should_trigger": true
+  },
+  {
+    "query": "create a PR for my unpushed branch",
+    "should_trigger": true
+  },
+  {
+    "query": "open a PR — my branch is stacked on another feature branch, not main",
+    "should_trigger": true
+  },
+  {
+    "query": "review my open PRs",
+    "should_trigger": false
+  },
+  {
+    "query": "check the status of my pull request",
+    "should_trigger": false
+  }
+]

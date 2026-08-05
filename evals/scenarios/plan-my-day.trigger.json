@@ -1,0 +1,38 @@
+[
+  {
+    "query": "what should I work on today?",
+    "should_trigger": true
+  },
+  {
+    "query": "build my daily plan",
+    "should_trigger": true
+  },
+  {
+    "query": "plan my day across my worktrees",
+    "should_trigger": true
+  },
+  {
+    "query": "plan my day (Slack is currently unreachable)",
+    "should_trigger": true
+  },
+  {
+    "query": "give me today's plan",
+    "should_trigger": true
+  },
+  {
+    "query": "close out my day",
+    "should_trigger": true
+  },
+  {
+    "query": "give me my async standup snapshot",
+    "should_trigger": true
+  },
+  {
+    "query": "plan the new feature rollout",
+    "should_trigger": false
+  },
+  {
+    "query": "draft a project plan for the Q3 migration",
+    "should_trigger": false
+  }
+]
