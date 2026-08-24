@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- **Diff/delta overlay — schema and validator.** Diagram elements and components gain an optional `status: added | removed | changed | unchanged`, so a walkthrough can say what the PR did to a thing instead of only drawing the after picture. Supported on `lane` box cells, `lane` arrow cells, `sequence` actors, `sequence` steps, `depmap` nodes, `depmap` edges, and `components[]`. The field is optional at every one of those sites and an absent `status` means `unchanged`. New `rule-17-status` covers all seven sites in one rule, the way `rule-7-pkg-ref` already covers `pkg` at four; a `status` written on an unsupported node is deliberately left unvalidated, matching the validator's lack of unknown-field checking everywhere else. `fixtures/sample-mini.json` now exercises all four values plus the absent case. Nothing renders differently yet — the field is only established and validated here. +71 tests, for 207 in the suite.
+
 ## 0.1.2
 
 - Description rewritten to the slash-only form — a capability summary plus "invoked only via /narrate-pr [PR]", replacing the pipeline-mechanism enumeration (scout → fan-out → synthesize → validate → render → publish). Because the skill is `disable-model-invocation: true` its description never enters the model-visible listing and natural language cannot route to it, so the trigger phrasings moved into an Invocation note in the body as usage documentation. Added a table of contents to `references/schema.md`. Documentation only.

@@ -207,16 +207,17 @@ introduces or changes. All four sub-arrays are required but may be empty.
 Units of code the PR touches or introduces (a module, a service, a UI
 surface). One entry per component.
 
-| Field        | Type   | Required | Meaning                                                           |
-| ------------ | ------ | -------- | ----------------------------------------------------------------- |
-| `id`         | string | yes      | `comp.<slug>`.                                                    |
-| `pkg`        | string | yes      | Must resolve to a `packages[].id`.                                |
-| `title`      | string | yes      | Display name.                                                     |
-| `runtime`    | string | yes      | Free-form short string, e.g. `browser`, `server`, `shared`.       |
-| `files`      | array  | yes      | `{ path, role }` entries — the files that make up this component. |
-| `summary`    | string | yes      | Markdown description of what the component does.                  |
-| `invariants` | array  | no       | Properties the component must maintain — see below.               |
-| `receipts`   | array  | yes      | ≥1 receipt (claim-bearing node).                                  |
+| Field        | Type   | Required | Meaning                                                                                                                                               |
+| ------------ | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string | yes      | `comp.<slug>`.                                                                                                                                        |
+| `pkg`        | string | yes      | Must resolve to a `packages[].id`.                                                                                                                    |
+| `title`      | string | yes      | Display name.                                                                                                                                         |
+| `runtime`    | string | yes      | Free-form short string, e.g. `browser`, `server`, `shared`.                                                                                           |
+| `status`     | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the component, rolled up from its files. Absent is equivalent to `unchanged`. |
+| `files`      | array  | yes      | `{ path, role }` entries — the files that make up this component.                                                                                     |
+| `summary`    | string | yes      | Markdown description of what the component does.                                                                                                      |
+| `invariants` | array  | no       | Properties the component must maintain — see below.                                                                                                   |
+| `receipts`   | array  | yes      | ≥1 receipt (claim-bearing node).                                                                                                                      |
 
 ```json
 {
@@ -427,13 +428,14 @@ lane rows with flexbox; there is no positional data to author.
 }
 ```
 
-| Field           | Type   | Required | Meaning                                       |
-| --------------- | ------ | -------- | --------------------------------------------- |
-| `lanes[].id`    | string | yes      | `lane.<slug>`.                                |
-| `lanes[].label` | string | yes      | Lane display label.                           |
-| `lanes[].rows`  | array  | yes      | Array of rows; each row is an array of cells. |
-| cell (box)      | object | —        | `{ id, label, sub?, pkg? }`.                  |
-| cell (arrow)    | object | —        | `{ arrow: "→" \| "⇄" \| "↓", label? }`.       |
+| Field           | Type   | Required | Meaning                                                                                                                                                       |
+| --------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lanes[].id`    | string | yes      | `lane.<slug>`.                                                                                                                                                |
+| `lanes[].label` | string | yes      | Lane display label.                                                                                                                                           |
+| `lanes[].rows`  | array  | yes      | Array of rows; each row is an array of cells.                                                                                                                 |
+| cell (box)      | object | —        | `{ id, label, sub?, pkg?, status? }`.                                                                                                                         |
+| cell (arrow)    | object | —        | `{ arrow: "→" \| "⇄" \| "↓", label?, status? }`.                                                                                                              |
+| cell `status`   | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the element. Absent is equivalent to `unchanged`. Valid on box and arrow cells alike. |
 
 ### `sequence`
 
@@ -459,16 +461,18 @@ is no positional data to author.
 }
 ```
 
-| Field               | Type   | Required | Meaning                                                                 |
-| ------------------- | ------ | -------- | ----------------------------------------------------------------------- |
-| `actors[].id`       | string | yes      | `actor.<slug>`.                                                         |
-| `actors[].label`    | string | yes      | Actor display label.                                                    |
-| `actors[].sub`      | string | no       | Secondary label line.                                                   |
-| `actors[].pkg`      | string | no       | Must resolve to a `packages[].id` if present.                           |
-| `steps[].kind`      | string | yes      | One of `msg`, `self`, `phase`.                                          |
-| `steps[]` (`msg`)   | object | —        | `{ kind: "msg", from, to, label, muted? }` — `from`/`to` are actor ids. |
-| `steps[]` (`self`)  | object | —        | `{ kind: "self", actor, label }`.                                       |
-| `steps[]` (`phase`) | object | —        | `{ kind: "phase", label }` — a section divider, no actors involved.     |
+| Field               | Type   | Required | Meaning                                                                                                                                          |
+| ------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `actors[].id`       | string | yes      | `actor.<slug>`.                                                                                                                                  |
+| `actors[].label`    | string | yes      | Actor display label.                                                                                                                             |
+| `actors[].sub`      | string | no       | Secondary label line.                                                                                                                            |
+| `actors[].pkg`      | string | no       | Must resolve to a `packages[].id` if present.                                                                                                    |
+| `actors[].status`   | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the actor. Absent is equivalent to `unchanged`.                          |
+| `steps[].kind`      | string | yes      | One of `msg`, `self`, `phase`.                                                                                                                   |
+| `steps[]` (`msg`)   | object | —        | `{ kind: "msg", from, to, label, muted? }` — `from`/`to` are actor ids.                                                                          |
+| `steps[]` (`self`)  | object | —        | `{ kind: "self", actor, label }`.                                                                                                                |
+| `steps[]` (`phase`) | object | —        | `{ kind: "phase", label }` — a section divider, no actors involved.                                                                              |
+| `steps[].status`    | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the step. Valid on every step kind. Absent is equivalent to `unchanged`. |
 
 ### `depmap`
 
@@ -518,22 +522,24 @@ separate, strippable `layout` block.
 }
 ```
 
-| Field           | Type    | Required | Meaning                                                    |
-| --------------- | ------- | -------- | ---------------------------------------------------------- |
-| `zones[].id`    | string  | yes      | `zone.<slug>`.                                             |
-| `zones[].label` | string  | yes      | Zone display label.                                        |
-| `nodes[].id`    | string  | yes      | `node.<slug>`.                                             |
-| `nodes[].zone`  | string  | yes      | Must reference a `zones[].id`.                             |
-| `nodes[].label` | string  | yes      | Node display label.                                        |
-| `nodes[].sub`   | array   | no       | Secondary label lines.                                     |
-| `nodes[].chips` | array   | no       | Short badge strings.                                       |
-| `nodes[].pkg`   | string  | no       | Must resolve to a `packages[].id` if present.              |
-| `edges[].from`  | string  | yes      | Must reference an existing `nodes[].id`.                   |
-| `edges[].to`    | string  | yes      | Must reference an existing `nodes[].id`.                   |
-| `edges[].label` | string  | no       | Edge label.                                                |
-| `edges[].kind`  | string  | yes      | One of `call`, `net`, `type-only`.                         |
-| `layout.cols`   | integer | yes      | Grid column count.                                         |
-| `layout.nodes`  | object  | yes      | Map keyed by node id → `{ col, row, colSpan?, rowSpan? }`. |
+| Field            | Type    | Required | Meaning                                                                                                                      |
+| ---------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `zones[].id`     | string  | yes      | `zone.<slug>`.                                                                                                               |
+| `zones[].label`  | string  | yes      | Zone display label.                                                                                                          |
+| `nodes[].id`     | string  | yes      | `node.<slug>`.                                                                                                               |
+| `nodes[].zone`   | string  | yes      | Must reference a `zones[].id`.                                                                                               |
+| `nodes[].label`  | string  | yes      | Node display label.                                                                                                          |
+| `nodes[].sub`    | array   | no       | Secondary label lines.                                                                                                       |
+| `nodes[].chips`  | array   | no       | Short badge strings.                                                                                                         |
+| `nodes[].pkg`    | string  | no       | Must resolve to a `packages[].id` if present.                                                                                |
+| `nodes[].status` | string  | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the node. Absent is equivalent to `unchanged`.       |
+| `edges[].from`   | string  | yes      | Must reference an existing `nodes[].id`.                                                                                     |
+| `edges[].to`     | string  | yes      | Must reference an existing `nodes[].id`.                                                                                     |
+| `edges[].label`  | string  | no       | Edge label.                                                                                                                  |
+| `edges[].kind`   | string  | yes      | One of `call`, `net`, `type-only`.                                                                                           |
+| `edges[].status` | string  | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the dependency. Absent is equivalent to `unchanged`. |
+| `layout.cols`    | integer | yes      | Grid column count.                                                                                                           |
+| `layout.nodes`   | object  | yes      | Map keyed by node id → `{ col, row, colSpan?, rowSpan? }`.                                                                   |
 
 ### Edge label conventions
 
@@ -614,6 +620,15 @@ violates any of them is invalid.
 16. **Review-order step contiguity.** The `reviewOrder[].step` values
     are exactly the contiguous set `1..N` for `N` entries — no gaps, no
     duplicates.
+17. **Element status enum.** Every `status` field at a site that supports
+    one — `components[]`, `lane` box cells, `lane` arrow cells, `sequence`
+    actors, `sequence` steps, `depmap` nodes, and `depmap` edges — is one
+    of `added`, `removed`, `changed`, `unchanged`. The field is optional
+    at every one of those sites; an absent `status` means `unchanged` and
+    is treated identically to one. A `status` written on any other node is
+    deliberately **not** validated and carries no meaning: this validator
+    does no unknown-field checking anywhere, so rejecting one stray field
+    while every other unknown field passes silently would be inconsistent.
 
 ## Design notes
 
