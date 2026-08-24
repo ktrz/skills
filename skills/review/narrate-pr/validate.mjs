@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 const RECEIPT_KINDS = new Set(["code", "doc", "url", "report"]);
 const DIAGRAM_TYPES = new Set(["lane", "sequence", "depmap"]);
 const EDGE_KINDS = new Set(["call", "net", "type-only"]);
+const STATUS_VALUES = new Set(["added", "removed", "changed", "unchanged"]);
 const STEP_KINDS = new Set(["msg", "self", "phase"]);
 const ARROWS = new Set(["→", "⇄", "↓"]);
 const ID_RE = /^[a-z]+\.[a-z0-9-]+$/;
@@ -219,6 +220,19 @@ function checkPkg(node, path, pkgIds) {
   }
 }
 
+// ---- element status (rule 17) -----------------------------------------------
+// `status` is optional everywhere it is supported; absent means "unchanged".
+// Only the sites listed in schema.md are checked — there is no unknown-field
+// checking anywhere in this validator, so a `status` on an unsupported node is
+// ignored rather than rejected (see schema.md rule 17).
+
+function checkStatus(node, path) {
+  if (!isObj(node) || node.status === undefined) return;
+  if (!STATUS_VALUES.has(node.status)) {
+    fail("rule-17-status", `${path}.status`, `invalid status ${JSON.stringify(node.status)} (expected added|removed|changed|unchanged)`);
+  }
+}
+
 // ---- diagrams ---------------------------------------------------------------
 
 function checkLane(d, path, pkgIds) {
@@ -244,10 +258,12 @@ function checkLane(d, path, pkgIds) {
           if (!ARROWS.has(cell.arrow)) {
             fail("structure", `${cPath}.arrow`, `invalid arrow ${JSON.stringify(cell.arrow)} (expected →, ⇄, or ↓)`);
           }
+          checkStatus(cell, cPath);
         } else {
           requireField(cell, cPath, "id", isNonEmptyStr, "a non-empty string");
           requireField(cell, cPath, "label", isStr, "a string");
           checkPkg(cell, cPath, pkgIds);
+          checkStatus(cell, cPath);
         }
       });
     });
@@ -263,6 +279,7 @@ function checkSequence(d, path, pkgIds) {
       if (isNonEmptyStr(actor.id)) actorIds.add(actor.id);
       requireField(actor, aPath, "label", isStr, "a string");
       checkPkg(actor, aPath, pkgIds);
+      checkStatus(actor, aPath);
     });
   }
   if (!requireField(d, path, "steps", isArr, "an array")) return;
@@ -273,6 +290,7 @@ function checkSequence(d, path, pkgIds) {
       return;
     }
     requireField(step, sPath, "label", isStr, "a string");
+    checkStatus(step, sPath);
     if (step.kind === "msg") {
       for (const end of ["from", "to"]) {
         if (!actorIds.has(step[end])) {
@@ -308,6 +326,7 @@ function checkDepmap(d, path, pkgIds) {
         fail("rule-9-depmap-zone-ref", `${nPath}.zone`, `node references unknown zone "${node.zone}"`);
       }
       checkPkg(node, nPath, pkgIds);
+      checkStatus(node, nPath);
     });
   }
   if (requireField(d, path, "edges", isArr, "an array")) {
@@ -325,6 +344,7 @@ function checkDepmap(d, path, pkgIds) {
       if (!EDGE_KINDS.has(edge.kind)) {
         fail("structure", `${ePath}.kind`, `invalid edge kind ${JSON.stringify(edge.kind)} (expected call|net|type-only)`);
       }
+      checkStatus(edge, ePath);
     });
   }
   if (requireField(d, path, "layout", isObj, "an object")) {
@@ -494,6 +514,7 @@ export function validate(doc) {
       requireField(comp, path, "runtime", isNonEmptyStr, "a non-empty string");
       requireField(comp, path, "summary", isNonEmptyStr, "a non-empty string");
       if (requireField(comp, path, "pkg", isNonEmptyStr, "a non-empty string")) checkPkg(comp, path, pkgIds);
+      checkStatus(comp, path);
       if (requireField(comp, path, "files", isArr, "an array")) {
         comp.files.forEach((f, j) => {
           const fPath = `${path}.files[${j}]`;
