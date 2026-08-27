@@ -704,7 +704,7 @@ Every element type's aria-label or `<desc>` text gets the status appended
 as a trailing bracketed marker, after the element's own description —
 including sites that already carry a visible badge:
 
-```
+```text
 NotificationService → NotificationRepo: insert (calls) [added]
 ```
 
