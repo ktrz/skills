@@ -27,7 +27,7 @@
     "prose": [
       {
         "id": "prose.delivery-path",
-        "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads. The client never writes notification state directly — it only acknowledges reads.",
+        "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads. The client never writes notification state directly — this PR retires the REST create endpoint, leaving the client able only to acknowledge reads.",
         "receipts": []
       },
       {
@@ -41,7 +41,7 @@
         "id": "diagram.write-path",
         "type": "lane",
         "title": "Write path",
-        "caption": "A notification event moves from handler to persisted state to the push gateway.",
+        "caption": "The REST create endpoint is retired; a notification event now moves from the service to persisted state to the push gateway.",
         "lanes": [
           {
             "id": "lane.api",
@@ -53,9 +53,9 @@
                   "label": "createNotification()",
                   "sub": "REST handler",
                   "pkg": "api",
-                  "status": "changed"
+                  "status": "removed"
                 },
-                { "arrow": "→" },
+                { "arrow": "→", "status": "removed" },
                 {
                   "id": "box.service",
                   "label": "NotificationService",
@@ -216,7 +216,7 @@
           { "from": "node.gateway", "to": "node.feed", "label": "notification:new", "kind": "net", "status": "added" },
           { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call", "status": "unchanged" },
           { "from": "node.service", "to": "node.types", "kind": "type-only", "status": "added" },
-          { "from": "node.feed", "to": "node.types", "kind": "type-only", "status": "removed" }
+          { "from": "node.feed", "to": "node.types", "kind": "type-only", "status": "added" }
         ],
         "layout": {
           "cols": 3,
