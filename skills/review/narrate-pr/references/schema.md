@@ -225,6 +225,7 @@ surface). One entry per component.
   "pkg": "api",
   "title": "Notification service",
   "runtime": "server",
+  "status": "added",
   "files": [
     { "path": "packages/api/src/notifications/service.ts", "role": "write path" },
     { "path": "packages/api/src/notifications/socket.ts", "role": "push path" }
@@ -420,7 +421,13 @@ lane rows with flexbox; there is no positional data to author.
         [
           { "id": "box.handler", "label": "createNotification()", "pkg": "api" },
           { "arrow": "→" },
-          { "id": "box.repo", "label": "NotificationRepo.insert()", "sub": "tenant-scoped", "pkg": "api" }
+          {
+            "id": "box.repo",
+            "label": "NotificationRepo.insert()",
+            "sub": "tenant-scoped",
+            "pkg": "api",
+            "status": "added"
+          }
         ]
       ]
     }
@@ -455,7 +462,7 @@ is no positional data to author.
   "steps": [
     { "kind": "phase", "label": "Event persisted" },
     { "kind": "msg", "from": "actor.api", "to": "actor.socket", "label": "publish(event)" },
-    { "kind": "msg", "from": "actor.socket", "to": "actor.web", "label": "notification:new" },
+    { "kind": "msg", "from": "actor.socket", "to": "actor.web", "label": "notification:new", "status": "added" },
     { "kind": "self", "actor": "actor.web", "label": "reconcile unread count" }
   ]
 }
@@ -469,9 +476,9 @@ is no positional data to author.
 | `actors[].pkg`      | string | no       | Must resolve to a `packages[].id` if present.                                                                                                    |
 | `actors[].status`   | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the actor. Absent is equivalent to `unchanged`.                          |
 | `steps[].kind`      | string | yes      | One of `msg`, `self`, `phase`.                                                                                                                   |
-| `steps[]` (`msg`)   | object | —        | `{ kind: "msg", from, to, label, muted? }` — `from`/`to` are actor ids.                                                                          |
-| `steps[]` (`self`)  | object | —        | `{ kind: "self", actor, label }`.                                                                                                                |
-| `steps[]` (`phase`) | object | —        | `{ kind: "phase", label }` — a section divider, no actors involved.                                                                              |
+| `steps[]` (`msg`)   | object | —        | `{ kind: "msg", from, to, label, muted?, status? }` — `from`/`to` are actor ids.                                                                 |
+| `steps[]` (`self`)  | object | —        | `{ kind: "self", actor, label, status? }`.                                                                                                       |
+| `steps[]` (`phase`) | object | —        | `{ kind: "phase", label, status? }` — a section divider, no actors involved.                                                                     |
 | `steps[].status`    | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the step. Valid on every step kind. Absent is equivalent to `unchanged`. |
 
 ### `depmap`
@@ -509,7 +516,7 @@ separate, strippable `layout` block.
   ],
   "edges": [
     { "from": "node.service", "to": "node.socket", "label": "publish", "kind": "call" },
-    { "from": "node.socket", "to": "node.badge", "label": "notification:new", "kind": "net" }
+    { "from": "node.socket", "to": "node.badge", "label": "notification:new", "kind": "net", "status": "added" }
   ],
   "layout": {
     "cols": 2,
@@ -625,10 +632,15 @@ violates any of them is invalid.
     actors, `sequence` steps, `depmap` nodes, and `depmap` edges — is one
     of `added`, `removed`, `changed`, `unchanged`. The field is optional
     at every one of those sites; an absent `status` means `unchanged` and
-    is treated identically to one. A `status` written on any other node is
-    deliberately **not** validated and carries no meaning: this validator
-    does no unknown-field checking anywhere, so rejecting one stray field
-    while every other unknown field passes silently would be inconsistent.
+    is treated identically to one. Values come from the PR's diff — the
+    element's state at the base ref compared with its state at the
+    document's head `sha` — never inferred at synthesis time from the
+    shape of the code alone; only the enum is machine-checked here, so the
+    derivation is an authoring obligation. A `status` written on any other
+    node is deliberately **not** validated and carries no meaning: this
+    validator does no unknown-field checking anywhere, so rejecting one
+    stray field while every other unknown field passes silently would be
+    inconsistent.
 
 ## Design notes
 

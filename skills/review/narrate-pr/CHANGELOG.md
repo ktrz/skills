@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-- **Diff/delta overlay — schema and validator.** Diagram elements and components gain an optional `status: added | removed | changed | unchanged`, so a walkthrough can say what the PR did to a thing instead of only drawing the after picture. Supported on `lane` box cells, `lane` arrow cells, `sequence` actors, `sequence` steps, `depmap` nodes, `depmap` edges, and `components[]`. The field is optional at every one of those sites and an absent `status` means `unchanged`. New `rule-17-status` covers all seven sites in one rule, the way `rule-7-pkg-ref` already covers `pkg` at four; a `status` written on an unsupported node is deliberately left unvalidated, matching the validator's lack of unknown-field checking everywhere else. `fixtures/sample-mini.json` now exercises all four values plus the absent case. Nothing renders differently yet — the field is only established and validated here. +71 tests, for 207 in the suite.
+- **Diff/delta overlay — schema and validator.** Diagram elements and components gain an optional `status: added | removed | changed | unchanged`, so a walkthrough can say what the PR did to a thing instead of only drawing the after picture. Supported on `lane` box cells, `lane` arrow cells, `sequence` actors, `sequence` steps, `depmap` nodes, `depmap` edges, and `components[]`. The field is optional at every one of those sites and an absent `status` means `unchanged`. Nothing renders differently yet — the field is only established and validated here. +71 tests.
 
 ## 0.1.2
 
