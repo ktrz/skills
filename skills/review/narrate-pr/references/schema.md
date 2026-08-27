@@ -564,6 +564,10 @@ Every `depmap` edge label names exactly one mechanism, in words a reader can par
 
 - **One edge, one mechanism.** The label names it in words a reader can parse standalone — an API/method name, an endpoint, a protocol string — ideally lifted verbatim from verified evidence (the edge-verification report), never re-summarized into invented shorthand.
 - **No glyph shorthand in labels.** No arrows (e.g. `⇄`) standing in for prose.
+- **Status lives in the `status` field, not the label.** An edge's
+  `status` is carried in the `status` field, never folded into its
+  `label` — do not append status words, arrows, or glyphs to a label
+  to signal what the PR did.
 - **Bidirectional relationships are two edges.** A genuinely bidirectional relationship MUST be modeled as two edges, each labeled with its own direction's mechanism — never one edge with a two-way label. The renderer draws reciprocal pairs as parallel lanes automatically.
 - **Arrow direction is data/control flow, not reference ownership.** The arrow points the way a reader should follow the flow, not which side holds the reference — e.g. an event-subscription edge points from emitter to consumer, labeled with the event mechanism, even though it's the consumer that registered the callback.
 - **One mechanism per edge.** If a relationship needs more than one mechanism named, split the edge or move the detail into the node's `sub` lines instead of compounding the label.
@@ -747,3 +751,29 @@ future renderer (or a different diagram engine entirely) can recompute
 its own layout from topology alone if `layout` is stripped or ignored —
 today's renderer simply chooses not to, and instead trusts the
 synthesis-time placement verbatim.
+
+**Status derivation.** Rule 17 fixes the `status` enum and where it's
+valid; it doesn't say where the value comes from. That value is
+computed from diff evidence at synthesis time, never invented or
+guessed from the shape of the code:
+
+- A `components[]` entry's status rolls up from its files' `A`/`M`/`D`
+  diff markers, quantified over **all** of the component's files and
+  not only the diff-listed ones — a file the diff never mentions
+  counts as unchanged. Every file added is `added`; every file deleted
+  is `removed`; otherwise any file added, modified, or deleted is
+  `changed`; else `unchanged`. So `added` means the component did not
+  exist at the base ref at all, and `removed` that none of it survives
+  at head; a component that predates the PR never rolls up to `added`.
+- A `depmap` edge's status comes from the edge-verification
+  subagent's reported status token for that edge; an edge that pass
+  reported without a status token is left with no `status` at all,
+  never defaulted to `unchanged`.
+- A `depmap` node's status derives from the file-level diff markers
+  of the files that node covers, coarsened to the matching
+  `components[]` entry's status only when the node and component
+  cover exactly the same files — a node whose only file was deleted
+  is `removed` even when its parent component, spanning other files
+  that were merely changed, is `changed`.
+- `lane` box/arrow cells and `sequence` actors/steps derive from the
+  diff evidence for the code they represent.
