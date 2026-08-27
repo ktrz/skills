@@ -47,22 +47,23 @@ and `web`. Any resemblance to a real repo or PR is coincidental.
 
 ## Top-level fields
 
-| Field            | Type    | Required | Meaning                                                                                                                                           |
-| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`        | integer | yes      | Schema version. `1` for this spec.                                                                                                                |
-| `pr`             | object  | yes      | PR identity — see below.                                                                                                                          |
-| `sha`            | string  | yes      | 40-hex commit SHA of the PR head at build time. All code receipts resolve against this SHA.                                                       |
-| `generatedAt`    | string  | yes      | ISO 8601 timestamp of the build.                                                                                                                  |
-| `packages`       | array   | yes      | Palette source for color-coding. May be empty for a single-package repo.                                                                          |
-| `thesis`         | object  | yes      | One-paragraph statement of what the PR does and why.                                                                                              |
-| `stats`          | object  | yes      | Diff stats — files/additions/deletions/commits.                                                                                                   |
-| `architecture`   | object  | yes      | Prose, diagrams, channels, and boundaries describing the system shape.                                                                            |
-| `components`     | array   | yes      | The units of code the PR touches or introduces.                                                                                                   |
-| `reviewOrder`    | array   | yes      | Suggested dependency-ordered review path.                                                                                                         |
-| `attentionSpots` | array   | yes      | Bounded set of "look closely here" locations.                                                                                                     |
-| `tests`          | array   | yes      | Test coverage summary per area.                                                                                                                   |
-| `qa`             | array   | yes      | Q&A entries. Empty at build; fills via the edit → re-render path.                                                                                 |
-| `prComments`     | array   | yes      | PR review comments, rendered inline. Empty at build — the build never generates these; a future consumer (e.g. review-pr) may populate this slot. |
+| Field            | Type    | Required | Meaning                                                                                                                                                                       |
+| ---------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`        | integer | yes      | Schema version. `1` for this spec.                                                                                                                                            |
+| `pr`             | object  | yes      | PR identity — see below.                                                                                                                                                      |
+| `sha`            | string  | yes      | 40-hex commit SHA of the PR head at build time. All code receipts resolve against this SHA.                                                                                   |
+| `baseSha`        | string  | no       | 40-hex commit SHA of the PR base at build time. Required when any `code-base` receipt is present anywhere in the document. All `code-base` receipts resolve against this SHA. |
+| `generatedAt`    | string  | yes      | ISO 8601 timestamp of the build.                                                                                                                                              |
+| `packages`       | array   | yes      | Palette source for color-coding. May be empty for a single-package repo.                                                                                                      |
+| `thesis`         | object  | yes      | One-paragraph statement of what the PR does and why.                                                                                                                          |
+| `stats`          | object  | yes      | Diff stats — files/additions/deletions/commits.                                                                                                                               |
+| `architecture`   | object  | yes      | Prose, diagrams, channels, and boundaries describing the system shape.                                                                                                        |
+| `components`     | array   | yes      | The units of code the PR touches or introduces.                                                                                                                               |
+| `reviewOrder`    | array   | yes      | Suggested dependency-ordered review path.                                                                                                                                     |
+| `attentionSpots` | array   | yes      | Bounded set of "look closely here" locations.                                                                                                                                 |
+| `tests`          | array   | yes      | Test coverage summary per area.                                                                                                                                               |
+| `qa`             | array   | yes      | Q&A entries. Empty at build; fills via the edit → re-render path.                                                                                                             |
+| `prComments`     | array   | yes      | PR review comments, rendered inline. Empty at build — the build never generates these; a future consumer (e.g. review-pr) may populate this slot.                             |
 
 ```json
 {
@@ -377,18 +378,24 @@ A receipt grounds a claim in evidence. Every claim-bearing node (see
 { "kind": "code", "ref": "packages/api/src/notifications/service.ts:22-27", "note": "persist-before-push ordering" }
 ```
 
-| Field  | Type   | Required | Meaning                                     |
-| ------ | ------ | -------- | ------------------------------------------- |
-| `kind` | string | yes      | One of `code`, `doc`, `url`, `report`.      |
-| `ref`  | string | yes      | Reference; shape depends on `kind` (below). |
-| `note` | string | no       | Short human-readable annotation.            |
+| Field  | Type   | Required | Meaning                                             |
+| ------ | ------ | -------- | --------------------------------------------------- |
+| `kind` | string | yes      | One of `code`, `code-base`, `doc`, `url`, `report`. |
+| `ref`  | string | yes      | Reference; shape depends on `kind` (below).         |
+| `note` | string | no       | Short human-readable annotation.                    |
 
 `ref` shape by `kind`:
 
 - **`code`** — `path:line` or `path:line-line`, relative to repo root, valid at the document's `sha`.
+- **`code-base`** — same shape as `code` (`path:line` or `path:line-line`, relative to repo root), but valid at the document's `baseSha` instead of its `sha`.
 - **`doc`** — `path:line` into an in-repo doc (README, ADR, etc.), relative to repo root.
 - **`url`** — an absolute URL.
 - **`report`** — `reports/<scope>.md#anchor`, pointing into a persisted research report.
+
+Use `code-base` for a claim about code this PR deleted — it no longer
+exists at the document's head `sha`, so a `code` receipt can't resolve.
+Everything else — code that still exists at the head sha, even if
+modified — keeps `code`.
 
 ## Diagram union
 
@@ -602,11 +609,13 @@ violates any of them is invalid.
 7. **Package references resolve.** Every `pkg` field anywhere in the
    document (components, diagram actors/nodes/boxes) resolves to a
    `packages[].id`.
-8. **Code receipt ref shape.** Every receipt with `"kind": "code"` has
-   a `ref` matching `path:line` or `path:line-line` — a repo-relative
-   path (no leading `/`, no `..` segments, not a URL), a colon, a
-   positive integer line, optionally a hyphen and a second integer line
-   no smaller than the first.
+8. **Code receipt ref shape.** Every receipt with `"kind": "code"` or
+   `"kind": "code-base"` has a `ref` matching `path:line` or
+   `path:line-line` — a repo-relative path (no leading `/`, no `..`
+   segments, not a URL), a colon, a positive integer line, optionally a
+   hyphen and a second integer line no smaller than the first. Both
+   kinds share this rule; they differ only in which sha the ref
+   resolves against.
 9. **Depmap zone references.** Every depmap node's `zone` value
    references an existing `zones[].id` within that same diagram.
 10. **Sequence actor references.** Every sequence step of kind `msg` has
@@ -648,6 +657,11 @@ violates any of them is invalid.
     validator does no unknown-field checking anywhere, so rejecting one
     stray field while every other unknown field passes silently would be
     inconsistent.
+18. **Base sha format.** `baseSha`, when present, is exactly 40 hex
+    characters.
+19. **Base sha required for base receipts.** If any receipt in the
+    document has `"kind": "code-base"`, the document must have a
+    `baseSha`. `baseSha` is otherwise optional.
 
 ## Status rendering
 

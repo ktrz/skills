@@ -110,12 +110,17 @@ directory.
    Compare:
 
    ```bash
-   gh pr view <N> --json headRefOid --jq .headRefOid
+   gh pr view <N> --json headRefOid,baseRefOid --jq '{head: .headRefOid, base: .baseRefOid}'
    git rev-parse HEAD
    ```
 
-   - **Match** → proceed; this sha becomes `walkthrough.json`'s
-     top-level `sha` field.
+   - **Match** → proceed; the head sha becomes `walkthrough.json`'s
+     top-level `sha` field, and `baseRefOid` becomes its top-level
+     `baseSha` field (only load-bearing if the document ends up with a
+     `code-base` receipt, but cheap to capture alongside the head pin
+     here — no separate call). This is the base _commit_, distinct from
+     `baseRefName` (the base _branch_ name, fetched in Step 2 below and
+     mapped to `pr.base`).
    - **Mismatch** → **STOP**. Do not check anything out automatically.
      Tell the user the working tree isn't on the PR's head and ask
      them to check it out themselves — e.g. `gh pr checkout <N>`, or
@@ -258,7 +263,9 @@ ever disagree.
 
 Build, in order:
 
-- **`pr`, `sha`, `generatedAt`, `stats`** — from Steps 1–2.
+- **`pr`, `sha`, `baseSha`, `generatedAt`, `stats`** — from Steps 1–2.
+  Omit `baseSha` unless the document ends up with a `code-base`
+  receipt.
 - **`packages`** — the palette source. One entry per subsystem worth
   color-coding (typically one per research scope, or per actual
   package/module boundary if the repo is a monorepo). A single-package
@@ -300,7 +307,10 @@ validation rule 3 enumerates exactly which). Prefer `"kind": "code"`
 receipts pointing at `path:line` you can trace back to a research
 report; use `"kind": "report"` (`reports/<scope>.md#anchor`) when the
 claim is closer to "the research subagent observed X" than to a single
-line of code.
+line of code. A claim about an element this PR removed — it has
+`status: "removed"` and no longer exists at the document's head
+`sha` — cites a `"kind": "code-base"` receipt instead, resolving
+against `baseSha`.
 
 This step deliberately has no `model:` pin in this skill's frontmatter
 and inherits whatever model is running the invoking session — synthesis
@@ -357,6 +367,21 @@ git diff --quiet HEAD --
   ask them to restore the checkout and re-run the skill. Untracked
   files — including this skill's own `plans.local/` output — do not
   trip this check.
+
+If `walkthrough.json` has a `baseSha` (i.e. it carries any `code-base`
+receipt), revalidate that pin too — the base branch can advance the
+same way the head can:
+
+```bash
+gh pr view <N> --json baseRefOid --jq .baseRefOid
+```
+
+- **Matches the recorded `baseSha`** → proceed.
+- **Mismatch** → **STOP** before publishing anything, same as a
+  remote-head mismatch: tell the user the PR's base has moved since
+  this walkthrough was built, so its `code-base` receipts may no longer
+  describe the base they resolve against, and ask them to re-run the
+  skill.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:
