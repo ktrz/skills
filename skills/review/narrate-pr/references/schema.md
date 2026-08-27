@@ -47,23 +47,23 @@ and `web`. Any resemblance to a real repo or PR is coincidental.
 
 ## Top-level fields
 
-| Field            | Type    | Required | Meaning                                                                                                                                                                       |
-| ---------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`        | integer | yes      | Schema version. `1` for this spec.                                                                                                                                            |
-| `pr`             | object  | yes      | PR identity — see below.                                                                                                                                                      |
-| `sha`            | string  | yes      | 40-hex commit SHA of the PR head at build time. All code receipts resolve against this SHA.                                                                                   |
-| `baseSha`        | string  | no       | 40-hex commit SHA of the PR base at build time. Required when any `code-base` receipt is present anywhere in the document. All `code-base` receipts resolve against this SHA. |
-| `generatedAt`    | string  | yes      | ISO 8601 timestamp of the build.                                                                                                                                              |
-| `packages`       | array   | yes      | Palette source for color-coding. May be empty for a single-package repo.                                                                                                      |
-| `thesis`         | object  | yes      | One-paragraph statement of what the PR does and why.                                                                                                                          |
-| `stats`          | object  | yes      | Diff stats — files/additions/deletions/commits.                                                                                                                               |
-| `architecture`   | object  | yes      | Prose, diagrams, channels, and boundaries describing the system shape.                                                                                                        |
-| `components`     | array   | yes      | The units of code the PR touches or introduces.                                                                                                                               |
-| `reviewOrder`    | array   | yes      | Suggested dependency-ordered review path.                                                                                                                                     |
-| `attentionSpots` | array   | yes      | Bounded set of "look closely here" locations.                                                                                                                                 |
-| `tests`          | array   | yes      | Test coverage summary per area.                                                                                                                                               |
-| `qa`             | array   | yes      | Q&A entries. Empty at build; fills via the edit → re-render path.                                                                                                             |
-| `prComments`     | array   | yes      | PR review comments, rendered inline. Empty at build — the build never generates these; a future consumer (e.g. review-pr) may populate this slot.                             |
+| Field            | Type    | Required | Meaning                                                                                                                                                                                           |
+| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`        | integer | yes      | Schema version. `1` for this spec.                                                                                                                                                                |
+| `pr`             | object  | yes      | PR identity — see below.                                                                                                                                                                          |
+| `sha`            | string  | yes      | 40-hex commit SHA of the PR head at build time. All code receipts resolve against this SHA.                                                                                                       |
+| `baseSha`        | string  | no       | 40-character lowercase hex commit SHA of the PR base at build time. Required when any `code-base` receipt is present anywhere in the document. All `code-base` receipts resolve against this SHA. |
+| `generatedAt`    | string  | yes      | ISO 8601 timestamp of the build.                                                                                                                                                                  |
+| `packages`       | array   | yes      | Palette source for color-coding. May be empty for a single-package repo.                                                                                                                          |
+| `thesis`         | object  | yes      | One-paragraph statement of what the PR does and why.                                                                                                                                              |
+| `stats`          | object  | yes      | Diff stats — files/additions/deletions/commits.                                                                                                                                                   |
+| `architecture`   | object  | yes      | Prose, diagrams, channels, and boundaries describing the system shape.                                                                                                                            |
+| `components`     | array   | yes      | The units of code the PR touches or introduces.                                                                                                                                                   |
+| `reviewOrder`    | array   | yes      | Suggested dependency-ordered review path.                                                                                                                                                         |
+| `attentionSpots` | array   | yes      | Bounded set of "look closely here" locations.                                                                                                                                                     |
+| `tests`          | array   | yes      | Test coverage summary per area.                                                                                                                                                                   |
+| `qa`             | array   | yes      | Q&A entries. Empty at build; fills via the edit → re-render path.                                                                                                                                 |
+| `prComments`     | array   | yes      | PR review comments, rendered inline. Empty at build — the build never generates these; a future consumer (e.g. review-pr) may populate this slot.                                                 |
 
 ```json
 {
@@ -657,8 +657,8 @@ violates any of them is invalid.
     validator does no unknown-field checking anywhere, so rejecting one
     stray field while every other unknown field passes silently would be
     inconsistent.
-18. **Base sha format.** `baseSha`, when present, is exactly 40 hex
-    characters.
+18. **Base sha format.** `baseSha`, when present, is exactly 40 lowercase
+    hex characters.
 19. **Base sha required for base receipts.** If any receipt in the
     document has `"kind": "code-base"`, the document must have a
     `baseSha`. `baseSha` is otherwise optional.
