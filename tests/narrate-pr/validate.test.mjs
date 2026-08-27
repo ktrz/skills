@@ -438,7 +438,7 @@ test("reviewOrder steps [1, 2, 3] pass", () => {
 
 // ---- rule 17: optional element status enum ---------------------------------
 
-const BAD_STATUSES = ["Added", "modified", "", null, 1, "UNCHANGED"];
+const BAD_STATUSES = ["Added", "modified", "", null, 1, true, "UNCHANGED"];
 const GOOD_STATUSES = ["added", "removed", "changed", "unchanged"];
 
 // [label, at(doc) -> the object that carries `status`, path of that .status]
@@ -455,6 +455,10 @@ const STATUS_SITES = [
   ],
   ["sequence actor", (doc) => doc.architecture.diagrams[1].actors[0], "$.architecture.diagrams[1].actors[0].status"],
   ["sequence step", (doc) => doc.architecture.diagrams[1].steps[1], "$.architecture.diagrams[1].steps[1].status"],
+  // status is valid on every step kind, so the phase divider and the self step
+  // are covered too — checkStatus sits outside any kind-specific branch.
+  ["sequence step (phase)", (doc) => doc.architecture.diagrams[1].steps[0], "$.architecture.diagrams[1].steps[0].status"],
+  ["sequence step (self)", (doc) => doc.architecture.diagrams[1].steps[5], "$.architecture.diagrams[1].steps[5].status"],
   ["depmap node", (doc) => doc.architecture.diagrams[2].nodes[0], "$.architecture.diagrams[2].nodes[0].status"],
   ["depmap edge", (doc) => doc.architecture.diagrams[2].edges[0], "$.architecture.diagrams[2].edges[0].status"],
   ["component", (doc) => doc.components[0], "$.components[0].status"],
@@ -493,4 +497,15 @@ test("status is optional — a document with no status anywhere validates clean"
   const doc = sample();
   stripStatus(doc);
   assertClean(doc, "status stripped");
+});
+
+// Rule 17 makes a positive claim about non-validation: a `status` written on a
+// node outside the seven supported sites carries no meaning and is deliberately
+// left unchecked (there is no unknown-field strictness in this validator). A
+// depmap zone is such a node. This pins the decision so a future change to
+// unknown-field handling has to edit this test consciously.
+test("status on an unsupported node is deliberately not validated (rule 17)", () => {
+  const doc = sample();
+  doc.architecture.diagrams[2].zones[0].status = "NONSENSE";
+  assertClean(doc, "status on an unsupported node");
 });
