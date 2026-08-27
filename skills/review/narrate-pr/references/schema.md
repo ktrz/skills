@@ -762,9 +762,15 @@ guessed from the shape of the code:
   not only the diff-listed ones — a file the diff never mentions
   counts as unchanged. Every file added is `added`; every file deleted
   is `removed`; otherwise any file added, modified, or deleted is
-  `changed`; else `unchanged`. So `added` means the component did not
-  exist at the base ref at all, and `removed` that none of it survives
-  at head; a component that predates the PR never rolls up to `added`.
+  `changed`; else `unchanged`. So `added` means no file of the
+  component existed at the base ref _under its current path_, and
+  `removed` that none of it survives at head; a component that
+  predates the PR at those same paths never rolls up to `added`.
+  Status is a claim about paths, not about lineage: the file listing
+  is taken with `--no-renames`, so a renamed component legitimately
+  reads as `added` while its old path reads as `removed` — that trade
+  of rename lineage for an exhaustive `A`/`M`/`D` vocabulary is
+  deliberate.
 - A `depmap` edge's status comes from the edge-verification
   subagent's reported status token for that edge; an edge that pass
   reported without a status token is left with no `status` at all,
