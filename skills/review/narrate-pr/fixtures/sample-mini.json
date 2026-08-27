@@ -8,6 +8,7 @@
     "base": "main"
   },
   "sha": "3f2a9c1d4e5b6a7c8d9e0f1a2b3c4d5e6f7a8b9c",
+  "baseSha": "9b7d2f4e8a1c6053e2d94b8f0a3c7e1d5b6f2a48",
   "generatedAt": "2026-07-12T09:00:00Z",
   "packages": [
     { "id": "core", "label": "@acme/core" },
@@ -16,7 +17,7 @@
   ],
   "thesis": {
     "id": "thesis.main",
-    "text": "Adds an in-app notifications feed: the API persists notification events and pushes them to connected clients over a WebSocket channel, while the web app renders a feed panel and a bell icon with an unread-count badge. The event shape lives in core so both sides share one contract.",
+    "text": "Adds real-time in-app notifications: the API gains a service that persists notification events and pushes them to connected clients over a WebSocket channel, while the web app's existing feed panel is reworked to merge the live stream with its poll-on-mount snapshot — absorbing the unread count from the bell badge, which this PR retires. The event shape lives in core so both sides share one contract.",
     "receipts": [
       { "kind": "code", "ref": "packages/api/src/notifications/service.ts:1-40" },
       { "kind": "report", "ref": "reports/api.md#overview" }
@@ -97,7 +98,7 @@
         "id": "diagram.socket-push",
         "type": "sequence",
         "title": "Realtime push on new notification",
-        "caption": "From persistence to a reconciled unread badge.",
+        "caption": "From persistence to a reconciled unread count.",
         "actors": [
           {
             "id": "actor.service",
@@ -148,7 +149,7 @@
         "id": "diagram.notification-depmap",
         "type": "depmap",
         "title": "Notification component dependencies",
-        "caption": "Topology verified against imports at the doc sha; layout is a rendering hint only.",
+        "caption": "Topology verified against imports at the head sha — removed nodes and edges against the base sha; layout is a rendering hint only.",
         "zones": [
           { "id": "zone.core", "label": "core" },
           { "id": "zone.api", "label": "api" },
@@ -207,14 +208,14 @@
             "sub": ["UnreadBadge.tsx"],
             "chips": ["ui"],
             "pkg": "web",
-            "status": "changed"
+            "status": "removed"
           }
         ],
         "edges": [
           { "from": "node.service", "to": "node.repo", "label": "insert", "kind": "call", "status": "added" },
           { "from": "node.service", "to": "node.gateway", "label": "publish", "kind": "call", "status": "added" },
           { "from": "node.gateway", "to": "node.feed", "label": "notification:new", "kind": "net", "status": "added" },
-          { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call", "status": "unchanged" },
+          { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call", "status": "removed" },
           { "from": "node.service", "to": "node.types", "kind": "type-only", "status": "added" },
           { "from": "node.feed", "to": "node.types", "kind": "type-only", "status": "added" }
         ],
@@ -265,10 +266,10 @@
       },
       {
         "id": "boundary.client-read-only",
-        "text": "The web client can only acknowledge reads; it can never create, edit, or delete notification events.",
+        "text": "The web client can only acknowledge reads; it can never create, edit, or delete notification events — the REST create endpoint that once allowed direct writes is deleted in this PR.",
         "receipts": [
           { "kind": "code", "ref": "packages/api/src/notifications/routes.ts:15" },
-          { "kind": "doc", "ref": "docs/architecture/notifications.md:34" }
+          { "kind": "code-base", "ref": "packages/api/src/notifications/routes.ts:15-24" }
         ]
       }
     ]
@@ -306,14 +307,17 @@
       "status": "changed",
       "files": [
         { "path": "packages/web/src/notifications/NotificationFeed.tsx", "role": "feed panel" },
-        { "path": "packages/web/src/notifications/UnreadBadge.tsx", "role": "bell badge" },
+        {
+          "path": "packages/web/src/notifications/UnreadBadge.tsx",
+          "role": "bell badge (deleted; count moved into the feed header)"
+        },
         { "path": "packages/web/src/notifications/store.ts", "role": "client state" }
       ],
-      "summary": "Renders the feed panel and the bell badge from a single client store that merges the poll-on-mount snapshot with the live socket stream.",
+      "summary": "Renders the feed panel — including the unread count, folded in from the retired bell badge — from a single client store that merges the poll-on-mount snapshot with the live socket stream.",
       "invariants": [
         {
-          "id": "inv.badge-matches-store",
-          "text": "The unread badge is always derived from the store's event list, never tracked as an independent counter.",
+          "id": "inv.count-matches-store",
+          "text": "The unread count in the feed header is always derived from the store's event list, never tracked as an independent counter.",
           "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.ts:63-70" }]
         }
       ],
@@ -367,7 +371,7 @@
     {
       "id": "spot.unread-count-race",
       "loc": "packages/web/src/notifications/store.ts:66",
-      "why": "The unread count is derived from local socket state, not refetched; a dropped socket message during reconnect could leave the badge stale until the next event.",
+      "why": "The unread count is derived from local socket state, not refetched; a dropped socket message during reconnect could leave the count stale until the next event.",
       "group": "realtime path",
       "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.ts:63-70" }]
     },
@@ -393,11 +397,11 @@
       "receipts": [{ "kind": "code", "ref": "packages/api/migrations/0042_notifications.sql:1-18" }]
     },
     {
-      "id": "spot.badge-overflow",
-      "loc": "packages/web/src/notifications/UnreadBadge.tsx:12",
-      "why": "Counts above 99 render as \"99+\" but the aria-label still reads the raw number; screen-reader and visual output diverge.",
+      "id": "spot.count-overflow",
+      "loc": "packages/web/src/notifications/NotificationFeed.tsx:31",
+      "why": "The retired badge capped its display at \"99+\" but exposed the raw number to screen readers; the count now renders in the feed header — verify the reimplementation does not reintroduce that divergence.",
       "group": "web ui",
-      "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/UnreadBadge.tsx:10-16" }]
+      "receipts": [{ "kind": "code-base", "ref": "packages/web/src/notifications/UnreadBadge.tsx:10-16" }]
     }
   ],
   "tests": [
@@ -411,7 +415,7 @@
     {
       "id": "test.notification-feed",
       "area": "Notification feed UI",
-      "coverage": "Store tests cover poll/stream merge by event id and unread-count derivation; a rendering test asserts the 99+ badge cap.",
+      "coverage": "Store tests cover poll/stream merge by event id and unread-count derivation; a rendering test asserts the 99+ cap on the feed-header count.",
       "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/store.test.ts:1-52" }]
     }
   ],
