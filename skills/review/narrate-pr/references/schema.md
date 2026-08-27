@@ -40,6 +40,9 @@ and `web`. Any resemblance to a real repo or PR is coincidental.
   - [`depmap`](#depmap)
   - [Edge label conventions](#edge-label-conventions)
 - [Validation rules](#validation-rules)
+- [Status rendering](#status-rendering)
+  - [Legend](#legend)
+  - [Accessibility](#accessibility)
 - [Design notes](#design-notes)
 
 ## Top-level fields
@@ -645,6 +648,67 @@ violates any of them is invalid.
     validator does no unknown-field checking anywhere, so rejecting one
     stray field while every other unknown field passes silently would be
     inconsistent.
+
+## Status rendering
+
+Rule 17 fixes the `status` enum and the sites it is valid on. This section
+describes the reference renderer's treatment of a validated `status` value
+— descriptive, not an additional constraint on the document.
+
+An absent `status` and an explicit `"unchanged"` render identically:
+neither produces a badge, a colour, or a legend entry. `unchanged` is a
+purely nominal member of the enum — no rendered site ever visibly
+distinguishes "not stated" from "stated as unchanged".
+
+| Site                                     | Treatment                                                                                                                                                                                                                  |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lane` box cell                          | A colour bar down the left edge, plus a text badge; `removed` is additionally struck through.                                                                                                                              |
+| `lane` arrow cell                        | The same colour bar down the left edge, plus a text badge; unlike every other struck-through site, `removed` never strikes an arrow — a struck-through arrow glyph would read as a rendering fault rather than a deletion. |
+| `sequence` actor                         | A colour bar down the left edge, plus a text badge; `removed` is struck through.                                                                                                                                           |
+| `sequence` step (`msg`, `self`, `phase`) | The same colour bar down the left edge; `removed` is struck through. On a `msg` step the bar composes with the existing `muted` modifier — the two are independent axes.                                                   |
+| `depmap` node                            | Stroke colour only — no badge, no chip.                                                                                                                                                                                    |
+| `depmap` edge                            | Stroke colour only. The edge's `kind` keeps its own dash pattern and arrowhead, so colour and kind are drawn on independent axes and never collide.                                                                        |
+| `components[]` entry                     | A text badge in the component header, beside the package badge.                                                                                                                                                            |
+
+The colour bar is a thin inset mark along the left edge rather than a
+border, deliberately: a border would reflow the element it marks, and on
+a `lane` box the top border already carries the package colour.
+
+`depmap` nodes and edges are colour-only by design: a depmap's geometry is
+computed from character counts in `layout` (see "Strippable layout"
+below), and a badge or chip would perturb that computation. Colour is the
+only treatment that costs no layout width.
+
+### Legend
+
+A legend block renders below each diagram that has one — depmap included
+— as HTML placed outside the diagram's `<svg>`, so it never affects a
+`depmap`'s `viewBox` extents.
+
+- The legend appears only when its diagram contains at least one element
+  with a non-`unchanged` status.
+- It lists only the statuses actually present in that diagram, in the
+  fixed order `added`, `removed`, `changed` — never the order in which
+  they happen to appear in the document.
+- `unchanged` is never listed.
+- A diagram with no `status` anywhere, or with only `unchanged`, gets no
+  legend.
+
+The legend is scoped to diagrams. A `components[]` entry's `status`
+produces a badge in the component header but contributes no legend of its
+own.
+
+### Accessibility
+
+Every element type's aria-label or `<desc>` text gets the status appended
+as a trailing bracketed marker, after the element's own description —
+including sites that already carry a visible badge:
+
+```
+NotificationService → NotificationRepo: insert (calls) [added]
+```
+
+An `unchanged` (or absent) status adds no marker.
 
 ## Design notes
 
