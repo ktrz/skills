@@ -344,7 +344,7 @@ test("fixture diagrams expose their relationships to assistive tech", () => {
     "sequence self step status annotates its step entry",
   );
   assert.ok(
-    out.includes("Nodes: notification types [changed], NotificationService [added], NotificationRepo [added], SocketGateway [added], NotificationFeed [changed], UnreadBadge [changed]."),
+    out.includes("Nodes: notification types [changed], NotificationService [added], NotificationRepo [added], SocketGateway [added], NotificationFeed [changed], UnreadBadge [removed]."),
     "depmap node statuses annotate the Nodes list — the only place a node's status is exposed at all",
   );
   assert.ok(
@@ -352,8 +352,8 @@ test("fixture diagrams expose their relationships to assistive tech", () => {
     "depmap edge status follows the kind word in the Edges list",
   );
   assert.ok(
-    out.includes("NotificationFeed → UnreadBadge: unread count (calls);"),
-    "an unchanged edge carries no status marker",
+    out.includes("NotificationFeed → UnreadBadge: unread count (calls) [removed];"),
+    "the retired feed → badge edge carries a removed status marker",
   );
   assert.ok(
     out.includes("<desc>Relationships: NotificationService → NotificationRepo: insert (calls) [added];"),
@@ -776,4 +776,61 @@ test("removed elements are struck through by a .status-removed rule", () => {
   const out = render(laneDoc({ box: "removed" }));
   assert.match(out, /\.status-removed[^{}]*\{[^{}]*text-decoration:[^{}]*line-through/,
     "a .status-removed CSS rule must apply text-decoration: line-through");
+});
+
+// ---------------------------------------------------------------------------
+// code-base receipts — blob URLs at the base sha
+//
+// A `code` receipt resolves at the document's head `sha`, which cannot show an
+// element the PR deleted. `code-base` carries the same path:line ref shape but
+// resolves against the document-level `baseSha`, so a deleted element still
+// links to a page that exists.
+// ---------------------------------------------------------------------------
+
+const HEAD_SHA = "0123456789abcdef0123456789abcdef01234567"; // makeDoc()'s sha
+const BASE_SHA = "fedcba9876543210fedcba9876543210fedcba98";
+
+const receiptDoc = (receipts) => makeDoc({
+  baseSha: BASE_SHA,
+  thesis: thesisWith("T.", receipts),
+});
+
+// The href of the first receipt badge, or null when it rendered as an unlinked
+// <span>. Never throws, so a missing branch surfaces as an assertion, not a
+// TypeError on a null match.
+function firstReceiptHref(html) {
+  const m = /<(?:a|span) class="receipt receipt-[a-z0-9-]*"(?: href="([^"]*)")?/.exec(html);
+  return m && m[1] !== undefined ? m[1] : null;
+}
+
+test("code-base receipt links into the blob URL at baseSha", () => {
+  const out = render(receiptDoc([{ kind: "code-base", ref: "src/deleted.ts:12" }]));
+  assert.ok(out.includes(`blob/${BASE_SHA}/src/deleted.ts#L12`),
+    `code-base receipt must link at $.baseSha; got href ${JSON.stringify(firstReceiptHref(out))}`);
+});
+
+test("code-base and code receipts for the same ref resolve to different shas", () => {
+  const ref = "src/deleted.ts:12";
+  const baseHref = firstReceiptHref(render(receiptDoc([{ kind: "code-base", ref }])));
+  const headHref = firstReceiptHref(render(receiptDoc([{ kind: "code", ref }])));
+  assert.ok(headHref && headHref.includes(`blob/${HEAD_SHA}/`),
+    `code receipt must still resolve at $.sha; got ${JSON.stringify(headHref)}`);
+  assert.ok(baseHref && baseHref.includes(`blob/${BASE_SHA}/`),
+    `code-base receipt must resolve at $.baseSha; got ${JSON.stringify(baseHref)}`);
+  assert.notEqual(baseHref, headHref, "the two kinds must not produce the same URL");
+});
+
+for (const [ref, anchor] of [["src/deleted.ts:12", "#L12"], ["src/deleted.ts:12-40", "#L12-L40"]]) {
+  test(`code-base receipt ref "${ref}" keeps its ${anchor} line anchor`, () => {
+    const out = render(receiptDoc([{ kind: "code-base", ref }]));
+    assert.ok(out.includes(`blob/${BASE_SHA}/src/deleted.ts${anchor}`),
+      `code-base href must end with ${anchor}; got ${JSON.stringify(firstReceiptHref(out))}`);
+  });
+}
+
+test("a receipt kind outside the enum still renders as an unlinked span", () => {
+  const out = render(receiptDoc([{ kind: "code-head", ref: "src/deleted.ts:12" }]));
+  assert.match(out, /<span class="receipt receipt-code-head"/,
+    "an unknown kind falls through to safeHref(), which rejects a path:line ref");
+  assert.ok(!out.includes("/blob/"), "no blob URL is invented for an unknown kind");
 });
