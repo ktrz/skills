@@ -770,11 +770,14 @@ guessed from the shape of the code:
   is taken with `--no-renames`, so a renamed component legitimately
   reads as `added` while its old path reads as `removed` — that trade
   of rename lineage for an exhaustive `A`/`M`/`D` vocabulary is
-  deliberate.
+  deliberate. `added` and `removed` quantify over the whole set and
+  therefore require it to be established; a synthesis that cannot
+  establish a component's full file set writes `changed`.
 - A `depmap` edge's status comes from the edge-verification
   subagent's reported status token for that edge; an edge that pass
   reported without a status token is left with no `status` at all,
-  never defaulted to `unchanged`.
+  never defaulted to `unchanged` — absent claims nothing, which is the
+  honest record of an edge nobody could check at both commits.
 - A `depmap` node's status derives from the file-level diff markers
   of the files that node covers, coarsened to the matching
   `components[]` entry's status only when the node and component
