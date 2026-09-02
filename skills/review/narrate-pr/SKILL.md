@@ -368,20 +368,22 @@ git diff --quiet HEAD --
   files — including this skill's own `plans.local/` output — do not
   trip this check.
 
-If `walkthrough.json` has a `baseSha` (i.e. it carries any `code-base`
-receipt), revalidate that pin too — the base branch can advance the
-same way the head can:
+Revalidate the base pin unconditionally — every `status` field in the
+document derives from Step 2's diff against `baseRefOid`, whether or
+not the document ends up serializing `baseSha`. The base branch can
+advance the same way the head can:
 
 ```bash
 gh pr view <N> --json baseRefOid --jq .baseRefOid
 ```
 
-- **Matches the recorded `baseSha`** → proceed.
+- **Matches the `baseRefOid` captured in Step 1** → proceed, regardless
+  of whether it was serialized as `baseSha` in `walkthrough.json`.
 - **Mismatch** → **STOP** before publishing anything, same as a
   remote-head mismatch: tell the user the PR's base has moved since
-  this walkthrough was built, so its `code-base` receipts may no longer
-  describe the base they resolve against, and ask them to re-run the
-  skill.
+  this walkthrough was built, so its `status` fields (and any
+  `code-base` receipts) may no longer describe the base they resolve
+  against, and ask them to re-run the skill.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:
