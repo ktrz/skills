@@ -115,12 +115,31 @@ directory.
    ```
 
    - **Match** → proceed; the head sha becomes `walkthrough.json`'s
-     top-level `sha` field, and `baseRefOid` becomes its top-level
+     top-level `sha` field. Then derive the **effective base** and pin
+     it:
+
+     ```bash
+     git merge-base <baseRefOid> HEAD
+     ```
+
+     That merge base — not the base branch tip `baseRefOid` — is what
+     the rest of this pipeline means by "the base commit": Step 2 diffs
+     against it, every base read (`git show <base sha>:<path>`)
+     resolves at it, and it becomes `walkthrough.json`'s top-level
      `baseSha` field (only load-bearing if the document ends up with a
      `code-base` receipt, but cheap to capture alongside the head pin
-     here — no separate call). This is the base _commit_, distinct from
+     here — no separate call). Pinning the tip instead would be wrong:
+     the base branch can have advanced since the PR diverged from it,
+     so reading a deleted file at the tip can return content the PR
+     never deleted. Both are base _commits_, distinct from
      `baseRefName` (the base _branch_ name, fetched in Step 2 below and
      mapped to `pr.base`).
+
+     `git merge-base` needs the base commit present locally — run
+     `git fetch origin <baseRefName>` first if it isn't (the Step 2
+     diff needs it too, so this is no new requirement; it matters for
+     fork PRs).
+
    - **Mismatch** → **STOP**. Do not check anything out automatically.
      Tell the user the working tree isn't on the PR's head and ask
      them to check it out themselves — e.g. `gh pr checkout <N>`, or
@@ -369,21 +388,26 @@ git diff --quiet HEAD --
   trip this check.
 
 Revalidate the base pin unconditionally — every `status` field in the
-document derives from Step 2's diff against `baseRefOid`, whether or
-not the document ends up serializing `baseSha`. The base branch can
-advance the same way the head can:
+document derives from Step 2's diff against the effective base, whether
+or not the document ends up serializing `baseSha`. The base branch can
+advance the same way the head can, so re-derive the effective base and
+compare that, not `baseRefOid`:
 
 ```bash
 gh pr view <N> --json baseRefOid --jq .baseRefOid
+git fetch origin <baseRefName>   # an advanced tip may not be local yet
+git merge-base <baseRefOid> HEAD
 ```
 
-- **Matches the `baseRefOid` captured in Step 1** → proceed, regardless
-  of whether it was serialized as `baseSha` in `walkthrough.json`.
+- **Matches the effective base pinned in Step 1** → proceed, regardless
+  of whether it was serialized as `baseSha` in `walkthrough.json`, and
+  regardless of whether `baseRefOid` itself moved — a base branch that
+  advanced without changing the merge base invalidates nothing.
 - **Mismatch** → **STOP** before publishing anything, same as a
-  remote-head mismatch: tell the user the PR's base has moved since
-  this walkthrough was built, so its `status` fields (and any
-  `code-base` receipts) may no longer describe the base they resolve
-  against, and ask them to re-run the skill.
+  remote-head mismatch: tell the user the commit this PR diverged from
+  has moved since this walkthrough was built, so its `status` fields
+  (and any `code-base` receipts) may no longer describe the base they
+  resolve against, and ask them to re-run the skill.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:
