@@ -492,6 +492,7 @@ function firstInner(html, opener) {
 
 const compHead = (html) => firstInner(html, '<div class="comp-head">');
 const viewBoxOf = (html) => (html.match(/<svg viewBox="([^"]+)"/) || [])[1];
+const ariaOf = (html) => (html.match(/<div class="diagram" role="img" aria-label="([^"]*)"/) || [])[1] ?? "";
 
 // [label, doc(status) -> input document, assert(html, status)]
 const STATUS_SITES = [
@@ -567,6 +568,40 @@ test("lane arrow without a label still carries its status badge", () => {
   const out = render(laneDoc({ arrow: "added", arrowLabel: null }));
   const arrow = firstInner(out, '<div class="d-arrow status-added">');
   assert.ok(arrow.includes(badge("added")), "a label-less arrow cell must still show its status badge");
+});
+
+// A lane row whose arrow leads the row, so it has no preceding box at all —
+// schema-valid (checkLane imposes no positional constraint on arrow cells) and
+// the case where the flanked-flow sentence never fires.
+const unflankedLaneDoc = ({ arrow, arrowLabel = "kick off" } = {}) => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "diagram.lane", type: "lane", title: "Lane",
+      lanes: [{
+        id: "lane.a", label: "Lane A",
+        rows: [[
+          { arrow: "→", ...(arrowLabel ? { label: arrowLabel } : {}), ...withStatus(arrow) },
+          { id: "box.a", label: "Alpha" },
+        ]],
+      }],
+    }],
+  },
+});
+
+test("lane arrow without a labelled flank still reaches the aria-label with its status", () => {
+  const out = render(unflankedLaneDoc({ arrow: "added" }));
+  assert.ok(out.includes(badge("added")), "the arrow shows a visible status badge");
+  const aria = ariaOf(out);
+  assert.match(aria, /\[added\]/,
+    "an arrow that never forms a flanked flow must still contribute its [added] marker to the diagram aria-label");
+});
+
+test("lane arrow without a labelled flank is described in the aria-label at all", () => {
+  const aria = ariaOf(render(unflankedLaneDoc()));
+  assert.ok(aria.includes("→"),
+    "an unflanked arrow must still be described in the aria-label, status or not");
+  assert.ok(aria.includes("kick off"),
+    "its own label must survive into the aria-label");
 });
 
 test("sequence step composes its status class alongside the muted modifier", () => {

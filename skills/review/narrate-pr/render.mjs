@@ -344,8 +344,12 @@ function renderDocument(doc, opts) {
         cells.forEach((cell, i) => {
           if (!cell || typeof cell.arrow !== "string") return;
           const prev = cells[i - 1], next = cells[i + 1];
-          if (prev && prev.label && next && next.label) {
-            flows.push(`${prev.label} ${cell.arrow} ${next.label}${cell.label ? `: ${cell.label}` : ""}${statusMark(cell.status)}`);
+          const from = prev && prev.label ? prev.label : "";
+          const to = next && next.label ? next.label : "";
+          if (from && to) {
+            flows.push(`${from} ${cell.arrow} ${to}${cell.label ? `: ${cell.label}` : ""}${statusMark(cell.status)}`);
+          } else {
+            flows.push(`Arrow ${cell.arrow}${from ? ` from ${from}` : ""}${to ? ` to ${to}` : ""}${cell.label ? `: ${cell.label}` : ""}${statusMark(cell.status)}`);
           }
         });
       }
