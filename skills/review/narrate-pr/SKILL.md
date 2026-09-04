@@ -136,8 +136,8 @@ directory.
      `gh pr view` call above and mapped to `pr.base` in Step 2).
 
      `git merge-base` needs the base commit present locally — fetch it
-     first if it isn't: `git fetch <base remote> <baseRefName>`, where
-     `<base remote>` is the remote that points at the PR's _base_
+     first if it isn't: `git fetch <base remote> 'refs/heads/<baseRefName>'`,
+     where `<base remote>` is the remote that points at the PR's _base_
      repository. That's `origin` in the usual `gh pr checkout` flow (a
      clone of the base repo), but not when the checkout is a clone of a
      fork — there `origin` is the head repo, and fetching from it pulls
@@ -403,7 +403,7 @@ compare that, not `baseRefOid`:
 
 ```bash
 gh pr view <N> --json baseRefName,baseRefOid
-git fetch <base remote> <baseRefName>   # an advanced tip may not be local yet
+git fetch <base remote> 'refs/heads/<baseRefName>'   # an advanced tip may not be local yet
 git merge-base <baseRefOid> HEAD
 ```
 

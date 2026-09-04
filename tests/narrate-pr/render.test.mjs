@@ -834,3 +834,23 @@ test("a receipt kind outside the enum still renders as an unlinked span", () => 
     "an unknown kind falls through to safeHref(), which rejects a path:line ref");
   assert.ok(!out.includes("/blob/"), "no blob URL is invented for an unknown kind");
 });
+
+// ---------------------------------------------------------------------------
+// Defence in depth — NOT a valid-input coverage gap.
+//
+// A `code-base` receipt on a document with no top-level `baseSha` is
+// SCHEMA-INVALID: validate.mjs rule-19-code-base-needs-base-sha rejects it
+// (covered in validate.test.mjs), so the pipeline never hands such a document
+// to the renderer. This locks the renderer's fallback anyway, so a refactor
+// can't turn input the pipeline refuses into a `blob/undefined/` URL.
+// ---------------------------------------------------------------------------
+
+test("schema-invalid code-base receipt without baseSha renders unlinked, never blob/undefined", () => {
+  // No `baseSha` key at all — the shape validate.mjs rule 19 refuses.
+  const out = render(makeDoc({
+    thesis: thesisWith("T.", [{ kind: "code-base", ref: "src/deleted.ts:12" }]),
+  }));
+  assert.match(out, /<span class="receipt receipt-code-base"/,
+    "with no baseSha the code-base branch must fall through to safeHref(), leaving an unlinked badge");
+  assert.ok(!out.includes("/blob/"), "no blob URL may be invented — least of all blob/undefined/");
+});
