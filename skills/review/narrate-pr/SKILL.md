@@ -110,12 +110,49 @@ directory.
    Compare:
 
    ```bash
-   gh pr view <N> --json headRefOid --jq .headRefOid
+   gh pr view <N> --json headRefOid,baseRefOid,baseRefName --jq '{head: .headRefOid, base: .baseRefOid, baseBranch: .baseRefName}'
    git rev-parse HEAD
    ```
 
-   - **Match** → proceed; this sha becomes `walkthrough.json`'s
-     top-level `sha` field.
+   - **Match** → proceed; the head sha becomes `walkthrough.json`'s
+     top-level `sha` field. Then derive the **effective base** and pin
+     it:
+
+     ```bash
+     git merge-base <baseRefOid> HEAD
+     ```
+
+     That merge base — not the base branch tip `baseRefOid` — is what
+     the rest of this pipeline means by "the base commit": Step 2 diffs
+     against it, every base read (`git show <base sha>:<path>`)
+     resolves at it, and it becomes `walkthrough.json`'s top-level
+     `baseSha` field (only load-bearing if the document ends up with a
+     `code-base` receipt, but cheap to capture alongside the head pin
+     here — no separate call). Pinning the tip instead would be wrong:
+     the base branch can have advanced since the PR diverged from it,
+     so reading a deleted file at the tip can return content the PR
+     never deleted. Both are base _commits_, distinct from
+     `baseRefName` (the base _branch_ name, read from the same
+     `gh pr view` call above and mapped to `pr.base` in Step 2).
+
+     `git merge-base` needs the base commit present locally — fetch it
+     first if it isn't: `git fetch <base remote> 'refs/heads/<baseRefName>'`,
+     where `<base remote>` is the remote that points at the PR's _base_
+     repository. That's `origin` in the usual `gh pr checkout` flow (a
+     clone of the base repo), but not when the checkout is a clone of a
+     fork — there `origin` is the head repo, and fetching from it pulls
+     a stale same-named branch instead. `<baseRefName>` is a
+     PR-controlled branch name, so substitute it as one single-quoted
+     shell word, rewriting every literal `'` in it as `'\''` — a branch
+     name can legally carry a quote, a `;` or a `$(...)`, and the
+     `refs/heads/` prefix only stops it resolving as some other ref, not
+     as shell. The Step 2 diff needs the same commit, so this is no new
+     requirement. If `git merge-base` still
+     can't resolve the base commit, **STOP**: tell the user which
+     remote is missing the PR's base repository and ask them to add or
+     fetch it, then re-run the skill — never guess a base or fall back
+     to the base branch tip.
+
    - **Mismatch** → **STOP**. Do not check anything out automatically.
      Tell the user the working tree isn't on the PR's head and ask
      them to check it out themselves — e.g. `gh pr checkout <N>`, or
@@ -258,7 +295,9 @@ ever disagree.
 
 Build, in order:
 
-- **`pr`, `sha`, `generatedAt`, `stats`** — from Steps 1–2.
+- **`pr`, `sha`, `baseSha`, `generatedAt`, `stats`** — from Steps 1–2.
+  Omit `baseSha` unless the document ends up with a `code-base`
+  receipt.
 - **`packages`** — the palette source. One entry per subsystem worth
   color-coding (typically one per research scope, or per actual
   package/module boundary if the repo is a monorepo). A single-package
@@ -300,7 +339,10 @@ validation rule 3 enumerates exactly which). Prefer `"kind": "code"`
 receipts pointing at `path:line` you can trace back to a research
 report; use `"kind": "report"` (`reports/<scope>.md#anchor`) when the
 claim is closer to "the research subagent observed X" than to a single
-line of code.
+line of code. A claim about an element this PR removed — it has
+`status: "removed"` and no longer exists at the document's head
+`sha` — cites a `"kind": "code-base"` receipt instead, resolving
+against `baseSha`.
 
 This step deliberately has no `model:` pin in this skill's frontmatter
 and inherits whatever model is running the invoking session — synthesis
@@ -357,6 +399,42 @@ git diff --quiet HEAD --
   ask them to restore the checkout and re-run the skill. Untracked
   files — including this skill's own `plans.local/` output — do not
   trip this check.
+
+Revalidate the base pin unconditionally — every `status` field in the
+document derives from Step 2's diff against the effective base, whether
+or not the document ends up serializing `baseSha`. The base branch can
+advance the same way the head can, so re-derive the effective base and
+compare that, not `baseRefOid`:
+
+```bash
+gh pr view <N> --json baseRefName,baseRefOid
+git fetch <base remote> 'refs/heads/<baseRefName>'   # an advanced tip may not be local yet
+git merge-base <baseRefOid> HEAD
+```
+
+Re-read `baseRefName` here rather than reusing Step 1's — a PR
+retargeted mid-run moves the base branch and the commit this PR
+diverged from together. `<base remote>` is the base repository's remote,
+as in Step 1, and `<baseRefName>` is substituted under the same
+single-quoting rule. A `merge-base` that can't resolve counts as a
+mismatch.
+
+- **Matches the effective base pinned in Step 1** → proceed, regardless
+  of whether it was serialized as `baseSha` in `walkthrough.json`, and
+  regardless of whether `baseRefOid` itself moved — a base branch that
+  advanced without changing the merge base invalidates nothing. Nor
+  does a retarget that lands on the same merge base: the diff and the
+  `code-base` receipts still resolve there, and nothing else is
+  anchored to the base — `code` resolves at the head sha, `doc` at the
+  PR's files page, and `url` and `report` at no commit at all. Only
+  the `pr.base` label goes stale, so if the re-read `baseRefName`
+  differs from Step 1's, correct `pr.base` in `walkthrough.json`,
+  re-run Step 6, and publish with a label noting the retarget.
+- **Mismatch** → **STOP** before publishing anything, same as a
+  remote-head mismatch: tell the user the commit this PR diverged from
+  has moved since this walkthrough was built, so its `status` fields
+  (and any `code-base` receipts) may no longer describe the base they
+  resolve against, and ask them to re-run the skill.
 
 Publish `walkthrough.fragment.html` as a Claude artifact via the
 Artifact tool:

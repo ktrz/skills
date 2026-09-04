@@ -215,6 +215,7 @@ function renderDocument(doc, opts) {
   const pr = doc.pr || {};
   const repo = String(pr.repo || "");
   const sha = String(doc.sha || "");
+  const baseSha = String(doc.baseSha || "");
   const packages = Array.isArray(doc.packages) ? doc.packages : [];
   const pkgSet = new Set(packages.map((p) => p && p.id).filter(Boolean));
 
@@ -241,6 +242,15 @@ function renderDocument(doc, opts) {
       const p = m[1], s = m[2], e = m[3];
       return `https://github.com/${repo}/blob/${sha}/${ghPath(p)}#L${s}${e ? `-L${e}` : ""}`;
     }
+    // Same shape at the base sha: an element the PR deleted has no page at
+    // head. With no baseSha to resolve against this falls through to
+    // safeHref(), which rejects a path:line ref and leaves an unlinked badge —
+    // never a blob/undefined/ URL. (validate.mjs rule 19 catches the omission;
+    // the renderer never runs it.)
+    if (kind === "code-base" && m && baseSha) {
+      const p = m[1], s = m[2], e = m[3];
+      return `https://github.com/${repo}/blob/${baseSha}/${ghPath(p)}#L${s}${e ? `-L${e}` : ""}`;
+    }
     if (kind === "doc" && m) {
       // GitHub renders .md blobs as rich markdown and ignores #L anchors, so
       // doc receipts link into the PR files-changed diff instead: the anchor
@@ -259,7 +269,7 @@ function renderDocument(doc, opts) {
   function receiptLabel(r) {
     const ref = String(r && r.ref || "");
     const kind = r && r.kind;
-    if (kind === "code" || kind === "doc") {
+    if (kind === "code" || kind === "code-base" || kind === "doc") {
       const m = CODE_REF_RE.exec(ref);
       if (m) return `${m[1].split("/").pop()}:${m[2]}${m[3] ? "-" + m[3] : ""}`;
       return ref;

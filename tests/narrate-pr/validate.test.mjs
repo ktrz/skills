@@ -509,3 +509,161 @@ test("status on an unsupported node is deliberately not validated (rule 17)", ()
   doc.architecture.diagrams[2].zones[0].status = "NONSENSE";
   assertClean(doc, "status on an unsupported node");
 });
+
+// ---- code-base receipts resolve against a doc-level baseSha ----------------
+//
+// A `code` receipt resolves at the head sha, so an element the PR DELETED
+// cannot be cited that way — it no longer exists there. `code-base` is a
+// sibling receipt kind carrying the same path:line ref shape, resolved against
+// the new document-level `baseSha` instead. Three rules move: rule 8 is
+// EXTENDED to cover code-base refs (no new ref-shape rule id), rule 18 pins the
+// baseSha shape, and rule 19 makes baseSha required once any code-base receipt
+// exists. baseSha is otherwise optional.
+//
+// These cases are built from an inline factory rather than sample-mini.json:
+// which fixture element carries a code-base receipt is still undecided, and the
+// "no code-base receipt anywhere" cases below must not depend on that choice.
+
+const HEAD_SHA = "0123456789abcdef0123456789abcdef01234567";
+const BASE_SHA = "fedcba9876543210fedcba9876543210fedcba98";
+
+// Smallest document that validates clean: every field the validator requires,
+// nothing it does not. Overrides replace whole top-level fields.
+function makeDoc(overrides = {}) {
+  return {
+    version: 1,
+    pr: { repo: "acme/widgets", number: 7, title: "Test PR", branch: "feat/x", base: "main" },
+    sha: HEAD_SHA,
+    generatedAt: "2026-07-12T09:00:00Z",
+    packages: [{ id: "api", label: "@acme/api" }],
+    thesis: { id: "thesis.main", text: "Thesis.", receipts: [{ kind: "code", ref: "src/a.ts:1" }] },
+    stats: { files: 1, additions: 2, deletions: 3, commits: 1 },
+    architecture: { prose: [], diagrams: [], channels: [], boundaries: [] },
+    components: [],
+    reviewOrder: [],
+    attentionSpots: [],
+    tests: [],
+    qa: [],
+    prComments: [],
+    ...overrides,
+  };
+}
+
+const docWithReceipts = (receipts, overrides = {}) =>
+  makeDoc({ thesis: { id: "thesis.main", text: "Thesis.", receipts }, ...overrides });
+
+test("code-base receipt with a valid ref and a valid baseSha validates clean", () => {
+  const doc = docWithReceipts([{ kind: "code-base", ref: "src/deleted.ts:12" }], { baseSha: BASE_SHA });
+  assertClean(doc, "code-base receipt");
+});
+
+// Rule 8 is extended, not duplicated: a malformed code-base ref reports the
+// same rule id a malformed code ref does.
+for (const [ref, why] of BAD_PATH_REFS) {
+  test(`code-base receipt ref "${ref}" (${why}) is rejected by rule-8-code-ref`, () => {
+    const doc = docWithReceipts([{ kind: "code-base", ref }], { baseSha: BASE_SHA });
+    assertViolation(doc, ["rule-8-code-ref", "$.thesis.receipts[0].ref"], `code-base ${ref}`);
+  });
+}
+
+test("code-base receipt ref with end line before start line is rejected by rule-8-code-ref", () => {
+  const doc = docWithReceipts([{ kind: "code-base", ref: "src/a.ts:9-3" }], { baseSha: BASE_SHA });
+  assertViolation(doc, ["rule-8-code-ref", "$.thesis.receipts[0].ref", "end line"], "code-base reversed range");
+});
+
+test("code-base receipt refs path:line and path:start-end pass", () => {
+  const doc = docWithReceipts(
+    [
+      { kind: "code-base", ref: "src/a.ts:1" },
+      { kind: "code-base", ref: "src/a.ts:3-9" },
+    ],
+    { baseSha: BASE_SHA }
+  );
+  assertClean(doc, "code-base good refs");
+});
+
+// ---- rule 19: a code-base receipt anywhere makes baseSha required ----------
+
+test("baseSha is optional — no baseSha and no code-base receipt validates clean", () => {
+  assertClean(makeDoc(), "no baseSha, no code-base");
+});
+
+test("valid baseSha with no code-base receipt validates clean", () => {
+  assertClean(makeDoc({ baseSha: BASE_SHA }), "unused baseSha");
+});
+
+test("code-base receipt without a doc-level baseSha fails rule-19-code-base-needs-base-sha", () => {
+  const doc = docWithReceipts([{ kind: "code-base", ref: "src/deleted.ts:12" }]);
+  assertViolation(doc, "rule-19-code-base-needs-base-sha", "code-base without baseSha");
+});
+
+test("code-base receipt nested deeper than the thesis still triggers rule-19", () => {
+  const doc = makeDoc({
+    tests: [
+      {
+        id: "test.deleted",
+        area: "unit",
+        coverage: "the deleted guard clause",
+        receipts: [{ kind: "code-base", ref: "src/deleted.ts:12" }],
+      },
+    ],
+  });
+  assertViolation(doc, "rule-19-code-base-needs-base-sha", "nested code-base without baseSha");
+});
+
+// ---- rule 18: baseSha, when present, is 40 lowercase hex characters --------
+// Mirrors the rule-4-sha shape check on $.sha; the presence gate differs
+// because baseSha is optional.
+
+const BAD_BASE_SHAS = [
+  ["0123456789abcdef0123456789abcdef0123456", "39 characters"],
+  ["0123456789abcdef0123456789abcdef012345678", "41 characters"],
+  ["0123456789ABCDEF0123456789abcdef01234567", "uppercase hex"],
+  ["0123456789abcdefg123456789abcdef01234567", "non-hex character"],
+  ["not a sha at all", "free text"],
+];
+
+for (const [value, why] of BAD_BASE_SHAS) {
+  test(`baseSha ${JSON.stringify(value)} (${why}) is rejected by rule-18-base-sha`, () => {
+    const doc = makeDoc({ baseSha: value });
+    assertViolation(doc, ["rule-18-base-sha", "$.baseSha"], `baseSha ${why}`);
+  });
+}
+
+// A present-but-not-a-string baseSha is still malformed. Only the path is
+// pinned, not the rule id: mirroring rule-4-sha exactly, the type check trips
+// the shared structure check while the pattern check trips rule 18 — the same
+// split the package-id cases above rely on.
+const NON_STRING_BASE_SHAS = [42, true, null, ["src/a.ts:1"], {}];
+
+for (const value of NON_STRING_BASE_SHAS) {
+  test(`baseSha ${JSON.stringify(value)} is rejected`, () => {
+    const doc = makeDoc({ baseSha: value });
+    assertViolation(doc, "$.baseSha", `non-string baseSha ${JSON.stringify(value)}`);
+  });
+}
+
+test('baseSha "" is rejected', () => {
+  const doc = makeDoc({ baseSha: "" });
+  assertViolation(doc, "$.baseSha", "empty baseSha");
+});
+
+// ---- regression: the four original kinds are untouched ---------------------
+
+test("the four original receipt kinds still validate clean alongside baseSha", () => {
+  const doc = docWithReceipts(
+    [
+      { kind: "code", ref: "src/a.ts:1-5" },
+      { kind: "doc", ref: "docs/a.md:3" },
+      { kind: "url", ref: "https://example.com/docs" },
+      { kind: "report", ref: "reports/api.md#overview" },
+    ],
+    { baseSha: BASE_SHA }
+  );
+  assertClean(doc, "four original kinds");
+});
+
+test("a receipt kind outside the enum is still rejected", () => {
+  const doc = docWithReceipts([{ kind: "code-head", ref: "src/a.ts:1" }], { baseSha: BASE_SHA });
+  assertViolation(doc, ["$.thesis.receipts[0].kind", "invalid receipt kind"], "unknown kind");
+});

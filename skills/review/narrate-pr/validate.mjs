@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const RECEIPT_KINDS = new Set(["code", "doc", "url", "report"]);
+const RECEIPT_KINDS = new Set(["code", "code-base", "doc", "url", "report"]);
 const DIAGRAM_TYPES = new Set(["lane", "sequence", "depmap"]);
 const EDGE_KINDS = new Set(["call", "net", "type-only"]);
 const STATUS_VALUES = new Set(["added", "removed", "changed", "unchanged"]);
@@ -37,6 +37,9 @@ const MAX_LAYOUT_ROW = 100; // generous ceiling; the renderer allocates maxRow r
 const violations = [];
 let receiptCount = 0;
 let idCount = 0;
+// Path of the first `code-base` receipt seen, or null — rule 19 turns the
+// optional doc-level baseSha into a required one once any exists.
+let codeBaseRefPath = null;
 
 function fail(rule, path, msg) {
   violations.push(`[${rule}] at ${path}: ${msg}`);
@@ -132,7 +135,7 @@ function checkIds(doc) {
   }
 }
 
-// ---- receipts (rules 3 + 8, structural kind/ref) ---------------------------
+// ---- receipts (rules 3 + 8 + 19, structural kind/ref) ----------------------
 
 function checkReceipts(node, path, { required }) {
   const receipts = isObj(node) ? node.receipts : undefined;
@@ -151,14 +154,19 @@ function checkReceipts(node, path, { required }) {
     }
     receiptCount++;
     if (!RECEIPT_KINDS.has(r.kind)) {
-      fail("structure", `${rPath}.kind`, `invalid receipt kind ${JSON.stringify(r.kind)} (expected code|doc|url|report)`);
+      fail("structure", `${rPath}.kind`, `invalid receipt kind ${JSON.stringify(r.kind)} (expected code|code-base|doc|url|report)`);
     }
+    // Recorded before the ref checks so even a malformed code-base receipt
+    // still demands a baseSha (rule 19, reported once at the top level).
+    if (r.kind === "code-base" && codeBaseRefPath === null) codeBaseRefPath = rPath;
     if (!isNonEmptyStr(r.ref)) {
       fail("structure", `${rPath}.ref`, "receipt ref must be a non-empty string");
       return;
     }
-    if (r.kind === "code" || r.kind === "doc") {
-      const rule = r.kind === "code" ? "rule-8-code-ref" : "rule-11-doc-ref";
+    if (r.kind === "code" || r.kind === "code-base" || r.kind === "doc") {
+      // code and code-base share one ref shape, so they share rule 8 — a second
+      // rule id would only duplicate an identical assertion.
+      const rule = r.kind === "doc" ? "rule-11-doc-ref" : "rule-8-code-ref";
       checkPathLineRef(r.kind, r.ref, `${rPath}.ref`, rule);
     } else if (r.kind === "url") {
       if (!URL_REF_RE.test(r.ref)) {
@@ -172,9 +180,9 @@ function checkReceipts(node, path, { required }) {
   });
 }
 
-// Shared shape check for code/doc receipt refs: repo-relative path:line or
-// path:start-end, with 1-based line numbers and no absolute / scheme / ".."
-// path escapes.
+// Shared shape check for code/code-base/doc receipt refs: repo-relative
+// path:line or path:start-end, with 1-based line numbers and no absolute /
+// scheme / ".." path escapes.
 function checkPathLineRef(kind, ref, refPath, rule) {
   const m = CODE_REF_RE.exec(ref);
   if (!m) {
@@ -415,6 +423,7 @@ export function validate(doc) {
   violations.length = 0;
   receiptCount = 0;
   idCount = 0;
+  codeBaseRefPath = null;
   reportedNonObjects.clear();
 
   if (!isObj(doc)) {
@@ -436,6 +445,13 @@ export function validate(doc) {
 
   if (requireField(doc, "$", "sha", isStr, "a string") && !SHA_RE.test(doc.sha)) {
     fail("rule-4-sha", "$.sha", `sha "${doc.sha}" is not exactly 40 lowercase hex characters`);
+  }
+
+  // baseSha is optional (rule 19 makes it required once a code-base receipt
+  // exists), so the gate is a presence test — `null` and `""` are present and
+  // malformed, not absent.
+  if (doc.baseSha !== undefined && requireField(doc, "$", "baseSha", isStr, "a string") && !SHA_RE.test(doc.baseSha)) {
+    fail("rule-18-base-sha", "$.baseSha", `baseSha "${doc.baseSha}" is not exactly 40 lowercase hex characters`);
   }
 
   if (requireField(doc, "$", "generatedAt", isNonEmptyStr, "a non-empty string") && !isIso8601(doc.generatedAt)) {
@@ -604,6 +620,12 @@ export function validate(doc) {
       requireField(c, path, "text", isNonEmptyStr, "a non-empty string");
       checkReceipts(c, path, { required: true });
     });
+  }
+
+  // Rule 19 — runs last: checkReceipts() flags the first code-base receipt as
+  // it walks each claim-bearing node, so the answer is only complete here.
+  if (codeBaseRefPath !== null && doc.baseSha === undefined) {
+    fail("rule-19-code-base-needs-base-sha", "$.baseSha", `a code-base receipt at ${codeBaseRefPath} resolves against baseSha, which the document does not set`);
   }
 
   checkIds(doc);
