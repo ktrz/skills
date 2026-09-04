@@ -758,21 +758,23 @@ computed from diff evidence at synthesis time, never invented or
 guessed from the shape of the code:
 
 - A `components[]` entry's status rolls up from its files' `A`/`M`/`D`
-  diff markers, quantified over **all** of the component's files and
-  not only the diff-listed ones — a file the diff never mentions
-  counts as unchanged. Every file added is `added`; every file deleted
-  is `removed`; otherwise any file added, modified, or deleted is
-  `changed`; else `unchanged`. So `added` means no file of the
-  component existed at the base ref _under its current path_, and
-  `removed` that none of it survives at head; a component that
-  predates the PR at those same paths never rolls up to `added`.
-  Status is a claim about paths, not about lineage: the file listing
-  is taken with `--no-renames`, so a renamed component legitimately
-  reads as `added` while its old path reads as `removed` — that trade
-  of rename lineage for an exhaustive `A`/`M`/`D` vocabulary is
-  deliberate. `added` and `removed` quantify over the whole set and
-  therefore require it to be established; a synthesis that cannot
-  establish a component's full file set writes `changed`.
+  diff markers (the exhaustive post-normalization vocabulary — any
+  other marker git emits, e.g. `T`, is folded into `M` before this
+  point; see `SKILL.md` Step 2), quantified over **all** of the
+  component's files and not only the diff-listed ones — a file the
+  diff never mentions counts as unchanged. Every file added is
+  `added`; every file deleted is `removed`; otherwise any file added,
+  modified, or deleted is `changed`; else `unchanged`. So `added`
+  means no file of the component existed at the base ref _under its
+  current path_, and `removed` that none of it survives at head; a
+  component that predates the PR at those same paths never rolls up to
+  `added`. Status is a claim about paths, not about lineage: the file
+  listing is taken with `--no-renames`, so a renamed component
+  legitimately reads as `added` while its old path reads as `removed`
+  — that trade of rename lineage for an exhaustive `A`/`M`/`D`
+  vocabulary is deliberate. `added` and `removed` quantify over the
+  whole set and therefore require it to be established; a synthesis
+  that cannot establish a component's full file set writes `changed`.
 - A `depmap` edge's status comes from the edge-verification
   subagent's reported status token for that edge; an edge that pass
   reported without a status token is left with no `status` at all,
