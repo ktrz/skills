@@ -413,11 +413,20 @@ Build, in order:
   rule 2. Put the node in a zone that names the far side
   (`zone.external`, `zone.api-edge`) and declare that zone in the
   diagram's `zones[]`: rule 9 rejects a node whose `zone` names a zone
-  the diagram never declares. If two endpoints would reduce to the same
-  slug, lengthen one until they differ (`node.charges-create` beside
-  `node.charges-list`) — never a numeric suffix, which rule 2's
+  the diagram never declares. If an endpoint's slug would collide with
+  an id already in `nodes[]` — another endpoint's or a component's —
+  lengthen the endpoint's until they differ (`node.charges-create`
+  beside `node.charges-list`), never a numeric suffix, which rule 2's
   human-readable-slug requirement forbids. Do not merge two distinct
-  endpoints into one node, and do not drop the edge.
+  endpoints into one node, do not retarget the edge at a same-named
+  component node, and do not drop the edge.
+  Every edge's required `kind` comes from that same report line:
+  `type-only` when its classification bracket reads `[type-only]`,
+  `net` when the target is one of these endpoint nodes rather than a
+  component in this repo, and `call` otherwise. Target shape outranks
+  mechanism — a `[runtime]` fetch to an endpoint node is `net`, not
+  `call` — and `kind` is an axis of its own, never a restatement of
+  `status`.
   Author the `layout` block yourself as a coarse hint — a small grid
   (2–4 columns is usually enough), one zone's nodes roughly grouped in
   adjacent columns, upstream-to-downstream reading left-to-right or

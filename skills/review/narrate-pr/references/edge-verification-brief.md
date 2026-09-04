@@ -76,7 +76,9 @@ exact:
   two status tokens for one edge, and whoever reads this report is
   required to copy the token across rather than adjudicate between
   two of them. If the mechanisms genuinely differ in status, the edge
-  as a whole is `changed`.
+  as a whole is `changed`; if they differ in classification — a type
+  import beside a runtime one — it is `[runtime]`, since one mechanism
+  surviving compilation makes the dependency real.
 - Two brackets, spelled exactly. The first is literally `[runtime]`
   or `[type-only]` — never `[runtime/type-only]`, never any other
   spelling. The second holds exactly one of `added`, `removed`,
@@ -112,6 +114,14 @@ src/web/AppShell.tsx -> /api/workspace: GET (fetch, URL assembled at runtime) [r
 
 The second line has one bracket on purpose: its target could not be
 resolved at the base commit, so it claims no status.
+
+Classification token: the first bracket describes the edge at head.
+`[type-only]` means every mechanism on the line is erased at build
+time; anything surviving compilation is `[runtime]`. A `removed` edge
+has no head to describe, so classify it as it stood at base. An edge
+whose classification flipped across the diff — `import type` at base,
+a runtime import at head — still carries exactly one token, head's;
+note what it was at base in the label if it matters.
 
 Status token: derive it by comparing the edge at the base commit
 with the edge at head. `added` = present at head only; `removed` =
