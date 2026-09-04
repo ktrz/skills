@@ -141,8 +141,13 @@ directory.
      repository. That's `origin` in the usual `gh pr checkout` flow (a
      clone of the base repo), but not when the checkout is a clone of a
      fork — there `origin` is the head repo, and fetching from it pulls
-     a stale same-named branch instead. The Step 2 diff needs the same
-     commit, so this is no new requirement. If `git merge-base` still
+     a stale same-named branch instead. `<baseRefName>` is a
+     PR-controlled branch name, so substitute it as one single-quoted
+     shell word, rewriting every literal `'` in it as `'\''` — a branch
+     name can legally carry a quote, a `;` or a `$(...)`, and the
+     `refs/heads/` prefix only stops it resolving as some other ref, not
+     as shell. The Step 2 diff needs the same commit, so this is no new
+     requirement. If `git merge-base` still
      can't resolve the base commit, **STOP**: tell the user which
      remote is missing the PR's base repository and ask them to add or
      fetch it, then re-run the skill — never guess a base or fall back
@@ -410,7 +415,9 @@ git merge-base <baseRefOid> HEAD
 Re-read `baseRefName` here rather than reusing Step 1's — a PR
 retargeted mid-run moves the base branch and the commit this PR
 diverged from together. `<base remote>` is the base repository's remote,
-as in Step 1. A `merge-base` that can't resolve counts as a mismatch.
+as in Step 1, and `<baseRefName>` is substituted under the same
+single-quoting rule. A `merge-base` that can't resolve counts as a
+mismatch.
 
 - **Matches the effective base pinned in Step 1** → proceed, regardless
   of whether it was serialized as `baseSha` in `walkthrough.json`, and
