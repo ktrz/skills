@@ -725,6 +725,39 @@ test("depmap viewBox is unchanged by adding statuses", () => {
   assert.equal(withStatuses, without, "statuses must not move the depmap viewBox — the legend is outside the SVG");
 });
 
+// A dangling edge — one whose endpoint names no node — is REJECTED by
+// validate.mjs (rule-5-depmap-edge-ref), so it cannot reach render.mjs through
+// the real pipeline. This is defence-in-depth, not supported input: the drawing
+// pass already skips such an edge, and every downstream consumer of the edge
+// list must skip it too rather than describe geometry that was never drawn.
+const danglingEdgeDoc = () => makeDoc({
+  architecture: {
+    diagrams: [{
+      id: "diagram.dep", type: "depmap", title: "Dep",
+      zones: [{ id: "zone.a", label: "A" }],
+      nodes: [
+        { id: "node.a", label: "Aye", zone: "zone.a" },
+        { id: "node.b", label: "Bee", zone: "zone.a" },
+      ],
+      edges: [
+        { from: "node.a", to: "node.b", label: "hop", kind: "call" },
+        { from: "node.a", to: "node.missing", label: "ghost", kind: "call", status: "removed" },
+      ],
+      layout: { cols: 2, nodes: { "node.a": { col: 1, row: 1 }, "node.b": { col: 2, row: 1 } } },
+    }],
+  },
+});
+
+test("depmap edge with an unresolvable endpoint is dropped from every consumer", () => {
+  const out = render(danglingEdgeDoc());
+  assert.ok(!out.includes('<marker id="dep-arr-removed"'),
+    "an undrawn edge must not mint an arrowhead marker nothing references");
+  assert.ok(!out.includes('<span class="status-legend-item status-removed">'),
+    "an undrawn edge must not put its status in the legend");
+  assert.ok(!out.includes("ghost"),
+    "an undrawn edge must not leak its label into the aria-label or <desc>");
+});
+
 // ---------------------------------------------------------------------------
 // Status styling tokens — every theme block, plus the removed strikethrough
 // ---------------------------------------------------------------------------

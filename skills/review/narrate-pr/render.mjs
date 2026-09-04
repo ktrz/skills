@@ -767,6 +767,12 @@ function renderDocument(doc, opts) {
     // from different edges never fuse. Border stubs re-clamp onto their rect.
     assignLanes(edgeDraws);
 
+    // The edges actually drawn. `edgeDraws` skipped any edge whose endpoints
+    // did not resolve, so every downstream consumer — arrowhead markers, the
+    // aria/<desc> relationship list, the status legend — reads this instead of
+    // the raw `edges`, or it would describe geometry that was never drawn.
+    const drawnEdges = edgeDraws.map((ed) => ed.e);
+
     // offsetLegs / assignLanes operate on point arrays in place-safe form.
     function borderClampPoint(p, r) {
       // Snap an anchor back onto rect r's border after a perpendicular shift.
@@ -1025,7 +1031,7 @@ function renderDocument(doc, opts) {
     // SVG markers do not inherit the referencing element's fill, so each marker
     // carries its own colour inline.
     const edgeStatuses = new Set();
-    for (const e of edges) { const t = statusOf(e.status); if (t) edgeStatuses.add(t.word); }
+    for (const e of drawnEdges) { const t = statusOf(e.status); if (t) edgeStatuses.add(t.word); }
     const statusMarkers = STATUS_ORDER.filter((w) => edgeStatuses.has(w)).map((w) =>
       `<marker id="dep-arr-${w}" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr" style="fill:var(--status-${w})" d="M0,0 L10,5 L0,10 z"/></marker>`
     ).join("");
@@ -1034,7 +1040,7 @@ function renderDocument(doc, opts) {
     // the node list and loses every dependency the diagram exists to show.
     const nodeLabel = {}; for (const n of nodes) nodeLabel[n.id] = n.label;
     const kindWord = { call: "calls", net: "network", "type-only": "type-only" };
-    const relEdges = edges.map((e) => {
+    const relEdges = drawnEdges.map((e) => {
       const k = kindWord[e.kind] ? ` (${kindWord[e.kind]})` : "";
       return `${nodeLabel[e.from] ?? e.from} → ${nodeLabel[e.to] ?? e.to}${e.label ? `: ${e.label}` : ""}${k}${statusMark(e.status)}`;
     });
@@ -1056,7 +1062,7 @@ function renderDocument(doc, opts) {
 
     // The status legend is HTML placed deliberately AFTER </svg>, outside the
     // scrolling .dep wrapper, so it never touches the SVG's viewBox extents.
-    return `<div class="dep">${svg}</div>${statusLegend([...nodes, ...edges])}${caption(d, "dgm-caption")}`;
+    return `<div class="dep">${svg}</div>${statusLegend([...nodes, ...drawnEdges])}${caption(d, "dgm-caption")}`;
   }
 
   // ---- sections ----
