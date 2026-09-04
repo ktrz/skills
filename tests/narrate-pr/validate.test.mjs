@@ -435,3 +435,77 @@ test("reviewOrder steps [1, 2, 3] pass", () => {
   setSteps(doc, [1, 2, 3]);
   assertClean(doc, "in-order steps");
 });
+
+// ---- rule 17: optional element status enum ---------------------------------
+
+const BAD_STATUSES = ["Added", "modified", "", null, 1, true, "UNCHANGED"];
+const GOOD_STATUSES = ["added", "removed", "changed", "unchanged"];
+
+// [label, at(doc) -> the object that carries `status`, path of that .status]
+const STATUS_SITES = [
+  [
+    "lane box cell",
+    (doc) => doc.architecture.diagrams[0].lanes[0].rows[0][0],
+    "$.architecture.diagrams[0].lanes[0].rows[0][0].status",
+  ],
+  [
+    "lane arrow cell",
+    (doc) => doc.architecture.diagrams[0].lanes[0].rows[0][1],
+    "$.architecture.diagrams[0].lanes[0].rows[0][1].status",
+  ],
+  ["sequence actor", (doc) => doc.architecture.diagrams[1].actors[0], "$.architecture.diagrams[1].actors[0].status"],
+  ["sequence step", (doc) => doc.architecture.diagrams[1].steps[1], "$.architecture.diagrams[1].steps[1].status"],
+  // status is valid on every step kind, so the phase divider and the self step
+  // are covered too — checkStatus sits outside any kind-specific branch.
+  ["sequence step (phase)", (doc) => doc.architecture.diagrams[1].steps[0], "$.architecture.diagrams[1].steps[0].status"],
+  ["sequence step (self)", (doc) => doc.architecture.diagrams[1].steps[5], "$.architecture.diagrams[1].steps[5].status"],
+  ["depmap node", (doc) => doc.architecture.diagrams[2].nodes[0], "$.architecture.diagrams[2].nodes[0].status"],
+  ["depmap edge", (doc) => doc.architecture.diagrams[2].edges[0], "$.architecture.diagrams[2].edges[0].status"],
+  ["component", (doc) => doc.components[0], "$.components[0].status"],
+];
+
+for (const [label, at, statusPath] of STATUS_SITES) {
+  for (const bad of BAD_STATUSES) {
+    test(`${label} status ${JSON.stringify(bad)} is rejected`, () => {
+      const doc = sample();
+      at(doc).status = bad;
+      assertViolation(doc, [statusPath, "rule-17"], `${label} status ${JSON.stringify(bad)}`);
+    });
+  }
+
+  for (const good of GOOD_STATUSES) {
+    test(`${label} status ${JSON.stringify(good)} passes`, () => {
+      const doc = sample();
+      at(doc).status = good;
+      assertClean(doc, `${label} status ${good}`);
+    });
+  }
+}
+
+// Absent is equivalent to "unchanged": stripping every status in the shipped
+// fixture must leave a document that still validates clean.
+function stripStatus(node) {
+  if (Array.isArray(node)) {
+    node.forEach(stripStatus);
+  } else if (node !== null && typeof node === "object") {
+    delete node.status;
+    for (const val of Object.values(node)) stripStatus(val);
+  }
+}
+
+test("status is optional — a document with no status anywhere validates clean", () => {
+  const doc = sample();
+  stripStatus(doc);
+  assertClean(doc, "status stripped");
+});
+
+// Rule 17 makes a positive claim about non-validation: a `status` written on a
+// node outside the seven supported sites carries no meaning and is deliberately
+// left unchecked (there is no unknown-field strictness in this validator). A
+// depmap zone is such a node. This pins the decision so a future change to
+// unknown-field handling has to edit this test consciously.
+test("status on an unsupported node is deliberately not validated (rule 17)", () => {
+  const doc = sample();
+  doc.architecture.diagrams[2].zones[0].status = "NONSENSE";
+  assertClean(doc, "status on an unsupported node");
+});

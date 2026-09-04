@@ -27,7 +27,7 @@
     "prose": [
       {
         "id": "prose.delivery-path",
-        "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads. The client never writes notification state directly — it only acknowledges reads.",
+        "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads. The client never writes notification state directly — this PR retires the REST create endpoint, leaving the client able only to acknowledge reads.",
         "receipts": []
       },
       {
@@ -41,18 +41,36 @@
         "id": "diagram.write-path",
         "type": "lane",
         "title": "Write path",
-        "caption": "A notification event moves from handler to persisted state to the push gateway.",
+        "caption": "The REST create endpoint is retired; a notification event now moves from the service to persisted state to the push gateway.",
         "lanes": [
           {
             "id": "lane.api",
             "label": "api",
             "rows": [
               [
-                { "id": "box.handler", "label": "createNotification()", "sub": "REST handler", "pkg": "api" },
-                { "arrow": "→" },
-                { "id": "box.service", "label": "NotificationService", "sub": "persist + publish", "pkg": "api" },
-                { "arrow": "→" },
-                { "id": "box.repo", "label": "NotificationRepo", "sub": "tenant-scoped", "pkg": "api" }
+                {
+                  "id": "box.handler",
+                  "label": "createNotification()",
+                  "sub": "REST handler",
+                  "pkg": "api",
+                  "status": "removed"
+                },
+                { "arrow": "→", "status": "removed" },
+                {
+                  "id": "box.service",
+                  "label": "NotificationService",
+                  "sub": "persist + publish",
+                  "pkg": "api",
+                  "status": "added"
+                },
+                { "arrow": "→", "status": "added" },
+                {
+                  "id": "box.repo",
+                  "label": "NotificationRepo",
+                  "sub": "tenant-scoped",
+                  "pkg": "api",
+                  "status": "added"
+                }
               ]
             ]
           },
@@ -61,9 +79,15 @@
             "label": "web",
             "rows": [
               [
-                { "id": "box.socket-client", "label": "SocketClient", "sub": "reconnect w/ backoff", "pkg": "web" },
-                { "arrow": "⇄", "label": "push / ack" },
-                { "id": "box.gateway", "label": "SocketGateway", "pkg": "api" }
+                {
+                  "id": "box.socket-client",
+                  "label": "SocketClient",
+                  "sub": "reconnect w/ backoff",
+                  "pkg": "web",
+                  "status": "unchanged"
+                },
+                { "arrow": "⇄", "label": "push / ack", "status": "added" },
+                { "id": "box.gateway", "label": "SocketGateway", "pkg": "api", "status": "added" }
               ]
             ]
           }
@@ -75,18 +99,49 @@
         "title": "Realtime push on new notification",
         "caption": "From persistence to a reconciled unread badge.",
         "actors": [
-          { "id": "actor.service", "label": "NotificationService", "sub": "service.ts", "pkg": "api" },
-          { "id": "actor.gateway", "label": "SocketGateway", "sub": "socket.ts", "pkg": "api" },
-          { "id": "actor.client", "label": "SocketClient", "sub": "socketClient.ts", "pkg": "web" },
-          { "id": "actor.store", "label": "NotificationStore", "sub": "store.ts", "pkg": "web" }
+          {
+            "id": "actor.service",
+            "label": "NotificationService",
+            "sub": "service.ts",
+            "pkg": "api",
+            "status": "added"
+          },
+          { "id": "actor.gateway", "label": "SocketGateway", "sub": "socket.ts", "pkg": "api", "status": "added" },
+          {
+            "id": "actor.client",
+            "label": "SocketClient",
+            "sub": "socketClient.ts",
+            "pkg": "web",
+            "status": "unchanged"
+          },
+          { "id": "actor.store", "label": "NotificationStore", "sub": "store.ts", "pkg": "web", "status": "changed" }
         ],
         "steps": [
           { "kind": "phase", "label": "Event persisted" },
-          { "kind": "msg", "from": "actor.service", "to": "actor.gateway", "label": "publish(event)" },
-          { "kind": "msg", "from": "actor.gateway", "to": "actor.client", "label": "notification:new" },
-          { "kind": "msg", "from": "actor.client", "to": "actor.gateway", "label": "ack(eventId)", "muted": true },
-          { "kind": "msg", "from": "actor.client", "to": "actor.store", "label": "append(event)" },
-          { "kind": "self", "actor": "actor.store", "label": "recompute unread count" }
+          {
+            "kind": "msg",
+            "from": "actor.service",
+            "to": "actor.gateway",
+            "label": "publish(event)",
+            "status": "added"
+          },
+          {
+            "kind": "msg",
+            "from": "actor.gateway",
+            "to": "actor.client",
+            "label": "notification:new",
+            "status": "added"
+          },
+          {
+            "kind": "msg",
+            "from": "actor.client",
+            "to": "actor.gateway",
+            "label": "ack(eventId)",
+            "muted": true,
+            "status": "added"
+          },
+          { "kind": "msg", "from": "actor.client", "to": "actor.store", "label": "append(event)", "status": "added" },
+          { "kind": "self", "actor": "actor.store", "label": "recompute unread count", "status": "changed" }
         ]
       },
       {
@@ -106,7 +161,8 @@
             "label": "notification types",
             "sub": ["types.ts"],
             "chips": ["contract"],
-            "pkg": "core"
+            "pkg": "core",
+            "status": "changed"
           },
           {
             "id": "node.service",
@@ -114,7 +170,8 @@
             "label": "NotificationService",
             "sub": ["service.ts"],
             "chips": ["write path"],
-            "pkg": "api"
+            "pkg": "api",
+            "status": "added"
           },
           {
             "id": "node.repo",
@@ -122,7 +179,8 @@
             "label": "NotificationRepo",
             "sub": ["repo.ts"],
             "chips": ["tenant-scoped"],
-            "pkg": "api"
+            "pkg": "api",
+            "status": "added"
           },
           {
             "id": "node.gateway",
@@ -130,7 +188,8 @@
             "label": "SocketGateway",
             "sub": ["socket.ts"],
             "chips": ["push path"],
-            "pkg": "api"
+            "pkg": "api",
+            "status": "added"
           },
           {
             "id": "node.feed",
@@ -138,7 +197,8 @@
             "label": "NotificationFeed",
             "sub": ["NotificationFeed.tsx", "store.ts"],
             "chips": ["ui"],
-            "pkg": "web"
+            "pkg": "web",
+            "status": "changed"
           },
           {
             "id": "node.badge",
@@ -146,16 +206,17 @@
             "label": "UnreadBadge",
             "sub": ["UnreadBadge.tsx"],
             "chips": ["ui"],
-            "pkg": "web"
+            "pkg": "web",
+            "status": "changed"
           }
         ],
         "edges": [
-          { "from": "node.service", "to": "node.repo", "label": "insert", "kind": "call" },
-          { "from": "node.service", "to": "node.gateway", "label": "publish", "kind": "call" },
-          { "from": "node.gateway", "to": "node.feed", "label": "notification:new", "kind": "net" },
-          { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call" },
-          { "from": "node.service", "to": "node.types", "kind": "type-only" },
-          { "from": "node.feed", "to": "node.types", "kind": "type-only" }
+          { "from": "node.service", "to": "node.repo", "label": "insert", "kind": "call", "status": "added" },
+          { "from": "node.service", "to": "node.gateway", "label": "publish", "kind": "call", "status": "added" },
+          { "from": "node.gateway", "to": "node.feed", "label": "notification:new", "kind": "net", "status": "added" },
+          { "from": "node.feed", "to": "node.badge", "label": "unread count", "kind": "call", "status": "unchanged" },
+          { "from": "node.service", "to": "node.types", "kind": "type-only", "status": "added" },
+          { "from": "node.feed", "to": "node.types", "kind": "type-only", "status": "added" }
         ],
         "layout": {
           "cols": 3,
@@ -218,6 +279,7 @@
       "pkg": "api",
       "title": "Notification service",
       "runtime": "server",
+      "status": "added",
       "files": [
         { "path": "packages/api/src/notifications/service.ts", "role": "write path" },
         { "path": "packages/api/src/notifications/repo.ts", "role": "persistence" },
@@ -241,6 +303,7 @@
       "pkg": "web",
       "title": "Notification feed UI",
       "runtime": "browser",
+      "status": "changed",
       "files": [
         { "path": "packages/web/src/notifications/NotificationFeed.tsx", "role": "feed panel" },
         { "path": "packages/web/src/notifications/UnreadBadge.tsx", "role": "bell badge" },
@@ -261,6 +324,7 @@
       "pkg": "core",
       "title": "Shared notification contract",
       "runtime": "shared",
+      "status": "changed",
       "files": [{ "path": "packages/core/src/notifications/types.ts", "role": "event shape" }],
       "summary": "The versioned NotificationEvent shape shared by API and web. Adding a field requires bumping the event version so old clients can ignore unknown payloads.",
       "invariants": [
