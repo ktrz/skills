@@ -405,10 +405,19 @@ Build, in order:
   Step 4 edge-verification report, never invented. A Section A target
   that is a URL or endpoint rather than a listed component still needs
   a node to point at, since `edges[].to` must resolve to a
-  `nodes[].id`: mint one node per distinct endpoint, labelled with the
-  exact string from the report, in a zone that names the far side
-  (`zone.external`, `zone.api-edge`), with no `pkg`. Do not merge two
-  distinct endpoints into one node, and do not drop the edge.
+  `nodes[].id`: mint one node per distinct endpoint, with no `pkg`,
+  keeping the exact string from the report in `label` and slugging the
+  endpoint's distinguishing part into a readable `node.<slug>` id —
+  `node.stripe-charges` for `https://api.stripe.com/v1/charges` — since
+  the raw endpoint string is not a legal node id under schema.md's
+  rule 2. Put the node in a zone that names the far side
+  (`zone.external`, `zone.api-edge`) and declare that zone in the
+  diagram's `zones[]`: rule 9 rejects a node whose `zone` names a zone
+  the diagram never declares. If two endpoints would reduce to the same
+  slug, lengthen one until they differ (`node.charges-create` beside
+  `node.charges-list`) — never a numeric suffix, which rule 2's
+  human-readable-slug requirement forbids. Do not merge two distinct
+  endpoints into one node, and do not drop the edge.
   Author the `layout` block yourself as a coarse hint — a small grid
   (2–4 columns is usually enough), one zone's nodes roughly grouped in
   adjacent columns, upstream-to-downstream reading left-to-right or
@@ -478,7 +487,14 @@ invented.** Each element family has its own source:
   whole set, so they need the whole set established. Where the
   research inventory only tells you about diff-listed files and the
   component maps onto a directory or module, confirm the rest at head
-  with one listing — `git ls-files -- <dir>` — before writing either.
+  with one listing — `git -c core.quotePath=false ls-files -- '<dir>'`
+  — before writing either. That is the same `core.quotePath=false` as
+  Step 2's listing, so the two sides' paths compare byte for byte.
+  `<dir>` reaches you from PR-controlled diff paths, so substitute it
+  as one single-quoted shell word, rewriting every literal `'` in it
+  as `'\''` — `--` only stops the path being read as an option, not as
+  shell. If the directory name carries anything you cannot quote with
+  certainty, skip the listing.
   **If you cannot establish the component's full file set, write
   `changed`, never `added` or `removed`.** A component with one new
   file beside untouched existing ones is `changed`; calling it `added`
@@ -494,7 +510,11 @@ invented.** Each element family has its own source:
   covers, per the `architecture` bullet above.
 - **Lane boxes and arrows, `sequence` actors and steps** — the diff
   evidence for the code that element depicts: the markers of the files
-  whose behaviour it draws, read the same way a node's markers are.
+  whose behaviour it draws, read the same way a node's markers are and
+  rolled up over that set with the same every/any/else arithmetic a
+  component uses. An element that draws no file of this repo — a
+  `phase` divider, an actor standing for a browser or a third-party
+  service — takes no `status` at all.
 
 Where the evidence doesn't say what the PR did to an element, leave
 `status` off rather than filling it in from the shape of the code.

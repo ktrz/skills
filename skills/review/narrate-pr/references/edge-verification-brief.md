@@ -55,7 +55,7 @@ Components:
 Output format — three sections:
 A) EDGES: one line each: `<source file> -> <target>: <what is imported/called> [runtime | type-only] [added | removed | changed | unchanged]`. Section A is a flat line grammar, not a grouped listing: every edge is one self-contained line carrying its full source path and its full target — no per-source-file headings, no grouping sections, and no abbreviating a source or target down to a fragment (`-> ./ContentPane` loses the source). The second bracket is the edge's diff status — see below; leave it off entirely (one bracket only) for an edge you could not check at both commits. Include cross-network edges too (fetch URLs, RPC endpoints, etc.) with the exact URL/path strings from code, and include edges that exist at base but are gone at head (status `removed`).
 B) RUNTIME LOCATION: for each component: {runtime environments relevant to the repo}.
-C) SURPRISES: anything contradicting the edge list implied above or edges I didn't ask about but that matter for a dependency diagram (max 5 bullets, file:line each).
+C) SURPRISES: anything contradicting the edge list implied above or edges I didn't ask about but that matter for a dependency diagram (max 5 bullets, file:line each). A path reported here because it collides with Section A's delimiters is exempt from that five-bullet cap: list every such path, however many there are.
 
 Section A rules. These lines are read positionally and their tokens
 are copied verbatim into a generated document, so keep the grammar
