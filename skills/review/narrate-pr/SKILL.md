@@ -422,7 +422,12 @@ mismatch.
 - **Matches the effective base pinned in Step 1** → proceed, regardless
   of whether it was serialized as `baseSha` in `walkthrough.json`, and
   regardless of whether `baseRefOid` itself moved — a base branch that
-  advanced without changing the merge base invalidates nothing.
+  advanced without changing the merge base invalidates nothing. Nor
+  does a retarget that lands on the same merge base: the diff and every
+  receipt still resolve at that commit. Only the `pr.base` label goes
+  stale, so if the re-read `baseRefName` differs from Step 1's, correct
+  `pr.base` in `walkthrough.json`, re-run Step 6, and publish with a
+  label noting the retarget.
 - **Mismatch** → **STOP** before publishing anything, same as a
   remote-head mismatch: tell the user the commit this PR diverged from
   has moved since this walkthrough was built, so its `status` fields
