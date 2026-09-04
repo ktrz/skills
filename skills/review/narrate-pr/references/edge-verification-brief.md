@@ -123,15 +123,19 @@ whose classification flipped across the diff — `import type` at base,
 a runtime import at head — still carries exactly one token, head's;
 note what it was at base in the label if it matters.
 
-Status token: derive it by comparing the edge at the base commit
-with the edge at head. `added` = present at head only; `removed` =
-present at base only; `changed` = present at both but what is
-imported/called differs; `unchanged` = identical at both. The token
-must come from files you actually read at both commits — never
-guess it, and never infer it from the component inventory above. If
-you could not verify both sides, omit the second bracket entirely —
-do not write `unchanged` for an edge you did not actually check — and
-note the gap in SURPRISES.
+Status token: derive it by comparing the edge at the base commit with
+the edge at head. `added` = present at head only; `removed` = present
+at base only; `changed` = present at both but the edge differs —
+either what is imported/called, or the mechanism carrying it;
+`unchanged` = identical at both, mechanism included. A classification
+flip is a mechanism change: `import type` at base and a runtime
+import at head is `[runtime] [changed]` even though the symbol never
+moved, and the reverse is `[type-only] [changed]`. The token must
+come from files you actually read at both commits — never guess it,
+and never infer it from the component inventory above. If you could
+not verify both sides, omit the second bracket entirely — do not
+write `unchanged` for an edge you did not actually check — and note
+the gap in SURPRISES.
 
 Omitting the token is a correct, expected outcome, not a failure or a
 gap in your work. Some edges simply cannot be checked at both
