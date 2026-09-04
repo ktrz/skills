@@ -76,6 +76,45 @@ function fmt(n) {
 
 const cssId = (id) => String(id == null ? "" : id).toLowerCase().replace(/[^a-z0-9-]/g, "-");
 
+// ---- status overlay --------------------------------------------------------
+// `status` is a fixed closed enum (validate.mjs STATUS_VALUES). STATUS is the
+// allowlist: a document value only ever selects a pre-written literal class and
+// word, so a raw status string never reaches the output — not a class, not a
+// badge, not aria text. Everything else (absent, `unchanged`, out-of-enum)
+// misses the map and renders exactly as it does without the field: no class,
+// no badge, no legend entry, no aria marker.
+const STATUS_ORDER = ["added", "removed", "changed"];
+const STATUS = new Map([
+  ["added", { cls: "status-added", word: "added" }],
+  ["removed", { cls: "status-removed", word: "removed" }],
+  ["changed", { cls: "status-changed", word: "changed" }],
+]);
+const statusOf = (s) => STATUS.get(s) || null;
+const statusClass = (s) => { const t = statusOf(s); return t ? t.cls : ""; };
+// The status class is always the LAST class on an element, after every
+// existing class and modifier — hence a leading-space suffix.
+const statusCls = (s) => { const c = statusClass(s); return c ? ` ${c}` : ""; };
+// Visible text badge; identical markup at every self-sizing site.
+const statusBadge = (s) => { const t = statusOf(s); return t ? `<span class="status-badge ${t.cls}">${t.word}</span>` : ""; };
+// Trailing marker appended last to an element's own entry in aria/desc text.
+const statusMark = (s) => { const t = statusOf(s); return t ? ` [${t.word}]` : ""; };
+
+// One legend block per diagram, listing only the statuses that diagram uses.
+// Elements are walked in declaration order but emitted in fixed enum order,
+// never Set-insertion order; `unchanged` is never listed. Empty → no block.
+function statusLegend(elements) {
+  const seen = new Set();
+  for (const el of elements) {
+    const t = el && typeof el === "object" ? statusOf(el.status) : null;
+    if (t) seen.add(t.word);
+  }
+  const items = STATUS_ORDER.filter((s) => seen.has(s)).map((s) => {
+    const t = STATUS.get(s);
+    return `<span class="status-legend-item ${t.cls}">${t.word}</span>`;
+  }).join("");
+  return items ? `<div class="status-legend">${items}</div>` : "";
+}
+
 // ---- minimal inline markdown ----------------------------------------------
 // Escape FIRST, then transform a safe subset. No raw-HTML passthrough.
 function inlineMd(raw) {
@@ -278,12 +317,14 @@ function renderDocument(doc, opts) {
         const cellsHtml = cells.map((cell) => {
           if (cell && typeof cell.arrow === "string") {
             const lbl = cell.label ? `<span>${inlineMd(cell.label)}</span>` : "";
-            return `<div class="d-arrow"><span class="glyph">${esc(cell.arrow)}</span>${lbl}</div>`;
+            // The badge sits inside the arrow cell even when the arrow has no
+            // label — it is the only visible carrier of the arrow's status.
+            return `<div class="d-arrow${statusCls(cell.status)}"><span class="glyph">${esc(cell.arrow)}</span>${lbl}${statusBadge(cell.status)}</div>`;
           }
           if (cell && typeof cell === "object") {
-            boxLabels.push(cell.label || "");
+            boxLabels.push(cell.label ? `${cell.label}${statusMark(cell.status)}` : "");
             const sub = cell.sub ? `<div class="d-sub">${inlineMd(cell.sub)}</div>` : "";
-            return `<div class="d-box" style="--bc: ${pkgVar(cell.pkg)}"><div class="d-name">${inlineMd(cell.label)}</div>${sub}</div>`;
+            return `<div class="d-box${statusCls(cell.status)}" style="--bc: ${pkgVar(cell.pkg)}"><div class="d-name">${inlineMd(cell.label)}</div>${sub}${statusBadge(cell.status)}</div>`;
           }
           return "";
         }).join("");
@@ -295,21 +336,28 @@ function renderDocument(doc, opts) {
     // Surfacing "<from> <arrow> <to>: <label>" makes the flow legible to AT,
     // which otherwise sees only the box list.
     const flows = [];
+    const allCells = [];
     for (const lane of lanes) {
       for (const row of Array.isArray(lane.rows) ? lane.rows : []) {
         const cells = Array.isArray(row) ? row : [];
+        for (const cell of cells) allCells.push(cell);
         cells.forEach((cell, i) => {
           if (!cell || typeof cell.arrow !== "string") return;
           const prev = cells[i - 1], next = cells[i + 1];
-          if (prev && prev.label && next && next.label) {
-            flows.push(`${prev.label} ${cell.arrow} ${next.label}${cell.label ? `: ${cell.label}` : ""}`);
+          const from = prev && prev.label ? prev.label : "";
+          const to = next && next.label ? next.label : "";
+          if (from && to) {
+            flows.push(`${from} ${cell.arrow} ${to}${cell.label ? `: ${cell.label}` : ""}${statusMark(cell.status)}`);
+          } else {
+            flows.push(`Arrow ${cell.arrow}${from ? ` from ${from}` : ""}${to ? ` to ${to}` : ""}${cell.label ? `: ${cell.label}` : ""}${statusMark(cell.status)}`);
           }
         });
       }
     }
     const aria = `Lane diagram: ${d.title || ""}. Boxes: ${boxLabels.filter(Boolean).join(", ")}.` +
       (flows.length ? ` Flows: ${flows.join("; ")}.` : "");
-    return `<div class="diagram" role="img" aria-label="${esc(aria)}"><div class="diagram-inner">${lanesHtml}</div></div>${caption(d, "dgm-caption")}`;
+    return `<div class="diagram" role="img" aria-label="${esc(aria)}"><div class="diagram-inner">${lanesHtml}</div></div>` +
+      `${statusLegend(allCells)}${caption(d, "dgm-caption")}`;
   }
 
   function renderSequence(d) {
@@ -320,7 +368,7 @@ function renderDocument(doc, opts) {
 
     const head = actors.map((a) => {
       const sub = a.sub ? `<span class="sub">${esc(a.sub)}</span>` : "";
-      return `<div class="seq-actor" style="--bc: ${pkgVar(a.pkg)}">${esc(a.label)}${sub}</div>`;
+      return `<div class="seq-actor${statusCls(a.status)}" style="--bc: ${pkgVar(a.pkg)}">${esc(a.label)}${sub}${statusBadge(a.status)}</div>`;
     }).join("");
 
     // Vertical lifelines at (i+0.5)/N for each actor column.
@@ -332,11 +380,11 @@ function renderDocument(doc, opts) {
     const body = steps.map((s, i) => {
       const gr = i + 1;
       if (s.kind === "phase") {
-        return `<div class="phase" style="grid-row:${gr}">${inlineMd(s.label)}</div>`;
+        return `<div class="phase${statusCls(s.status)}" style="grid-row:${gr}">${inlineMd(s.label)}</div>`;
       }
       if (s.kind === "self") {
         const a = idx.has(s.actor) ? idx.get(s.actor) : 0;
-        return `<div class="self" style="grid-column:${a + 1};grid-row:${gr}">${inlineMd(s.label)}</div>`;
+        return `<div class="self${statusCls(s.status)}" style="grid-column:${a + 1};grid-row:${gr}">${inlineMd(s.label)}</div>`;
       }
       if (s.kind === "msg") {
         const a = idx.has(s.from) ? idx.get(s.from) : 0;
@@ -346,7 +394,7 @@ function renderDocument(doc, opts) {
         const inset = fmt((0.5 / k) * 100);
         const rtl = b < a ? " rtl" : "";
         const muted = s.muted ? " muted" : "";
-        return `<div class="msg${rtl}${muted}" style="grid-column:${lo + 1} / ${hi + 2};grid-row:${gr}">` +
+        return `<div class="msg${rtl}${muted}${statusCls(s.status)}" style="grid-column:${lo + 1} / ${hi + 2};grid-row:${gr}">` +
           `<div class="msg-label" style="padding:0 ${inset}%">${inlineMd(s.label)}</div>` +
           `<div class="msg-line" style="margin:0 ${inset}%"></div></div>`;
       }
@@ -359,17 +407,17 @@ function renderDocument(doc, opts) {
     // interaction sequence, not just the actor list.
     const actorLabel = (id) => { const a = actors[idx.get(id)]; return (a && a.label) || id; };
     const relSeq = steps.map((s) => {
-      if (s.kind === "msg") return `${actorLabel(s.from)} → ${actorLabel(s.to)}${s.label ? `: ${s.label}` : ""}`;
-      if (s.kind === "self") return `${actorLabel(s.actor)} self${s.label ? `: ${s.label}` : ""}`;
-      if (s.kind === "phase") return `phase${s.label ? `: ${s.label}` : ""}`;
+      if (s.kind === "msg") return `${actorLabel(s.from)} → ${actorLabel(s.to)}${s.label ? `: ${s.label}` : ""}${statusMark(s.status)}`;
+      if (s.kind === "self") return `${actorLabel(s.actor)} self${s.label ? `: ${s.label}` : ""}${statusMark(s.status)}`;
+      if (s.kind === "phase") return `phase${s.label ? `: ${s.label}` : ""}${statusMark(s.status)}`;
       return "";
     }).filter(Boolean);
-    const aria = `Sequence diagram: ${d.title || ""}. Actors: ${actors.map((a) => a.label).filter(Boolean).join(", ")}.` +
+    const aria = `Sequence diagram: ${d.title || ""}. Actors: ${actors.map((a) => (a.label ? `${a.label}${statusMark(a.status)}` : a.label)).filter(Boolean).join(", ")}.` +
       (relSeq.length ? ` Steps: ${relSeq.join("; ")}.` : "");
     return `<div class="seqwrap" role="img" aria-label="${esc(aria)}"><div class="seq" style="min-width:${minW}px">` +
       `<div class="seq-head" style="grid-template-columns:${cols}">${head}</div>` +
       `<div class="seq-body" style="grid-template-columns:${cols};background-image:${grad}">${body}</div>` +
-      `</div></div>${caption(d, "seq-caption")}`;
+      `</div></div>${statusLegend([...actors, ...steps])}${caption(d, "seq-caption")}`;
   }
 
   function renderDepmap(d) {
@@ -719,6 +767,12 @@ function renderDocument(doc, opts) {
     // from different edges never fuse. Border stubs re-clamp onto their rect.
     assignLanes(edgeDraws);
 
+    // The edges actually drawn. `edgeDraws` skipped any edge whose endpoints
+    // did not resolve, so every downstream consumer — arrowhead markers, the
+    // aria/<desc> relationship list, the status legend — reads this instead of
+    // the raw `edges`, or it would describe geometry that was never drawn.
+    const drawnEdges = edgeDraws.map((ed) => ed.e);
+
     // offsetLegs / assignLanes operate on point arrays in place-safe form.
     function borderClampPoint(p, r) {
       // Snap an anchor back onto rect r's border after a perpendicular shift.
@@ -934,10 +988,14 @@ function renderDocument(doc, opts) {
     // nodes
     const nodeSvg = nodes.map((n) => {
       const r = rect[n.id];
-      const stroke = pkgVar(n.pkg);
+      // A status takes the node's stroke over from its package colour: the
+      // treatment is colour-only (no badge, no chip) so node metrics — and
+      // therefore the whole depmap layout — stay exactly as they were.
+      const nodeStatus = statusClass(n.status);
+      const stroke = nodeStatus ? `var(--${nodeStatus})` : pkgVar(n.pkg);
       const subs = Array.isArray(n.sub) ? n.sub : [];
       const chips = Array.isArray(n.chips) ? n.chips : [];
-      let parts = `<rect class="node" x="${R(r.x)}" y="${R(r.y)}" width="${R(r.w)}" height="${R(r.h)}" rx="9" style="stroke:${stroke}"/>`;
+      let parts = `<rect class="node${statusCls(n.status)}" x="${R(r.x)}" y="${R(r.y)}" width="${R(r.w)}" height="${R(r.h)}" rx="9" style="stroke:${stroke}"/>`;
       parts += `<text class="name" x="${R(r.x + 12)}" y="${R(r.y + 22)}">${esc(n.label)}</text>`;
       subs.forEach((sub, i) => {
         parts += `<text class="sub" x="${R(r.x + 12)}" y="${R(r.y + 40 + i * 15)}">${esc(sub)}</text>`;
@@ -960,21 +1018,35 @@ function renderDocument(doc, opts) {
     const edgeSvg = edgeDraws.map((ed) => {
       const isNet = ed.e.kind === "net";
       const isType = ed.e.kind === "type-only";
-      const cls = "e" + (isNet ? " e-net" : "") + (isType ? " e-type" : "");
-      const marker = isNet ? "url(#dep-arr-net)" : "url(#dep-arr)";
+      const cls = "e" + (isNet ? " e-net" : "") + (isType ? " e-type" : "") + statusCls(ed.e.status);
+      // Kind keeps its own axis (dash + default arrowhead); a status only adds
+      // its class and swaps in the matching status-coloured arrowhead.
+      const edgeStatus = statusOf(ed.e.status);
+      const marker = edgeStatus ? `url(#dep-arr-${edgeStatus.word})` : (isNet ? "url(#dep-arr-net)" : "url(#dep-arr)");
       const points = ed.pts.map((p) => `${R(p[0])},${R(p[1])}`).join(" ");
       return `<polyline class="${cls}" points="${points}" marker-end="${marker}"/>`;
     }).join("\n");
+
+    // One arrowhead marker per status actually used by an edge, in enum order.
+    // SVG markers do not inherit the referencing element's fill, so each marker
+    // carries its own colour inline.
+    const edgeStatuses = new Set();
+    for (const e of drawnEdges) { const t = statusOf(e.status); if (t) edgeStatuses.add(t.word); }
+    const statusMarkers = STATUS_ORDER.filter((w) => edgeStatuses.has(w)).map((w) =>
+      `<marker id="dep-arr-${w}" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr" style="fill:var(--status-${w})" d="M0,0 L10,5 L0,10 z"/></marker>`
+    ).join("");
 
     // Relationships: the edges carry the topology. Without them AT hears only
     // the node list and loses every dependency the diagram exists to show.
     const nodeLabel = {}; for (const n of nodes) nodeLabel[n.id] = n.label;
     const kindWord = { call: "calls", net: "network", "type-only": "type-only" };
-    const relEdges = edges.map((e) => {
+    const relEdges = drawnEdges.map((e) => {
       const k = kindWord[e.kind] ? ` (${kindWord[e.kind]})` : "";
-      return `${nodeLabel[e.from] ?? e.from} → ${nodeLabel[e.to] ?? e.to}${e.label ? `: ${e.label}` : ""}${k}`;
+      return `${nodeLabel[e.from] ?? e.from} → ${nodeLabel[e.to] ?? e.to}${e.label ? `: ${e.label}` : ""}${k}${statusMark(e.status)}`;
     });
-    const aria = `Dependency diagram: ${d.title || ""}. Zones: ${zones.map((z) => z.label).filter(Boolean).join(", ")}. Nodes: ${nodes.map((n) => n.label).filter(Boolean).join(", ")}.` +
+    // The node list is the only place a node's status is exposed at all — the
+    // rect treatment is pure colour, which AT cannot see.
+    const aria = `Dependency diagram: ${d.title || ""}. Zones: ${zones.map((z) => z.label).filter(Boolean).join(", ")}. Nodes: ${nodes.map((n) => (n.label ? `${n.label}${statusMark(n.status)}` : n.label)).filter(Boolean).join(", ")}.` +
       (relEdges.length ? ` Edges: ${relEdges.join("; ")}.` : "");
     const descSvg = relEdges.length ? `<desc>Relationships: ${esc(relEdges.join("; "))}.</desc>` : "";
     const minWidth = Math.min(Math.max(vbW, 560), 1200);
@@ -985,9 +1057,12 @@ function renderDocument(doc, opts) {
       `<defs>` +
       `<marker id="dep-arr" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr" d="M0,0 L10,5 L0,10 z"/></marker>` +
       `<marker id="dep-arr-net" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto-start-reverse"><path class="arr-net" d="M0,0 L10,5 L0,10 z"/></marker>` +
+      statusMarkers +
       `</defs>\n${zoneSvg}\n${nodeSvg}\n${edgeSvg}\n${legendParts}\n${labelSvg}</svg>`;
 
-    return `<div class="dep">${svg}</div>${caption(d, "dgm-caption")}`;
+    // The status legend is HTML placed deliberately AFTER </svg>, outside the
+    // scrolling .dep wrapper, so it never touches the SVG's viewBox extents.
+    return `<div class="dep">${svg}</div>${statusLegend([...nodes, ...drawnEdges])}${caption(d, "dgm-caption")}`;
   }
 
   // ---- sections ----
@@ -1047,7 +1122,7 @@ function renderDocument(doc, opts) {
         : "";
       inner += `<div class="component" id="${esc(c.id)}">` +
         `<div class="comp-head"><span class="pkg ${pkgClass(c.pkg)}">${esc(c.pkg)}</span>` +
-        `<h3>${esc(c.title)}</h3><span class="rt">${esc(c.runtime)}</span></div>` +
+        `<h3>${esc(c.title)}</h3><span class="rt">${esc(c.runtime)}</span>${statusBadge(c.status)}</div>` +
         filesHtml +
         `<div class="comp-summary">${mdBlocks(c.summary)}</div>` +
         invHtml +
@@ -1198,6 +1273,9 @@ function buildStyle(packages) {
     --paper: #f4f6f7; --card: #ffffff; --ink: #1b2228; --ink-soft: #4a565e;
     --ink-faint: #74828c; --line: #d8dfe3; --accent: #0e7c74; --accent-soft: #0e7c7418;
     --flag: #9a6511; --flag-bg: #9a651114; --code-bg: #e9edef;
+    --status-added: #2f7d32; --status-added-bg: #2f7d3214;
+    --status-removed: #b0413e; --status-removed-bg: #b0413e14;
+    --status-changed: #2f6fb5; --status-changed-bg: #2f6fb514;
     ${lightVars}
   }
   @media (prefers-color-scheme: dark) {
@@ -1205,6 +1283,9 @@ function buildStyle(packages) {
       --paper: #10161a; --card: #171f25; --ink: #e4eaed; --ink-soft: #a7b4bc;
       --ink-faint: #7c8b94; --line: #2b363d; --accent: #3db8ac; --accent-soft: #3db8ac1c;
       --flag: #d9a24a; --flag-bg: #d9a24a1a; --code-bg: #1f2930;
+      --status-added: #6cc070; --status-added-bg: #6cc0701a;
+      --status-removed: #e08c86; --status-removed-bg: #e08c861a;
+      --status-changed: #6ea3d8; --status-changed-bg: #6ea3d81a;
       ${darkVars}
     }
   }
@@ -1212,12 +1293,18 @@ function buildStyle(packages) {
     --paper: #f4f6f7; --card: #ffffff; --ink: #1b2228; --ink-soft: #4a565e;
     --ink-faint: #74828c; --line: #d8dfe3; --accent: #0e7c74; --accent-soft: #0e7c7418;
     --flag: #9a6511; --flag-bg: #9a651114; --code-bg: #e9edef;
+    --status-added: #2f7d32; --status-added-bg: #2f7d3214;
+    --status-removed: #b0413e; --status-removed-bg: #b0413e14;
+    --status-changed: #2f6fb5; --status-changed-bg: #2f6fb514;
     ${lightVars}
   }
   :root[data-theme="dark"] {
     --paper: #10161a; --card: #171f25; --ink: #e4eaed; --ink-soft: #a7b4bc;
     --ink-faint: #7c8b94; --line: #2b363d; --accent: #3db8ac; --accent-soft: #3db8ac1c;
     --flag: #d9a24a; --flag-bg: #d9a24a1a; --code-bg: #1f2930;
+    --status-added: #6cc070; --status-added-bg: #6cc0701a;
+    --status-removed: #e08c86; --status-removed-bg: #e08c861a;
+    --status-changed: #6ea3d8; --status-changed-bg: #6ea3d81a;
     ${darkVars}
   }
 
@@ -1280,6 +1367,44 @@ function buildStyle(packages) {
     white-space: nowrap; color: #ffffff;
   }
   ${pkgClasses}
+
+  /* status overlay — added / removed / changed. An "unchanged" or absent
+     status carries no class at all, so it keeps exactly today's styling.
+     Each status class only publishes its pair of colours; the element rules
+     below consume them, so a new element site needs no new per-status rule. */
+  .status-added { --status: var(--status-added); --status-soft: var(--status-added-bg); }
+  .status-removed { --status: var(--status-removed); --status-soft: var(--status-removed-bg); }
+  .status-changed { --status: var(--status-changed); --status-soft: var(--status-changed-bg); }
+
+  .status-badge, .status-legend-item {
+    display: inline-block;
+    font-family: 'Avenir Next', Avenir, 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    border-radius: 4px; padding: 0.12em 0.5em; white-space: nowrap; line-height: 1.5;
+    background: var(--status-soft); color: var(--status);
+  }
+  /* A struck-through element must not strike its own badge: text-decoration
+     propagates to in-flow descendants but stops at an inline-block, and the
+     badge sets its own decoration where it carries the class itself. */
+  .status-badge.status-removed, .status-legend-item.status-removed { text-decoration: none; }
+
+  /* The visible change bar. box-shadow, not a border, so a status never
+     reflows the element it marks — and the pkg colour keeps the top border. */
+  :is(.d-box, .d-arrow, .seq-actor, .msg, .self, .phase):is(.status-added, .status-removed, .status-changed) {
+    box-shadow: inset 3px 0 0 var(--status);
+  }
+  /* .d-arrow is deliberately absent: a struck-through arrow glyph reads as a
+     rendering fault rather than a deletion. Its badge carries the status. */
+  :is(.d-box, .seq-actor, .msg, .self, .phase).status-removed { text-decoration: line-through; }
+  .d-box .status-badge, .seq-actor .status-badge, .d-arrow .status-badge { margin-top: 0.35rem; }
+  .comp-head .status-badge { margin-left: auto; }
+  .dep .e.status-added { stroke: var(--status-added); }
+  .dep .e.status-removed { stroke: var(--status-removed); }
+  .dep .e.status-changed { stroke: var(--status-changed); }
+
+  .status-legend {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem;
+  }
 
   /* receipts */
   .receipts {
