@@ -43,10 +43,11 @@ Hard rules for the current task:
 5. **Parallelize.** Independent chunks go out as parallel Agent calls in a single message.
 6. **Escalate, don't grind.** Work above a child's tier comes back to the parent, which re-dispatches it upward. The parent itself may spawn a higher-tier child for one hard call rather than burning its own context.
 7. **Keep children small and finishable.** One child = one concise task it can complete and report on in a single pass: one lookup, one module change with its tests, one check run, one ticket or PR write. Never hand a child a whole feature, plan phase, or multi-step workflow. Chain several small children instead (sequential when one depends on another), so each finishes, returns a short report, and frees its context. The parent holds the thread through those reports, not through file dumps.
-   - A large step from a composed skill (e.g. "execute phase N") is split by the parent into bounded children (write failing tests, implement unit X, run checks, commit), not dispatched whole.
+   - A large step from a composed skill (e.g. "execute phase N") is split by the parent into bounded children (e.g. write failing tests, implement unit X, run checks), not dispatched whole. The composed skill decides what the steps are. This skill only decides who runs them.
    - The root session dispatches its children in the background by default, so the user is never blocked waiting. It stays responsive, and acts on each child's completion notification (dispatching the next dependent step then).
    - Children may spin up their own children (grandchildren) for discrete steps, which keeps each context small. Grandchildren follow the same rules.
    - Below the root, everything runs in the foreground: no background agents, no background shells, no waiting across turns. A child waits for every grandchild to finish and never returns while work it started is still running.
+   - A child dispatches grandchildren in the foreground explicitly (e.g. `run_in_background: false`) and waits for their results. If its agent tool can only start background agents, it does that step itself instead of delegating it.
    - Children do not load this skill, so every brief must state these subagent rules.
    - Each new step gets a fresh child with a full brief. Do not keep one child alive across steps via SendMessage.
    - If a child reports it ran out of room or only got partway, split the remainder smaller and re-dispatch. Do not retry the same oversized brief.
