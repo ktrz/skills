@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-08
+
+- **Keep children small and finishable** - new delegation rule 7: one child is one concise task it can complete and report on in a single pass. Large steps from a composed skill (for example a plan phase) are split by the parent into bounded children. Children run in the foreground and chain sequentially, with no background children, a fresh child per step, and partial work re-split instead of retried. Motivated by long-running subagents bloating context.
+
 ## 0.1.0 - 2026-07-15
 
 Initial release: a delegation-mode skill plus a sticky-reminder hook — full rulebook injected once at invocation, tiny per-prompt reminder on every prompt while active, session-keyed state flag (inspired by the caveman plugin).
