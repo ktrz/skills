@@ -2,8 +2,8 @@
 
 ## 0.2.0 - 2026-11-08
 
-- **Keep children small and finishable** - new delegation rule 7: one child is one concise task it can complete and report on in a single pass. Large steps from a composed skill (for example a plan phase) are split by the parent into bounded children. Children run in the foreground and chain sequentially, with no background children, a fresh child per step, and partial work re-split instead of retried. Motivated by long-running subagents bloating context.
-- **Foreground grandchildren, no background work** - children may spawn their own foreground children for discrete steps, background work is banned at every level, and every brief must carry these subagent rules because children do not load the skill.
+- **Keep children small and finishable** - new delegation rule 7: one child is one concise task it can complete and report on in a single pass. Large steps from a composed skill (for example a plan phase) are split by the parent into bounded children. Children chain sequentially, with a fresh child per step, and partial work re-split instead of retried. Motivated by long-running subagents bloating context.
+- **Background root, foreground below** - the root session dispatches children in the background by default so the user is never blocked, and everything below the root runs in the foreground. Children may spawn their own children for discrete steps, and every brief must carry these subagent rules because children do not load the skill.
 
 ## 0.1.0 - 2026-07-15
 
