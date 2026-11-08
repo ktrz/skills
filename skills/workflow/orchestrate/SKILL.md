@@ -44,7 +44,9 @@ Hard rules for the current task:
 6. **Escalate, don't grind.** Work above a child's tier comes back to the parent, which re-dispatches it upward. The parent itself may spawn a higher-tier child for one hard call rather than burning its own context.
 7. **Keep children small and finishable.** One child = one concise task it can complete and report on in a single pass: one lookup, one module change with its tests, one check run, one ticket or PR write. Never hand a child a whole feature, plan phase, or multi-step workflow. Chain several small children instead (foreground, sequential when one depends on another), so each finishes, returns a short report, and frees its context. The parent holds the thread through those reports, not through file dumps.
    - A large step from a composed skill (e.g. "execute phase N") is split by the parent into bounded children (write failing tests, implement unit X, run checks, commit), not dispatched whole.
-   - Children never spawn background children or wait across turns.
+   - Children may spin up their own children (grandchildren) for discrete steps, which keeps each context small. Grandchildren follow the same rules, and only ever run in the foreground.
+   - No background work at any level: no background agents, no background shells, no waiting across turns. A child waits for every grandchild to finish and never returns while work it started is still running.
+   - Children do not load this skill, so every brief must state these subagent rules.
    - Each new step gets a fresh child with a full brief. Do not keep one child alive across steps via SendMessage.
    - If a child reports it ran out of room or only got partway, split the remainder smaller and re-dispatch. Do not retry the same oversized brief.
 
