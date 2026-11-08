@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-11-08
+
+- **Keep children small and finishable** - new delegation rule 7: one child is one concise task it can complete and report on in a single pass. Large steps from a composed skill (for example a plan phase) are split by the parent into bounded children. Children chain sequentially, with a fresh child per step, and partial work re-split instead of retried. Motivated by long-running subagents bloating context.
+- **Background root, foreground below** - the root session dispatches children in the background by default so the user is never blocked, and everything below the root runs in the foreground. Children may spawn their own children for discrete steps, and every brief must carry these subagent rules because children do not load the skill.
+- **Explicit foreground grandchildren** - children dispatch grandchildren explicitly in the foreground and wait for results, and do the step themselves if only background agents are available. The composed-skill example no longer prescribes steps such as committing.
+
 ## 0.1.0 - 2026-07-15
 
 Initial release: a delegation-mode skill plus a sticky-reminder hook — full rulebook injected once at invocation, tiny per-prompt reminder on every prompt while active, session-keyed state flag (inspired by the caveman plugin).
