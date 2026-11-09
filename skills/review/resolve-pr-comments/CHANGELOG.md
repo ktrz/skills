@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.3
+
+- Limit automatic routing to existing reviewer feedback and flagged handover items. A fresh PR, branch, or diff review no longer matches the description solely because it mentions a PR number.
+- Add live trigger eval cases and scenario expectations for feedback requests, `--from-doc`, and adjacent fresh-review requests.
+
 ## 1.10.2
 
 - Added tables of contents to `references/investigate.md` and `execute.md`. Documentation only.

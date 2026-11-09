@@ -1,0 +1,42 @@
+[
+  {
+    "query": "address feedback on PR #123",
+    "should_trigger": true
+  },
+  {
+    "query": "resolve the reviewer comments on PR #123",
+    "should_trigger": true
+  },
+  {
+    "query": "go through the unresolved review threads on my pull request",
+    "should_trigger": true
+  },
+  {
+    "query": "fix the changes requested by the reviewer on PR #123",
+    "should_trigger": true
+  },
+  {
+    "query": "discuss the [d]-flagged review decisions using --from-doc pr-123-review-decisions.md",
+    "should_trigger": true
+  },
+  {
+    "query": "review PR #123",
+    "should_trigger": false
+  },
+  {
+    "query": "review PR #123 for correctness and security",
+    "should_trigger": false
+  },
+  {
+    "query": "review the changes in my branch since main",
+    "should_trigger": false
+  },
+  {
+    "query": "review this diff for bugs before I open a pull request",
+    "should_trigger": false
+  },
+  {
+    "query": "check the status of PR #123",
+    "should_trigger": false
+  }
+]
