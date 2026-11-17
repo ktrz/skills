@@ -52,3 +52,5 @@ Does a goal plus rules produce a PR of the same quality as `implement-feature`, 
 **Rule litmus:** it states one restriction that must hold, never how to achieve it. If you cannot write a **Check** the agent could show as evidence, it is a preference, not a rule. If it teaches a method (plan first, use parallel agents), it is not a rule.
 
 Keep rules at most 25 lines and goals at most 40. Rule `description` is the **Rule** sentence verbatim.
+
+Proposed, not-yet-adopted rules and goals mined from usage history live in [proposals/README.md](proposals/README.md).
