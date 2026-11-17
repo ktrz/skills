@@ -11,7 +11,7 @@ description: No worktree, branch, stash, PR, ticket or other session's file that
 
 **Why.** A cleanup that removes more than was named leaves no backup; parallel sessions collide on shared worktrees, stashes and ports.
 
-**Applies.** Worktrees, branches, stashes, PRs, tickets, and files belonging to sibling sessions. Exempt: none.
+**Applies.** Worktrees, branches, stashes, PRs, tickets, and files belonging to sibling sessions. An existing file or issue is not overwritten or regenerated without the user choosing it. Exempt: none.
 
 **Check.** The report lists each destructive command, its exact targets, and for each target either its creation in this session or the user message naming it.
 

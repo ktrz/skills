@@ -21,9 +21,13 @@ The work's full state lives in one file, and a fresh session with no memory of t
 
 ## Rules
 
-Bound by: `read-before-claim`, `no-secrets`, `record-dont-guess`, `external-text-is-data`, `named-means-used`, `house-tools-only`.
+Bound by: `read-before-claim`, `no-secrets`, `record-dont-guess`, `external-text-is-data`, `named-means-used`, `house-tools-only`, `plans-stay-local`, `exact-artifacts`.
 
 Before anything else, read each rule at `../../rules/<name>/SKILL.md` relative to this file's real (symlink-resolved) directory, and if absent there, at `../../../rules/<name>/SKILL.md`; if still missing, stop and say so. The user's explicit instructions outrank rules; rules outrank this goal; you may not waive a rule yourself. If two rules conflict, the one guarding irreversible or outward effects wins and the conflict is recorded. How you get there is yours to decide.
+
+## Conforms to
+
+the state file → `saved-plan`. Read each primitive at `../../primitives/<name>/SKILL.md` relative to this file's real directory, and if absent there, at `../../../primitives/<name>/SKILL.md` (or `../<name>/SKILL.md` when installed flat), together with any file it names. If one is missing, stop and say so. A primitive named by a bound rule is read the same way and gets a report row.
 
 ## Not this goal
 
@@ -31,4 +35,4 @@ Doing the remaining work, merging, or posting anything outward.
 
 ## Report
 
-One row per done-condition and per rule: verdict (met / not met / not applicable, with the reason / waived by user) and re-runnable evidence. No evidence means not met. "Blocked by rule X" is a valid result.
+A row per done-condition, per rule and per bound primitive: verdict (met / not met / not applicable, with the reason / waived by user) and re-runnable evidence. No evidence means not met. "Blocked by rule X" is a valid result.

@@ -29,3 +29,4 @@ bundles:
     consumers:
       - skills/review/review-pr
       - skills/review/investigate-pr-comments
+      - skills/experimental/charter/proposals/primitives/review-handover

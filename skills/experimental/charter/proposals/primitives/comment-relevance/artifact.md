@@ -1,0 +1,108 @@
+## Detection rule
+
+A comment is **review-relevant** when **all** of:
+
+1. It anchors to code: has a non-null `file` + `line`, **or** the
+   body quotes/references identifiers, file paths, or line ranges.
+2. Its body, after stripping HTML comments and collapsible
+   `<details>` blocks, contains at least one of:
+   - A critique, question, or suggestion about the code
+     ("should", "could", "consider", "?", "missing", "broken",
+     "instead of", "why", a diff suggestion block).
+   - A concrete recommendation or fix proposal.
+   - A reference to a specific defect class (perf, security,
+     correctness, style, naming, etc.).
+3. It is **not** one of the boilerplate shapes in the skip list
+   below.
+
+A comment is **skipped** when **any** of:
+
+- Body matches a boilerplate shape:
+  - "Review skipped" / "Draft detected" / "I'll review when ready"
+  - "Coverage decreased / increased by N%" without inline anchors
+  - CI status pings ("build passing", "checks running")
+  - Marketing / announcement content (most tool comments wrap these
+    in `<details>` — strip those first; if the visible body is
+    empty after stripping, skip)
+  - Reaction-only / thread-keep-alive ("ping", "bump", "lgtm" with
+    no anchor, single emoji)
+- Body is pure links / images with no prose.
+- Body length < 20 chars after normalisation and the author is the
+  PR creator (likely a self-thread-keep-alive).
+
+The skip list is small on purpose. Anything not on it falls through
+to the "relevant" bucket — better to admit a borderline comment than
+to suppress real review signal.
+
+## Implementation outline
+
+```text
+function isReviewRelevant(comment):
+    if matchesAny(comment.body, AUTO_GENERATED_PATTERNS):   # check raw body: this marker
+        return false                                        # never survives HTML-comment stripping
+    body = stripHtmlComments(comment.body)
+    body = stripCollapsedDetails(body)         # unwraps <details>: drops only non-substantive
+                                                # (marketing/boilerplate) blocks; critique-bearing
+                                                # content inside <details> is kept, unwrapped
+    if isPureLinkOrImage(body):                # links/images only, no prose
+        return false
+    if anchorsToCode(comment) and hasCritiqueSignal(body):
+        return true                            # substantive content wins even if a boilerplate
+                                                # phrase also appears elsewhere in the body
+    if matchesAny(body, BOILERPLATE_PATTERNS):
+        return false
+    if not anchorsToCode(comment) and matchesAny(body, COVERAGE_PATTERN):
+        return false
+    if len(body.trim()) < 20 and authorIsPrOwner: return false
+    return false                                # default: skip
+```
+
+Pattern list (loose; both skills should keep their own copy aligned
+with this reference):
+
+```text
+AUTO_GENERATED_PATTERNS = [
+    /<!-- (auto-generated|skip review)/i,
+]
+
+BOILERPLATE_PATTERNS = [
+    /^\s*review skipped(?:\s*[—-]\s*draft detected)?\s*$/i,
+    /^\s*draft detected\s*$/i,
+    /i'?ll review when ready/i,
+    /build passing|checks running/i,
+    /^(:?\+1:|:thumbsup:|:rocket:|lgtm|ship it|bump|ping)\s*$/i,
+]
+
+COVERAGE_PATTERN = /coverage (in|de)creased/i   # boilerplate only for comments with no inline anchor
+```
+
+`isPureLinkOrImage`, `anchorsToCode`, `hasCritiqueSignal`, and
+`authorIsPrOwner` are structural helpers, not pattern lists — no
+regex backs them; each skill implements the check its name describes
+(e.g. `isPureLinkOrImage` — body is only URLs/markdown images, no
+other prose) directly. The marketing/announcement skip case is
+handled structurally too: `stripCollapsedDetails` (above) is where
+that stripping happens, not a pattern in this list.
+
+When ambiguous (body has both boilerplate and substantive content —
+e.g. CodeRabbit's reports that wrap findings inside `<details>`),
+`stripCollapsedDetails` already keeps the critique-bearing content:
+it only strips non-substantive (marketing/boilerplate) `<details>`
+wraps, unwrapping the rest so `hasCritiqueSignal` can see it. If the
+surviving prose anchors to code and expresses critique, the comment
+is relevant even when a boilerplate phrase also appears in the body
+(e.g. a wrapping "Review skipped" summary around a substantive
+`<details>` finding) — the boilerplate check only rejects bodies that
+don't clear the anchor+critique bar. The findings inside should be
+extracted as separate items, not the wrapping summary.
+
+## LLM judge for the residue
+
+After the deterministic pass, a small fraction of comments will
+land in a grey zone — visible prose, no obvious boilerplate, but
+unclear whether it's review content. Both skills can optionally run
+a one-shot LLM judge on those (prompt: "Is this comment a code
+review observation worth a maintainer's attention? Reply
+`relevant` or `skip` with one sentence of reasoning."). Cap at
+~20 judge calls per PR; over the cap, default to "relevant" and let
+the user triage.

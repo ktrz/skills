@@ -1,0 +1,59 @@
+# plan-my-day configuration
+# ─────────────────────────
+# Copy this file to ~/.claude/plan-my-day.yaml and update the values:
+#   cp <config example path> ~/.claude/plan-my-day.yaml
+#
+# Storing the config outside the skill directory keeps it safe when the
+# skill is updated. The skill reads ~/.claude/plan-my-day.yaml at startup.
+#
+# Tracker settings (jira / linear / github / clickup) are read from
+# ~/.claude/tracker.yaml by default, or <repo>/.claude/tracker.yaml when
+# plan-my-day is run from inside a repo that declares its own. This file
+# no longer carries a tracker block — keeping tracker config in one place
+# avoids the case where plan-my-day and create-pr disagree on which
+# backend they're hitting. See <tracker-config path>/artifact.yaml for the schema.
+
+# ── Personal settings ──────────────────────────────────────────────
+
+# Your branch naming prefix. If your branches look like "jsmith/proj-123",
+# set this to "jsmith". If you don't use a prefix, set to "".
+branch_prefix: ""
+
+# Where to save the daily plan markdown file (used when day_plan_repo is not set).
+output_path: ~/Desktop/dayplan
+
+# Optional: GitHub repo for daily plan issues (owner/repo format).
+# When set, the skill creates a GitHub issue instead of a local file.
+# day_plan_repo: my-org/day-plan
+
+# ── Repositories ───────────────────────────────────────────────────
+#
+# List every repo the skill should scan. Each repo is checked for
+# git worktrees and GitHub PRs. When a ticket key matches a branch or
+# PR in a repo, the skill links them together.
+#
+# Fields:
+#   name              - Short label shown in the plan (e.g., "frontend")
+#   path              - Local path to the repo root (worktrees are auto-discovered)
+#   github_repo       - GitHub "org/repo" for PR lookups via `gh`
+#   branch_ticket_format - Documentation hint for how ticket keys appear in
+#     branch names. The skill no longer depends on this field for parsing
+#     (tracker-aware regex handles all shapes), but it helps future-you
+#     remember the convention:
+#       "prefix/key-NNN"  → branches like "jsmith/proj-123"
+#       "key-NNN"         → branches like "proj-123"
+#       "prefix/NNN"      → branches like "jsmith/567"  (github issues)
+#       "NNN"             → branches like "567"          (github issues)
+
+repos:
+  - name: my-app
+    path: ~/projects/my-app
+    github_repo: my-org/my-app
+    branch_ticket_format: prefix/key-NNN
+
+  # Add more repos as needed:
+  # - name: my-api
+  #   path: ~/projects/my-api
+  #   github_repo: my-org/my-api
+  #   branch_ticket_format: key-NNN
+
