@@ -50,6 +50,8 @@ Instead of one rule per tool, the rule reads a toolchain map: a table of capabil
 
 The map lives in one of two places. The user-level file is `~/.claude/charter/toolchain.md`. A repo can override it with `.claude/charter-toolchain.md`. See `toolchain.example.md` for a filled-in template.
 
+Per-tool notes live in `proposals/tools/<tool>.md` and are referenced from the map (see `tools/hc.md`).
+
 One generic rule beats one per tool for three reasons. A new tool is one table row, not a new skill with its own changelog. The restriction logic is written and checked once. And the per-tool facts (which command, which caveat) live in a file the user edits, not in skill text that has to be released.
 
 Rules bound by no goal, adopted or proposed, are meant for these goals: `decisions-stand-alone` for goals that hand decisions to the user (`resume-ready-handoff`, `explain-change`); `diff-stays-in-scope` for `stack-to-approved` and adopted delivery goals; `named-targets-only` for `stack-to-approved`; `spend-on-agreement` for goals that run metered work.
