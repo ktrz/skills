@@ -27,4 +27,5 @@ Verified facts about `hc` from practice. Referenced by the toolchain map; read b
 
 - Wait with `hc wait <t> --timeout <s>`, never sleep. On an interactive child it returns when the child goes idle; on a `-p` child, when it exits.
 - Prefer report files written by children over scraping screens.
-- Typing into another agent's terminal (`hc keys`/`hc send`) may be refused by Claude Code auto mode as undermining oversight. Spawn a fresh child instead of poking a stuck one, and say the stuck one must not be submitted later.
+- Auto mode judges each call in context. Observed: an unprompted `hc keys <agent> enter` into another agent's stuck terminal was refused as undermining oversight; an `hc send <agent> "<message>"` the user explicitly asked for was allowed. For a stuck child, prefer spawning a fresh one, and say the stuck one must not be submitted later. To relay a message the user asked for, `hc send` works.
+- A message sent with `hc send` while the target agent is working is queued and shows in its screen as `<hc from="<sender>">...`.
