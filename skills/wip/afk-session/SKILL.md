@@ -33,7 +33,7 @@ On return the user sees in two minutes which reading of their task was right, an
 ## Done when
 
 - `BRIEF.md` holds the seven answers as agreed and is unchanged since the go.
-- No subagent edited `BRIEF.md`, `READINGS.md` or any plan file the run wrote. Every change to them after the go is the root session's, carries a marked note, is listed in the report, and reached every place that states or summarizes the changed rule.
+- No subagent edited `BRIEF.md`, `READINGS.md` or any plan file the run wrote. Every change to them after the go is the root session's, carries a marked note, is listed in the report, and reached every place outside `BRIEF.md` that states or summarizes the changed rule.
 - `READINGS.md` holds 2–3 readings of the task: one paragraph each, each with its own return test in the same "I will … and expect …" form. One takes the brief at its word; the others are what the user may have meant instead. They differ in the problem solved, not in how it is built: a user who wanted one would reject the others.
 - A judge that saw only the brief and the readings (a separate subagent or model where one is available) confirmed they differ in that way; readings it found to be the same problem built differently were merged or replaced, and its verdict is recorded. If only one reading survives, the report says so and why.
 - Each surviving reading has a thin prototype on which its return test was actually run, with the command and output recorded, or, where the run environment cannot perform the action, a "not run" verdict with the blocker recorded; and a one-page "how you would use this for real".
