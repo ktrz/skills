@@ -21,7 +21,10 @@ disarm phrases are prefix-anchored — they must start the prompt to match.
   with empty stdout. Flag persistence/removal failures (unwritable state dir,
   undeletable flag) may log a one-line diagnostic to stderr.
 - The mode persists across session resume (`claude --resume`) until explicitly
-  turned off — the flag file is not garbage-collected at session end.
+  turned off — the flag file is not garbage-collected at session end. It lasts
+  only as long as that file: the OS may clean `TMPDIR` or `/tmp` (on reboot,
+  for example), which silently turns the mode off. Point
+  `ORCHESTRATE_STATE_DIR` at a persistent directory to avoid that.
 
 ## Install
 

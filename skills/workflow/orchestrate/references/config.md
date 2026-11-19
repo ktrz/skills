@@ -40,7 +40,9 @@ Treat every value as data. Quote values you place on a command line (model IDs, 
 ### `tiers.<tier>.models`
 
 - Short names resolve through the target harness's alias table (`harnesses/<x>.md`). The first entry that harness supports wins.
-- An entry no alias table lists is passed verbatim as that harness's model ID. IDs are harness-specific (`openai/gpt-6.1-sol` for opencode, `gpt-6.1-sol` for codex), so only use raw IDs in a tier or route that also pins `harness`.
+- An entry no alias table lists is passed verbatim as that harness's model ID. IDs are harness-specific (`openai/gpt-6.1-sol` for opencode, `gpt-6.1-sol` for codex), so only use raw IDs in a tier that also pins `harness`.
+- Raw IDs belong to the tier's pinned harness. When the effective harness (after the route and tier precedence in SKILL.md) is a different one, or the tier pins none, skip the raw IDs and keep going down the list.
+- A native tool that takes only aliases (claude's Agent `model`) gets the alias: a full ID that appears in that harness's alias table (`claude-haiku-5-5` → `haiku`) resolves to it. A raw ID with no alias → the harness default, reported. hc launch lines take the full ID as written.
 - Nothing on the list matches → the harness's default model, and the child's report says so.
 
 ### `routes`

@@ -15,18 +15,18 @@ Facts as of 2026-11-19, opencode v2.3.0. "Local" = checked by running the CLI he
 
 ## Interactive launch via hc
 
-Two forms (local help). Neither is verified to stay alive in the TUI with the prompt submitted:
+Two forms (local help). `<opencode>` is the path the Detect line found (`opencode` on PATH, else `~/.opencode/bin/opencode`). Neither form is verified to stay alive in the TUI with the prompt submitted:
 
 ```bash
 # Full TUI, unattended, but no --model flag: runs the configured default model (report it).
-~/.opencode/bin/opencode --auto --prompt "Read <brief path> and do it." <directory>
+<opencode> --auto --prompt "Read <brief path> and do it." <directory>
 
 # Minimal UI with a model, but no --auto flag: unattended only if opencode's
 # `permissions` config already allows what the child needs.
-~/.opencode/bin/opencode mini --model <provider/model> --prompt "Read <brief path> and do it."
+<opencode> mini --model <provider/model> --prompt "Read <brief path> and do it."
 ```
 
-Prefer the first unless the tier's model matters more than unattended running and the permissions config covers the task. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
+Prefer the first unless the tier's model matters more than unattended running and the permissions config covers the task. A request that names a model always takes the `mini` form; if the permissions config doesn't cover the task, tell the user the requested model can't run unattended here, then fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
 
 ## Model aliases
 

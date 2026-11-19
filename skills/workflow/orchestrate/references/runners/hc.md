@@ -33,8 +33,9 @@ The busy marker is text the TUI shows only while working (harness file, "Busy ma
 
 - **Marker unknown:** `hc get <t>` (agents hc recognises report `status` `working`) or `hc read <t>` to check the prompt left the input box and work started. Tell the user what marker you saw so the harness file can be updated.
 - **Timeout:** not proof of failure. Read `status` in the wait's JSON result (or `hc get <t>`): `working` → submitted, go to "Wait for the result".
-- **Not submitted** (idle with the prompt still in the box per `hc read <t>`, blocked, exited): check the report file first — a fast child may already be done. Otherwise leave that terminal as it is and start a fresh child.
-- **Never type into a child** (`hc send`, `hc keys`) — not to submit, not to answer a dialog. On a trust or permission dialog, tell the user (they can `hc attach <t>` and answer it), or pre-trust per the harness file before starting the fresh child.
+- **Blocked on a trust or permission dialog:** tell the user (they can `hc attach <t>` and answer it) and keep waiting on that same child with `hc wait`. Don't start a replacement while it can still resume, or both would do the step. Only if the user declines or the child exits: check what it already changed, pre-trust per the harness file, then start a fresh child.
+- **Not submitted** (idle with the prompt still in the box per `hc read <t>`, or exited): check the report file first — a fast child may already be done. Otherwise leave that terminal as it is and start a fresh child.
+- **Never type into a child** (`hc send`, `hc keys`) — not to submit, not to answer a dialog.
 - Locally (2026-11-19) on a claude child: a wait started a few seconds after launch timed out with the marker already on screen and JSON `status: working`; started in the same command as `hc run --bg`, it matched (`reason: output`). Other harnesses: untested.
 
 ## Wait for the result
