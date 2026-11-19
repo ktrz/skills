@@ -49,7 +49,7 @@
 #   effort  — low | medium | high | xhigh. Each harness translates it.
 #   harness — pin the tier to one harness (hc when it isn't the current one).
 #
-# Built-ins, for reference. GPT 6.2 models are excluded on purpose.
+# Built-ins, for reference.
 #   bulk:       haiku  → gpt-6-luna  → gemini-3.5-flash-lite            low
 #   scoped:     sonnet → gpt-6.1-sol → gemini-4-hydrogen → grok-4.7     medium
 #   multi-step: opus   → gpt-6.1-sol → gemini-4-neon     → grok-4.7     xhigh

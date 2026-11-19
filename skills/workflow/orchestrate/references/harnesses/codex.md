@@ -22,8 +22,6 @@ The positional prompt starts the TUI with it (S). `-c model_reasoning_effort=…
 
 ## Model aliases
 
-GPT 6.2 models are excluded on purpose (user decision, 2026-11-19): use `gpt-6.1-sol` in place of `gpt-6.2-sol` and `gpt-6-astra` in place of `gpt-6.2-astra`.
-
 | Short name                                                               | codex ID                     |
 | ------------------------------------------------------------------------ | ---------------------------- |
 | haiku, sonnet, opus, fable                                               | unsupported (not documented) |

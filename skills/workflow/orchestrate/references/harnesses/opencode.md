@@ -30,7 +30,7 @@ Prefer the first unless the tier's model matters more than unattended running an
 
 ## Model aliases
 
-IDs are `provider/model`; `#variant` selects effort (`run --model`, docs). Only the two `anthropic/claude-sonnet-5-5` and `anthropic/claude-haiku-5-5` forms appear in the docs; every other row follows the same pattern and is UNVERIFIED. GPT 6.2 models are excluded on purpose (user decision, 2026-11-19).
+IDs are `provider/model`; `#variant` selects effort (`run --model`, docs). Only the two `anthropic/claude-sonnet-5-5` and `anthropic/claude-haiku-5-5` forms appear in the docs; every other row follows the same pattern and is UNVERIFIED.
 
 | Short name            | opencode ID                                 |
 | --------------------- | ------------------------------------------- |

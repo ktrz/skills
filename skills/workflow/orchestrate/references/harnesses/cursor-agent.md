@@ -22,7 +22,7 @@ agent --model <id> --force "Read <brief path> and do it."
 
 ## Model aliases
 
-Cursor is multi-vendor (Anthropic, OpenAI, Google, its own), but none of the current tier models appear in its docs under a known ID. Doc examples: `auto`, `gpt-5`, `sonnet-4-thinking`, `claude-opus-5`, `gpt-5.6-sol`, `composer-2`, plus `-high` / `-fast` suffixes (`gpt-5-high`). GPT 6.2 models are excluded on purpose (user decision, 2026-11-19).
+Cursor is multi-vendor (Anthropic, OpenAI, Google, its own), but none of the current tier models appear in its docs under a known ID. Doc examples: `auto`, `gpt-5`, `sonnet-4-thinking`, `claude-opus-5`, `gpt-5.6-sol`, `composer-2`, plus `-high` / `-fast` suffixes (`gpt-5-high`).
 
 Before routing a child here, run `agent models` (or `agent --list-models`) once and map each short name to the listed ID for that model and version. A short name with no listed ID is unsupported.
 

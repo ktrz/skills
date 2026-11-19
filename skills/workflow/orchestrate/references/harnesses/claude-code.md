@@ -37,7 +37,7 @@ The positional prompt starts the TUI with that prompt (local `claude --help`: `c
 | gemini-3.5-flash-lite, gemini-4-hydrogen, gemini-4-neon, gemini-4-carbon | unsupported                    |
 | grok-4.7                                                                 | unsupported                    |
 
-Claude Code runs Claude models only. Bedrock, Vertex and Foundry host Claude; `ANTHROPIC_BASE_URL` moves the endpoint, not the model. `--model` takes the alias or the full ID; the Agent `model` param takes the alias. GPT 6.2 models are excluded from every alias table on purpose.
+Claude Code runs Claude models only. Bedrock, Vertex and Foundry host Claude; `ANTHROPIC_BASE_URL` moves the endpoint, not the model. `--model` takes the alias or the full ID; the Agent `model` param takes the alias.
 
 ## Effort translation
 
@@ -69,4 +69,5 @@ Levels depend on the model; medium is the default on current models (S). `max` a
 
 - Native (`Agent` tool): **verified** — in use in this harness.
 - CLI flags: **verified** locally (`claude --help`, 2.1.328).
-- hc launch: **untested** — busy marker and trust prompt not confirmed on a live child.
+- hc launch line: **verified** — an orchestrator started its claude children with `hc run --bg ... -- claude --model <id> --effort <level> --permission-mode auto "<prompt>"` (2026-11-19).
+- Busy marker and trust prompt: **untested** on a live child.

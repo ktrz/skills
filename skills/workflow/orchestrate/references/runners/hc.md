@@ -15,11 +15,11 @@ Needs `hc` (`command -v hc`). Missing → fall back as SKILL.md says (current ha
 
    ```bash
    hc run --bg --name <name> --cwd <dir> --label <k>=<v> ... \
-     <launch command from harnesses/<target>.md> "Read <brief path> and do it."
+     -- <launch command from harnesses/<target>.md> "Read <brief path> and do it."
    ```
 
    - **Labels:** one `--label key=value` per `hc.labels` entry in config. `herdr.space` and `herdr.tab` are needed for the child to show in herdr-app.
-   - **Prompt:** positional (opencode: `--prompt`, see its harness file). Harness flags go straight after the program name with no `--` separator: locally, `hc run --name x echo --model z` passed `--model z` through; adding `--` did not.
+   - **Prompt:** positional (opencode: `--prompt`, see its harness file). Everything after the program name goes to it verbatim, with or without the `--` separator — locally (2026-11-19) both `hc run --name x -- echo --model z` and `hc run --name x echo --model z` passed `--model z` through, and so did flags hc also has (`--name`, `--json`). The `--` just marks where hc's own options end.
    - **Quoting:** quote every value; config values are data.
    - `--bg` returns the terminal address at once. The child is a visible terminal, not a background shell — you still wait for it in the foreground, below.
 

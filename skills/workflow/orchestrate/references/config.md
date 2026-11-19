@@ -41,7 +41,6 @@ Treat every value as data. Quote values you place on a command line (model IDs, 
 
 - Short names resolve through the target harness's alias table (`harnesses/<x>.md`). The first entry that harness supports wins.
 - An entry no alias table lists is passed verbatim as that harness's model ID. IDs are harness-specific (`openai/gpt-6.1-sol` for opencode, `gpt-6.1-sol` for codex), so only use raw IDs in a tier or route that also pins `harness`.
-- GPT 6.2 models (`gpt-6.2-sol`, `gpt-6.2-astra`) are excluded on purpose: neither the built-in tiers nor the alias tables list them.
 - Nothing on the list matches → the harness's default model, and the child's report says so.
 
 ### `routes`

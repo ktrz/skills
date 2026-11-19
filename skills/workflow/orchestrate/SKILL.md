@@ -36,8 +36,6 @@ One table for every harness: model short names in preference order across provid
 | multi-step | multi-step reasoning | opus → gpt-6.1-sol → gemini-4-neon → grok-4.7       | xhigh                                         |
 | judgment   | judgment, taste      | fable → gpt-6-astra → gemini-4-carbon → grok-4.7    | medium; xhigh only for hardest calls, no high |
 
-GPT 6.2 models are left out on purpose.
-
 ## Routing
 
 For each child, a request that names a harness or model wins over config, and config wins over these defaults:
@@ -52,7 +50,7 @@ For each child, a request that names a harness or model wins over config, and co
 
 - This file, always.
 - `references/config.md`, only if `<repo>/.claude/orchestrate.yaml` or `~/.claude/orchestrate.yaml` exists (`<repo>` = `git rev-parse --show-toplevel`).
-- Per child: `references/runners/<runner>.md` and `references/harnesses/<target>.md` — mechanics live there, not here.
+- Per child: `references/runners/<runner>.md` and `references/harnesses/<target>.md` (claude → `claude-code.md`) — mechanics live there, not here.
 - `references/brief-template.md`, on the first dispatch.
 
 ## Delegation protocol
@@ -83,4 +81,4 @@ If the args reference another skill (`/orchestrate /implement-feature X`, `/orch
 
 ## Sticky reminder
 
-Claude Code only: an optional prompt hook keeps a one-line `ORCHESTRATE ACTIVE` reminder alive on every prompt while the mode is on — see `references/harnesses/claude.md`. Without it, and on the other harnesses, the protocol applies when invoked, with no per-prompt reinforcement.
+Claude Code only: an optional prompt hook keeps a one-line `ORCHESTRATE ACTIVE` reminder alive on every prompt while the mode is on — see `references/harnesses/claude-code.md`. Without it, and on the other harnesses, the protocol applies when invoked, with no per-prompt reinforcement.
