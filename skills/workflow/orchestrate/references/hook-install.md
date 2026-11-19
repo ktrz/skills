@@ -1,5 +1,7 @@
 # Sticky reminder hook — mechanism and install
 
+**Claude Code only.** The hook below is built and tested for Claude Code. The other harnesses have hook points that could carry the same reminder; they are listed at the end as untested follow-ups, not built.
+
 Skill instructions injected at invocation fade as a session grows. The optional
 `scripts/orchestrate-reminder.sh` UserPromptSubmit hook fixes that:
 
@@ -18,6 +20,8 @@ disarm phrases are prefix-anchored — they must start the prompt to match.
   (missing `jq`, malformed stdin, missing or path-unsafe session id) exits 0
   with empty stdout. Flag persistence/removal failures (unwritable state dir,
   undeletable flag) may log a one-line diagnostic to stderr.
+- The mode persists across session resume (`claude --resume`) until explicitly
+  turned off — the flag file is not garbage-collected at session end.
 
 ## Install
 
@@ -44,3 +48,21 @@ plugin packaging of this repo will make the hook auto-register instead):
 
 The path assumes the skill is installed (symlinked) at
 `~/.claude/skills/orchestrate/`. Requires `jq`.
+
+## Other harnesses — untested follow-ups
+
+Not built. Each would need its own wiring and a check that the payload carries
+the prompt text and a session id (the script reads Claude's `.prompt` and
+`.session_id`). Facts from the harness docs as of 2026-11-19; (S) = from a
+summary of a truncated page.
+
+- **codex:** `UserPromptSubmit` hook (can add context or block) in
+  `~/.codex/hooks.json` or `.codex/hooks.json` (trusted projects only); needs
+  `[features] hooks` enabled and the user trusting the hook via `/hooks` (S).
+  Payload field names unknown.
+- **opencode:** a plugin's session `prompt` hook runs before the model call and
+  can edit the text, but cannot reject (S). Plugins live in `.opencode/plugins/`
+  or `~/.config/opencode/plugins/`; the hook signature is unknown. It would be a
+  plugin, not this shell script.
+- **cursor-agent:** `beforeSubmitPrompt` in `.cursor/hooks.json` or
+  `~/.cursor/hooks.json`. Whether the Cursor CLI runs these hooks is unknown.

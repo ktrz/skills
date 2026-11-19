@@ -63,7 +63,7 @@ case "$prompt_lc" in
 esac
 
 if [[ -f "$flag" || "${active_now:-}" == 1 ]]; then
-  echo 'ORCHESTRATE ACTIVE — delegate per tier: haiku bulk(low) / sonnet research(med) / opus multi-step(xhigh) / fable judgment(med). Parent only decomposes, briefs, judges, synthesizes. "/orchestrate off" to stop.'
+  echo 'ORCHESTRATE ACTIVE — delegate per tier: bulk(low) / scoped(med) / multi-step(xhigh) / judgment(med), models per the skill tier table and orchestrate.yaml. Parent only decomposes, briefs, judges, synthesizes. "/orchestrate off" to stop.'
 fi
 
 exit 0
