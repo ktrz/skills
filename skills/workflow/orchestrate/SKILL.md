@@ -22,7 +22,7 @@ Execution mode, not a workflow: while active, the parent agent's job shrinks to 
 ```
 
 - `<task>` — execute the task under the delegation protocol below.
-- `off` — deactivate the mode. Where the sticky-reminder hook is installed, the flag was already cleared when this `/orchestrate off` prompt was submitted — confirm deactivation. If the user asked to stop via any other phrasing, tell them to type `/orchestrate off` or "stop orchestrating" (case-insensitive) so the hook clears the flag.
+- `off` — deactivate the mode. Where the sticky-reminder hook is installed, the flag was already cleared when this `/orchestrate off` prompt was submitted — confirm deactivation. If the next prompt still carries the `ORCHESTRATE ACTIVE` reminder, clearing failed: tell the user (the hook logs the flag path to stderr). If the user asked to stop via any other phrasing, tell them to type `/orchestrate off` or "stop orchestrating" (case-insensitive) so the hook clears the flag.
 - Args naming another skill — see Composability.
 
 ## Tiers
