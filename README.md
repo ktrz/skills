@@ -39,9 +39,9 @@ Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline
 
 ### Delegation
 
-| Skill                                               | What it does                                                                                                                                                                                    |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [orchestrate](skills/workflow/orchestrate/SKILL.md) | Delegation-heavy execution mode: the parent only decomposes, briefs, judges, and synthesizes — everything else goes to subagents by model tier. Optional sticky-reminder UserPromptSubmit hook. |
+| Skill                                               | What it does                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [orchestrate](skills/workflow/orchestrate/SKILL.md) | Delegation-heavy execution mode: the parent only decomposes, briefs, judges, and synthesizes — everything else goes to child agents by model tier, in claude, codex, opencode or cursor-agent (native subagents by default, `hc` terminals for another harness). Optional `orchestrate.yaml` config; Claude-only sticky-reminder hook. |
 
 ### Session hygiene
 

@@ -1,28 +1,14 @@
-# Sticky reminder hook — mechanism and install
+# Sticky reminder hook
 
-Skill instructions injected at invocation fade as a session grows. The optional
-`scripts/orchestrate-reminder.sh` UserPromptSubmit hook fixes that:
+Claude Code only. `scripts/orchestrate-reminder.sh` (UserPromptSubmit) keeps a one-line `ORCHESTRATE ACTIVE` reminder on every prompt while the mode is on.
 
-Contract: arm on the exact `/orchestrate` slash command; disarm on
-`/orchestrate off` or "stop orchestrat…", case-insensitive. Both the arm and
-disarm phrases are prefix-anchored — they must start the prompt to match.
-
-- A prompt starting with the exact `/orchestrate` slash command touches a flag
-  file keyed by the session id, under `${ORCHESTRATE_STATE_DIR:-${TMPDIR:-/tmp}}`
-  — parallel sessions stay independent.
-- While the flag exists, every prompt gets a one-line `ORCHESTRATE ACTIVE`
-  reminder prepended.
-- `/orchestrate off` or "stop orchestrat…" (case-insensitive) clears the flag.
-- When off, the hook prints nothing and costs zero context. It never blocks a
-  prompt and never injects failure output into stdout — every failure path
-  (missing `jq`, malformed stdin, missing or path-unsafe session id) exits 0
-  with empty stdout. Flag persistence/removal failures (unwritable state dir,
-  undeletable flag) may log a one-line diagnostic to stderr.
+- **Arm:** a prompt starting with the exact `/orchestrate` command touches a flag keyed by session id under `${ORCHESTRATE_STATE_DIR:-${TMPDIR:-/tmp}}`. **Disarm:** a prompt starting with `/orchestrate off` or "stop orchestrat…" (case-insensitive).
+- Off, it prints nothing. It never blocks: every failure (no `jq`, malformed stdin, missing or path-unsafe session id) exits 0 with empty stdout; flag write or delete failures may log one stderr line.
+- It survives `claude --resume` only while the flag file lives: OS cleanup of `TMPDIR` or `/tmp` (e.g. reboot) silently disarms. To persist, set `ORCHESTRATE_STATE_DIR` to a durable dir before arming and keep it when resuming. To change it while armed: `/orchestrate off`, change it, `/orchestrate` again (a flag left in the old dir re-arms whenever it points back).
 
 ## Install
 
-One-time manual step — merge this into `~/.claude/settings.json` (a future
-plugin packaging of this repo will make the hook auto-register instead):
+Merge into `~/.claude/settings.json` (assumes the skill is symlinked at `~/.claude/skills/orchestrate/`; needs `jq`):
 
 ```json
 {
@@ -42,5 +28,4 @@ plugin packaging of this repo will make the hook auto-register instead):
 }
 ```
 
-The path assumes the skill is installed (symlinked) at
-`~/.claude/skills/orchestrate/`. Requires `jq`.
+Other harnesses: not built. Their hook points are on the Hook line of each `harnesses/<x>.md`; the script reads Claude's `.prompt` and `.session_id`, so each needs its own wiring and a payload check.

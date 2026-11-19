@@ -8,7 +8,7 @@
 #      `git diff --diff-filter=A --name-only ${BASE_SHA:-HEAD~1}...HEAD -- 'skills/*/*/SKILL.md'`.
 set -euo pipefail
 
-ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator checkpoint orchestrate afk-session" # orchestrate: its own direct inputs are the user's prompt and Agent dispatches, no external content of its own; children handling external content are covered by briefing-hygiene in the delegation protocol; afk-session: its direct inputs are the user's intake answers, and text read during the run is bound as data by its own rules
+ALLOWLIST="commit-message-format create-pr execute-phase implement-feature save-plan simplify caveman caveman-help caveman-commit caveman-review skill-creator checkpoint orchestrate afk-session" # orchestrate: its direct inputs are the user's prompt, Agent dispatches and the optional orchestrate.yaml, whose values are treated as data and whose repo-level rules are disclosed to the user; children handling external content are covered by briefing-hygiene in the delegation protocol; afk-session: its direct inputs are the user's intake answers, and text read during the run is bound as data by its own rules
 
 missing=()
 

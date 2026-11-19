@@ -1,0 +1,40 @@
+# Orchestrate config (optional). Rules: references/config.md.
+# <repo>/.claude/orchestrate.yaml beats ~/.claude/orchestrate.yaml, key by key.
+# Everything is commented out: copying this file changes nothing.
+
+# native (default): the harness's subagent tool | hc: a terminal per child.
+# runner: native
+
+# current (default) | claude | codex | opencode | cursor-agent
+# harness: current
+
+# Per tier (bulk, scoped, multi-step, judgment; built-ins in SKILL.md):
+# models (replaces the built-in list; raw IDs only together with harness),
+# effort (low | medium | high | xhigh), harness (pins the tier).
+# tiers:
+#   bulk:
+#     effort: low
+#   judgment:
+#     models: [fable, gemini-4-carbon]
+#   multi-step:
+#     harness: codex          # via hc
+#     models: [gpt-6.1-sol]
+
+# Kind of task → tier and/or harness; used only when a chunk clearly fits.
+# routes:
+#   code-review:
+#     tier: judgment
+#     harness: codex          # a second opinion from another vendor
+#   web-research:
+#     tier: scoped
+
+# Labels on every hc child (plain strings); herdr.space + herdr.tab show it in herdr-app.
+# hc:
+#   labels:
+#     herdr.space: skills
+#     herdr.tab: orchestrate
+
+# Extra rules after the built-ins; may only tighten. Rules for children go into briefs.
+# protocol:
+#   - Children never run git push and never open pull requests.
+#   - A child that edits code runs the repo's test command before reporting.
