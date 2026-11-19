@@ -6,7 +6,7 @@ As of 2026-11-19, Claude Code 2.1.328. Native tool, CLI flags and hc launch line
 - **Native:** the `Agent` tool (types `general-purpose`, `Explore`, `Plan`; custom in `.claude/agents/`, `~/.claude/agents/`). Parallel: several calls in one message. Fresh child per chunk: never reuse one via `SendMessage`.
 - **Model:** Agent `model` takes the alias only; omitted = the parent's model. `--model` takes the alias or the full ID.
 - **Effort:** Agent `effort` where the tool offers it (the tier table is the explicit instruction it asks for), else state it in the brief; CLI `--effort`. Tier words map 1:1 (`low` … `xhigh`); `max` and `ultracode` unused. Default medium (S).
-- **Background:** the root passes `run_in_background: true` and dispatches the next dependent chunk on each completion notice; children pass `false`. No `run_in_background` param (seen 2026-11-19) = background-only: the child does the step itself, or runs a claude child via `runners/hc.md` if its brief allows hc.
+- **Background:** the root passes `run_in_background: true` and dispatches the next dependent chunk on each completion notice; children may pass either and wait for every completion before returning.
 - **Nesting:** `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (in the binary); default 3 UNVERIFIED.
 
 ## hc launch

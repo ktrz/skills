@@ -53,7 +53,7 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 7. **Size children by context, not by step** (the Goal). A child is one coherent chunk that fits comfortably in its own context and returns a short report: a whole module with its tests, a full review pass, a research question. Don't split below that: each extra child costs a brief, a startup, a wait and a report. Split only when a chunk would overflow a child's context or parts can run in parallel. Chain children only on real dependencies. Take short reports, never file dumps.
    - A fresh child per chunk, never one kept alive by messaging. Work that came back partial → re-split the remainder; never resend the same brief.
    - A composed skill's step (e.g. "execute phase N") is one child if it fits, else split by this rule. The skill decides the steps; this skill decides who runs them.
-   - The root keeps the user unblocked where its runner and harness allow, dispatching each dependent chunk on completion. Below the root: foreground only, no background agents or shells, no waiting across turns; a child waits for every grandchild before returning.
-   - Children may start grandchildren under the same rules, explicitly in the foreground (the harness file names the switch). Background-only tool or nesting cap → the child does the step itself. Children don't load this skill, so the brief carries these rules.
+   - The root dispatches in the background by default so the user is never blocked, starting each dependent chunk when its input completes.
+   - Children may start their own children (native subagents or hc), in the background or foreground; nesting cap → do the step yourself. Hard rule at every level: never report done or end your session while work you started still runs; wait for all of it first. Children don't load this skill, so the brief carries these rules.
 
 Config `protocol` rules are appended after rule 7 and may only tighten.

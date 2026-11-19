@@ -12,6 +12,7 @@
 - **Hook stays Claude-only** - `hook-install.md` now says so; the codex, opencode and cursor-agent hook points sit in their harness files as untested follow-ups. The reminder line names tiers instead of Claude models.
 - **Goal first, compact files** - SKILL.md opens with the goal every rule serves: finish the task while keeping the parent's context window healthy, with children doing the execution at the cheapest tier that does it well. SKILL.md and every reference file are cut to facts, commands and tables, each fact stated once. The brief template is under 20 lines.
 - **Rule 7 sizes children by context, not by step** - a child is one coherent chunk that fits comfortably in its own context and returns a short report, such as a module with its tests, a full review pass or a research question. Split only when a chunk would overflow a child's context or parts can run in parallel, and chain children only on real dependencies. This replaces 0.2.0's one-lookup-per-child granularity, which slowed runs down.
+- **Children may background their helpers** - children may start their own children (native subagents or hc) in the background or foreground; 0.2.0's foreground-only wording read as a ban on subagents, and its background-only fallback is gone. One hard rule at every level: never report done or end the session while started work still runs. The root still dispatches in the background by default.
 
 ## 0.2.0 - 2026-11-08
 

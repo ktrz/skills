@@ -2,7 +2,7 @@
 
 As of 2026-11-19, from cursor.com/docs/cli. **Untested:** not installed here; binary name, model IDs, every flag, busy marker and trust prompt need a live check.
 
-- **Detect:** `command -v agent || command -v cursor-agent`; launch whichever exists (the docs say `agent`; check `agent --version` is Cursor's). Install: `curl https://cursor.com/install -fsS | bash`, with `~/.local/bin` on PATH.
+- **Detect:** `command -v agent || command -v cursor-agent`; `agent` below means whichever exists (the docs say `agent`; check `agent --version` is Cursor's). Install: `curl https://cursor.com/install -fsS | bash`, with `~/.local/bin` on PATH.
 - **Native:** built-ins `explore`, `browser`; custom agents in `.cursor/agents/`, `.claude/agents/`, `.codex/agents/` and their `~/` versions. Frontmatter model with effort: `claude-opus-5[effort=high]`. Per-call model: undocumented. Foreground switch and nesting limit: unknown.
 
 ## hc launch
