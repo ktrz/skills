@@ -9,7 +9,7 @@ Needs `hc` (`command -v hc`). Missing → fall back as SKILL.md says (current ha
 ## Launch
 
 1. **Detect** the target harness with the Detect line in `harnesses/<target>.md`. Missing → same fallback, reported.
-2. **Write the brief** (`brief-template.md`) to a file, for example next to the report path. Never paste a long brief onto the command line.
+2. **Write the brief** (`brief-template.md`) to a file, for example next to the report path. Never paste a long brief onto the command line. Give every dispatch a new report path (the child's unique name in it works) and never reuse one, so a report found later can only be that child's.
 3. **Name** the child: lowercase `a-z`, `0-9`, `-`, `_`, 1–32 characters, unique among live terminals (`hc ls`). Example: `orch-tests-1`.
 4. **Start** it with the launch line from the harness file:
 

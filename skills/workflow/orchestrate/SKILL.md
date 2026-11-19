@@ -43,7 +43,7 @@ For each child, a request that names a harness, model or effort wins over config
 - **Harness:** the current one — you know it from your system prompt, so there is no detect step. Overrides, strongest first: the request, a matching config route, the tier's pinned harness, config `harness`.
 - **Runner:** `native` (the harness's own subagent tool) by default. `hc` (an interactive terminal) when config sets `runner: hc`, and always when the child's harness is not yours.
 - **Model:** the first entry on the tier's list that the target harness's alias table supports. A model named in the request wins; if the target harness can't run it, use the first installed harness (claude, codex, opencode, cursor-agent) whose alias table has it.
-- **Effort:** the tier's word, translated by the target harness file.
+- **Effort:** the tier's word, translated by the target harness file. A level the harness can't apply → the nearest one it can, reported.
 - **Fallbacks** (the child's report must say which applied): nothing on the list matches → the harness's default model. Target harness or `hc` not installed → the current harness, native, next model on the tier's list it supports.
 
 ## What to load

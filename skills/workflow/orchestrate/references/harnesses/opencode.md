@@ -18,15 +18,16 @@ Facts as of 2026-11-19, opencode v2.3.0. "Local" = checked by running the CLI he
 Two forms (local help). `<opencode>` is the path the Detect line found (`opencode` on PATH, else `~/.opencode/bin/opencode`). Neither form is verified to stay alive in the TUI with the prompt submitted:
 
 ```bash
-# Full TUI, unattended, but no --model flag: runs the configured default model (report it).
-<opencode> --auto --prompt "Read <brief path> and do it." <directory>
+# Default: minimal UI with the routed model and effort, but no --auto flag:
+# unattended only if opencode's `permissions` config already allows what the child needs.
+<opencode> mini --model <provider/model>#<variant> --prompt "Read <brief path> and do it."
 
-# Minimal UI with a model, but no --auto flag: unattended only if opencode's
-# `permissions` config already allows what the child needs.
-<opencode> mini --model <provider/model> --prompt "Read <brief path> and do it."
+# Only with the user's go-ahead: full TUI, unattended, but no --model flag,
+# so it runs opencode's configured default model and effort.
+<opencode> --auto --prompt "Read <brief path> and do it." <directory>
 ```
 
-Prefer the first unless the tier's model matters more than unattended running and the permissions config covers the task. The first form sets neither model nor effort (effort rides on the model ID as `#<variant>`), so its child runs opencode's configured defaults and its report says so. A request that names a model or an effort always takes the `mini` form. If the permissions config doesn't cover the task, or `mini` rejects the `#<variant>`, tell the user the request can't be met unattended here, then fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
+Use the `mini` form: it applies the model and effort that routing picked. If `mini` rejects the `#<variant>` (its help says `provider/model`), drop the suffix and report the effort that applied. If the permissions config doesn't cover the task, the `--auto` form is the only unattended option, and it can't apply the routed model or effort (effort rides on the model ID). Then tell the user, and use it only with their go-ahead (the Posture bullet below); the child's report names the model that ran. Without a go-ahead, fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
 
 ## Model aliases
 
@@ -55,7 +56,7 @@ Effort is a model "variant": append `#<variant>` to the ID (`openai/gpt-6.1-sol#
 
 | Tier word | Variant                                                          |
 | --------- | ---------------------------------------------------------------- |
-| low       | `#low`, if the catalog has it; else no suffix                    |
+| low       | `#low`, if the catalog has it; else no suffix (and report it)    |
 | medium    | no suffix (model default), or `#medium` if the default is higher |
 | high      | `#high`                                                          |
 | xhigh     | `#xhigh`; if missing, `#high` (and report it)                    |

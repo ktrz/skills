@@ -37,12 +37,12 @@ Before routing a child here, run `agent models` (or `agent --list-models`) once 
 
 No CLI flag. Effort is part of the model ID (`gpt-5-high`); the bracket form `[effort=high]` is documented only for subagent frontmatter, and whether `--model` accepts it is unknown.
 
-| Tier word | Model ID                                                            |
-| --------- | ------------------------------------------------------------------- |
-| low       | the bare ID (no low suffix documented)                              |
-| medium    | the bare ID                                                         |
-| high      | the `-high` variant if `agent models` lists one                     |
-| xhigh     | the `-high` variant if listed (no xhigh form documented; report it) |
+| Tier word | Model ID                                                             |
+| --------- | -------------------------------------------------------------------- |
+| low       | the bare ID (no low suffix documented; report it)                    |
+| medium    | the bare ID                                                          |
+| high      | the `-high` variant if `agent models` lists one; else bare, reported |
+| xhigh     | the `-high` variant if listed (no xhigh form documented; report it)  |
 
 Native subagents: `<id>[effort=<word>]` in the frontmatter `model`.
 
