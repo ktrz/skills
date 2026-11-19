@@ -27,7 +27,7 @@ Two forms (local help). `<opencode>` is the path the Detect line found (`opencod
 <opencode> --auto --prompt "Read <brief path> and do it." <directory>
 ```
 
-Use the `mini` form: it applies the model and effort that routing picked. If `mini` rejects the `#<variant>`, use the nearest variant the catalog lists that it accepts, or no suffix if it takes none (its help says `provider/model`), and report the effort that applied. If the permissions config doesn't cover the task, the `--auto` form is the only unattended option, and it can't apply the routed model or effort (effort rides on the model ID). Then tell the user, and use it only with their go-ahead (the Posture bullet below); the child's report names the model that ran. Without a go-ahead, fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
+Use the `mini` form: it applies the model and effort that routing picked. If `mini` rejects the `#<variant>`, use the nearest variant the catalog lists that it accepts, or no suffix if it takes none (its help says `provider/model`), and report the effort that applied. If the permissions config doesn't cover the task, the `--auto` form is the only unattended option, and it can't apply the routed model or effort (effort rides on the model ID). Then tell the user, and use it only with their go-ahead (the Posture bullet below); the child's report names the model that ran. Without a go-ahead, fall back to the current harness, native, and report it. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
 
 ## Model aliases
 
@@ -54,17 +54,19 @@ Support also depends on which providers this machine has signed in to: `opencode
 
 Effort is a model "variant": append `#<variant>` to the ID (`openai/gpt-6.1-sol#high`). Variant names come from the model catalog; not every model has every level. In the TUI, `ctrl+t` cycles variants. Config: `settings.reasoningEffort`, `capabilities.reasoning`. Whether `mini --model` accepts `#variant` (its help says `provider/model`): unknown.
 
+A variant the catalog doesn't list for that model → the nearest one it does list, or no suffix if it lists none. The child's report names the effort that applied.
+
 | Tier word | Variant                                                          |
 | --------- | ---------------------------------------------------------------- |
-| low       | `#low`, if the catalog has it; else no suffix (and report it)    |
+| low       | `#low`                                                           |
 | medium    | no suffix (model default), or `#medium` if the default is higher |
 | high      | `#high`                                                          |
-| xhigh     | `#xhigh`; if missing, `#high` (and report it)                    |
+| xhigh     | `#xhigh`                                                         |
 
 ## Unattended permissions + trust prompt
 
 - `--auto`: "Auto-approve permissions that are not explicitly denied" (local help, root command and `run`; not on `mini`). The docs don't mention it.
-- **Posture:** `--auto` approves everything not explicitly denied. Before the first `--auto` child of a session, tell the user that and get a go-ahead; without one, fall back as SKILL.md says and report it.
+- **Posture:** `--auto` approves everything not explicitly denied. Before the first `--auto` child of a session, tell the user that and get a go-ahead; without one, fall back to the current harness, native, and report it.
 - `permissions` config has allow / deny / ask rules; `deny` is always enforced.
 - **Trust prompt** for new directories: not documented — unknown. Check first-run prompts on a live child.
 
