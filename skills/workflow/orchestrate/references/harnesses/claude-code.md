@@ -15,7 +15,7 @@ Facts as of 2026-11-19, Claude Code 2.1.328. "Local" = checked by running the CL
 - **No foreground option:** some sessions' Agent tool has no `run_in_background` param and starts every subagent in the background (observed 2026-11-19). A child in such a session does the step itself or, if its brief allows hc, runs an interactive claude child through `runners/hc.md` and waits with `hc wait`.
 - **Parallel:** several Agent calls in one message.
 - **Fresh child per step:** never keep a child alive across steps with `SendMessage`.
-- **Nesting:** depth 3 by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`).
+- **Nesting:** limited by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (the variable and the over-limit error are in the 2.1.328 binary). Default depth 3: UNVERIFIED.
 
 ## Interactive launch via hc
 
@@ -58,7 +58,7 @@ Levels depend on the model; medium is the default on current models (S). `max` a
 
 ## Busy marker
 
-`esc to interrupt` — from prior art; not verified on a live child. Confirm with `hc read <t>` while a child works.
+`esc to interrupt` — seen on a live child (2026-11-19).
 
 ## Skills dirs + hook equivalent
 
@@ -70,4 +70,4 @@ Levels depend on the model; medium is the default on current models (S). `max` a
 - Native (`Agent` tool): **verified** — in use in this harness.
 - CLI flags: **verified** locally (`claude --help`, 2.1.328).
 - hc launch line: **verified** — an orchestrator started its claude children with `hc run --bg ... -- claude --model <id> --effort <level> --permission-mode auto "<prompt>"` (2026-11-19).
-- Busy marker and trust prompt: **untested** on a live child.
+- Busy marker: **seen** on a live child (2026-11-19). Trust prompt: **untested**.

@@ -32,7 +32,7 @@ You do not load the orchestrate skill; these rules bind you anyway.
 
 1. Foreground only: no background agents, no background shells, never wait across turns. Wait for every helper you start; never end your turn while work you started is still running.
 2. Helpers are optional. Use one only for a small, finishable step, and give it a full brief: context, why, done-looks-like, report path, and these rules (both sections, verbatim).
-3. Start helpers with your harness's native subagent tool, explicitly in the foreground (<the switch from harnesses/<harness>.md, e.g. run_in_background: false>). If that tool can only start background agents, or its nesting limit stops you, do the step yourself.
+3. Start helpers with your harness's native subagent tool, explicitly in the foreground (<the switch from harnesses/<harness>.md, e.g. run_in_background: false; "no documented switch" when that file lists it as unknown>). If that tool can only start background agents, you can't confirm it waits for the helper's result, or its nesting limit stops you, do the step yourself.
 4. [Interactive helpers via hc are allowed: `hc run --bg` then `hc wait`, never sleep; never type into a helper; never kill or remove one.] Never use print/exec modes (`claude -p`, `codex exec`, `opencode run`, `agent -p`).
 5. A fresh helper per step; never keep one alive by messaging it.
 6. Work above your tier: say so in the report instead of grinding.

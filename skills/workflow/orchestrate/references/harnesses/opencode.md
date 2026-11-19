@@ -63,6 +63,7 @@ Effort is a model "variant": append `#<variant>` to the ID (`openai/gpt-6.1-sol#
 ## Unattended permissions + trust prompt
 
 - `--auto`: "Auto-approve permissions that are not explicitly denied" (local help, root command and `run`; not on `mini`). The docs don't mention it.
+- **Posture:** `--auto` approves everything not explicitly denied. Before the first `--auto` child of a session, tell the user that and get a go-ahead; without one, fall back as SKILL.md says and report it.
 - `permissions` config has allow / deny / ask rules; `deny` is always enforced.
 - **Trust prompt** for new directories: not documented — unknown. Check first-run prompts on a live child.
 

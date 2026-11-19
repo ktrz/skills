@@ -49,6 +49,7 @@ Native subagents: `<id>[effort=<word>]` in the frontmatter `model`.
 ## Unattended permissions + trust prompt
 
 - `-f`/`--force` (alias `--yolo`): allow commands unless denied. `--approve-mcps` approves MCP servers. `--sandbox enabled|disabled`.
+- **Posture:** `--force` runs commands without per-command approval, the mode the claude and codex files keep for sandboxes. Before the first cursor-agent child of a session, tell the user that and get a go-ahead; without one, fall back as SKILL.md says (current harness, native) and report it. `--sandbox enabled` may narrow it (UNVERIFIED).
 - Config `approvalMode`: `allowlist` | `auto-review` | `unrestricted`, in `~/.cursor/cli-config.json`; project `.cursor/cli.json` holds permissions only (`permissions.allow` / `deny`, e.g. `Shell(git *)`).
 - **Trust prompt:** `--trust` exists for headless mode only; an interactive workspace-trust prompt is not documented — unknown.
 

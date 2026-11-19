@@ -15,7 +15,7 @@ Needs `hc` (`command -v hc`). Missing → fall back as SKILL.md says (current ha
 
    ```bash
    hc run --bg --name <name> --cwd <dir> --label <k>=<v> ... \
-     -- <launch command from harnesses/<target>.md> "Read <brief path> and do it."
+     -- <launch line from harnesses/<target>.md, with <brief path> filled in>
    ```
 
    - **Labels:** one `--label key=value` per `hc.labels` entry in config. `herdr.space` and `herdr.tab` are needed for the child to show in herdr-app.
@@ -29,12 +29,13 @@ Needs `hc` (`command -v hc`). Missing → fall back as SKILL.md says (current ha
 hc wait <t> --output "<busy marker>" --timeout 45
 ```
 
-The busy marker is text the TUI shows only while working (harness file, "Busy marker"). The wait ends when it appears → submitted.
+The busy marker is text the TUI shows only while working (harness file, "Busy marker"). `--output` only sees text printed after the wait starts, so run this in the same shell command as `hc run --bg` (`hc run --bg ... && hc wait ...`). The wait ends when the marker appears → submitted.
 
 - **Marker unknown:** `hc get <t>` (agents hc recognises report `status` `working`) or `hc read <t>` to check the prompt left the input box and work started. Tell the user what marker you saw so the harness file can be updated.
-- **Not submitted** (timeout, blocked, exited, prompt still in the box): check the report file first — a fast child may already be done. Otherwise leave that terminal as it is and start a fresh child.
+- **Timeout:** not proof of failure. Read `status` in the wait's JSON result (or `hc get <t>`): `working` → submitted, go to "Wait for the result".
+- **Not submitted** (idle with the prompt still in the box per `hc read <t>`, blocked, exited): check the report file first — a fast child may already be done. Otherwise leave that terminal as it is and start a fresh child.
 - **Never type into a child** (`hc send`, `hc keys`) — not to submit, not to answer a dialog. On a trust or permission dialog, tell the user (they can `hc attach <t>` and answer it), or pre-trust per the harness file before starting the fresh child.
-- `hc wait --help` says `--output` is "for programs, not agents"; its use on agent TUIs is untested.
+- Locally (2026-11-19) on a claude child: a wait started a few seconds after launch timed out with the marker already on screen and JSON `status: working`; started in the same command as `hc run --bg`, it matched (`reason: output`). Other harnesses: untested.
 
 ## Wait for the result
 
@@ -42,7 +43,7 @@ The busy marker is text the TUI shows only while working (harness file, "Busy ma
 hc wait <t>
 ```
 
-It ends when the child stops working (or blocks, errors, exits), and checks in after `--timeout` seconds (default 180) while leaving the child running — loop on it. Never `sleep`. With several children, wait on each in turn.
+It ends when the child stops working (or blocks, errors, exits), and checks in after `--timeout` seconds (default 180) while leaving the child running — loop on it. Never `sleep`. With several children, wait on each in turn. When you run inside an hc terminal yourself (`HC_TERMINAL_ID` is set), `hc wait --children any` returns on the next child to stop (or on a message to you, so check which child it was with `hc get`), and `--children all` returns when none is working (from `hc wait --help`; untested).
 
 **Root only:** when the root itself runs inside an hc terminal (`HC_TERMINAL_ID` is set), hc types a note into it when a child's turn ends, so the root may end its turn after the submit check and act on that note (from `hc --help`; untested). Below the root, always wait.
 
