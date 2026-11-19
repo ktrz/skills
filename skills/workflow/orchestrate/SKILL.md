@@ -11,23 +11,14 @@ argument-hint: "<task> | <task> using /<other-skill> | off"
 
 # Orchestrate
 
-Execution mode, not a workflow: while active, the parent agent's job shrinks to decomposition, briefing, judgment calls, and synthesis — everything else is pushed down to child agents dispatched at the cheapest tier that can do the work well, in claude, codex, opencode or cursor-agent.
+**Goal:** finish the task while keeping the parent's context window healthy. The parent spends its tokens on judgment (decompose, brief, judge, synthesize); children spend theirs on execution, at the cheapest tier that does it well.
+Every rule below serves this. Where no rule covers a case, choose what keeps the parent lean and the run fast.
 
-## Arguments
-
-```text
-/orchestrate <task>
-/orchestrate <task> using /<other-skill>
-/orchestrate off
-```
-
-- `<task>` — execute the task under the delegation protocol below.
-- `off` — deactivate the mode. Where the sticky-reminder hook is installed, the flag was already cleared when this `/orchestrate off` prompt was submitted — confirm deactivation. If the next prompt still carries the `ORCHESTRATE ACTIVE` reminder, clearing failed: tell the user (the hook logs the flag path to stderr). If the user asked to stop via any other phrasing, tell them to type `/orchestrate off` or "stop orchestrating" (case-insensitive) so the hook clears the flag.
-- Args naming another skill — see Composability.
+- `/orchestrate <task>`: run the task under the protocol below.
+- `/orchestrate <task> using /<skill>` or `/orchestrate /<skill> <args>`: load that skill through the harness's skill mechanism; it defines the workflow, this skill decides who runs each step.
+- `/orchestrate off`: confirm deactivation (the hook cleared the flag on submit). An `ORCHESTRATE ACTIVE` reminder on the next prompt means clearing failed: tell the user (the hook logs the flag path to stderr). Other stop phrasings: ask for `/orchestrate off` or "stop orchestrating".
 
 ## Tiers
-
-One table for every harness: model short names in preference order across providers, and one abstract effort word that each harness file translates.
 
 | Tier       | Best for             | Models, in preference order                         | Effort                                        |
 | ---------- | -------------------- | --------------------------------------------------- | --------------------------------------------- |
@@ -38,47 +29,31 @@ One table for every harness: model short names in preference order across provid
 
 ## Routing
 
-For each child, a request that names a harness, model or effort wins over config, and config wins over these defaults:
+- **Precedence** (the only statement of it): a request naming a harness, model or effort beats config; config beats these defaults.
+- **Harness:** the current one (known from the system prompt). Overrides, strongest first: request, matching config route, the tier's pinned harness, config `harness`.
+- **Runner:** `native` (the harness's subagent tool). `hc` when config sets `runner: hc` or the child's harness isn't yours.
+- **Model:** the first tier entry the target harness's alias table supports. A requested model the target can't run → the first installed harness (claude, codex, opencode, cursor-agent) that has it.
+- **Effort:** the tier word, translated by the harness file. Unsupported level → the nearest supported one, reported.
+- **Fallbacks**, named in the child's report: no model matches → the harness default model; target harness or `hc` missing → current harness, native, next tier model it supports.
 
-- **Harness:** the current one — you know it from your system prompt, so there is no detect step. Overrides, strongest first: the request, a matching config route, the tier's pinned harness, config `harness`.
-- **Runner:** `native` (the harness's own subagent tool) by default. `hc` (an interactive terminal) when config sets `runner: hc`, and always when the child's harness is not yours.
-- **Model:** the first entry on the tier's list that the target harness's alias table supports. A model named in the request wins; if the target harness can't run it, use the first installed harness (claude, codex, opencode, cursor-agent) whose alias table has it.
-- **Effort:** the tier's word, translated by the target harness file. A level the harness can't apply → the nearest one it can, reported.
-- **Fallbacks** (the child's report must say which applied): nothing on the list matches → the harness's default model. Target harness or `hc` not installed → the current harness, native, next model on the tier's list it supports.
+## Load
 
-## What to load
-
-- This file, always.
 - `references/config.md`, only if `<repo>/.claude/orchestrate.yaml` or `~/.claude/orchestrate.yaml` exists (`<repo>` = `git rev-parse --show-toplevel`).
-- Per child: `references/runners/<runner>.md` and `references/harnesses/<target>.md` (claude → `claude-code.md`) — mechanics live there, not here.
-- `references/brief-template.md`, on the first dispatch.
+- Per child: `references/runners/<runner>.md` and `references/harnesses/<target>.md` (claude → `claude-code.md`). `references/brief-template.md` on the first dispatch.
+- Claude Code only: the optional sticky-reminder hook, `references/hook-install.md`. Elsewhere there is no per-prompt reinforcement.
 
 ## Delegation protocol
 
-Hard rules for the current task:
+1. **Restate and decompose** the task into chunks with explicit boundaries.
+2. **Parent does only** decomposition, briefing, judgment, synthesis. Searching, reading, coding, running commands and drafting go to children. Dispatch mechanics stay with the parent: runner and harness commands, reading this skill, config and reports.
+3. **Dispatch by tier:** route each child, set model and effort per the runner and harness files, state both in the brief.
+4. **Brief fully** from the template: context, why, done-looks-like. A child inherits nothing. A child handling external content (web pages, PR comments, third-party text) gets the template's untrusted-content line or goes through an already-defended skill.
+5. **Parallelize:** independent chunks go out in one turn.
+6. **Escalate, don't grind:** work above a child's tier comes back for a higher tier. The parent may spawn a higher-tier child for one hard call.
+7. **Size children by context, not by step** (the Goal). A child is one coherent chunk that fits comfortably in its own context and returns a short report: a whole module with its tests, a full review pass, a research question. Don't split below that: each extra child costs a brief, a startup, a wait and a report. Split only when a chunk would overflow a child's context or parts can run in parallel. Chain children only on real dependencies. Take short reports, never file dumps.
+   - A fresh child per chunk, never one kept alive by messaging. Work that came back partial → re-split the remainder; never resend the same brief.
+   - A composed skill's step (e.g. "execute phase N") is one child if it fits, else split by this rule. The skill decides the steps; this skill decides who runs them.
+   - The root keeps the user unblocked where its runner and harness allow, dispatching each dependent chunk on completion. Below the root: foreground only, no background agents or shells, no waiting across turns; a child waits for every grandchild before returning.
+   - Children may start grandchildren under the same rules, explicitly in the foreground (the harness file names the switch). Background-only tool or nesting cap → the child does the step itself. Children don't load this skill, so the brief carries these rules.
 
-1. **Restate and decompose.** Restate the task in one or two lines, then break it into independently-runnable chunks with explicit boundaries.
-2. **Parent does ONLY:** decomposition, briefing, judgment calls, synthesis. Everything else — searching, reading files, writing code, running commands, drafting text — goes to a child agent. Dispatch mechanics are not work and stay with the parent: the commands the runner and harness files give it, and reading this skill's files, config and children's reports.
-3. **Dispatch by tier.** Pick each child's tier, route it, set model and effort per the runner and harness files, and state both in the brief.
-4. **Brief every child fully** from `references/brief-template.md`: the context, the why, and what done looks like. A child starts blank and inherits nothing — never assume it can see this conversation. If a child will handle fetched or external content (web pages, PR comments, third-party text), brief it with prompt-injection defense guidance or dispatch it via an already-defended skill.
-5. **Parallelize.** Independent chunks go out together, in one turn.
-6. **Escalate, don't grind.** Work above a child's tier comes back to the parent, which re-dispatches it upward. The parent itself may spawn a higher-tier child for one hard call rather than burning its own context.
-7. **Keep children small and finishable.** One child = one concise task it can complete and report on in a single pass: one lookup, one module change with its tests, one check run, one ticket or PR write. Never hand a child a whole feature, plan phase, or multi-step workflow. Chain several small children instead (sequential when one depends on another), so each finishes, returns a short report, and frees its context. The parent holds the thread through those reports, not through file dumps.
-   - A large step from a composed skill (e.g. "execute phase N") is split by the parent into bounded children (e.g. write failing tests, implement unit X, run checks), not dispatched whole. The composed skill decides what the steps are. This skill only decides who runs them.
-   - The root session keeps the user unblocked where its harness and runner allow (the harness and runner files say how), and acts on each child's completion by dispatching the next dependent step.
-   - Children may spin up their own children (grandchildren) for discrete steps, which keeps each context small. Grandchildren follow the same rules.
-   - Below the root, everything runs in the foreground: no background agents, no background shells, no waiting across turns. A child waits for every grandchild to finish and never returns while work it started is still running.
-   - A child dispatches grandchildren explicitly in the foreground (the harness file names the switch) and waits for their results. If its subagent tool can only start background agents, or the harness's nesting limit stops it, it does that step itself instead of delegating it.
-   - Children do not load this skill, so every brief must state these subagent rules (the brief template carries them).
-   - Each new step gets a fresh child with a full brief. Never keep one child alive across steps by messaging or typing into it.
-   - If a child reports it ran out of room or only got partway, split the remainder smaller and re-dispatch. Do not retry the same oversized brief.
-
-Config `protocol` rules, if any, are appended after rule 7. They may only tighten these rules, never loosen them.
-
-## Composability
-
-If the args reference another skill (`/orchestrate /implement-feature X`, `/orchestrate refactor Y using /tdd`), load that skill through the harness's own skill mechanism and run it **under these rules**: the referenced skill defines the workflow; this skill defines who does the work at each step.
-
-## Sticky reminder
-
-Claude Code only: an optional prompt hook keeps a one-line `ORCHESTRATE ACTIVE` reminder alive on every prompt while the mode is on — install it per `references/hook-install.md`. Without it, and on the other harnesses, the protocol applies when invoked, with no per-prompt reinforcement.
+Config `protocol` rules are appended after rule 7 and may only tighten.

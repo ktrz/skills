@@ -1,76 +1,26 @@
-# Orchestrate configuration (optional)
-# ─────────────────────────────────────
-# Used by the `orchestrate` skill (/orchestrate). With no file at all the
-# skill runs its built-ins: children run in the current harness, through
-# its native subagent tool, using the tier table in SKILL.md.
-#
-# Two locations, merged key by key (stronger first):
-#
-#   1. <repo>/.claude/orchestrate.yaml — this repo only. <repo> is
-#      `git rev-parse --show-toplevel`.
-#   2. ~/.claude/orchestrate.yaml — your default everywhere.
-#
-# A layer overrides only the keys it sets; the rest falls through to the
-# next layer and finally to the built-in. A request that names a harness or
-# a model ("review this with codex") beats every layer.
-#
-# Every key below is commented out, so copying this file changes nothing.
-# Uncomment what you want. Full rules: references/config.md.
+# Orchestrate config (optional). Rules: references/config.md.
+# <repo>/.claude/orchestrate.yaml beats ~/.claude/orchestrate.yaml, key by key.
+# Everything is commented out: copying this file changes nothing.
 
-# ── Runner ─────────────────────────────────────────────────────────
-#
-# native (default) — the harness's own subagent tool.
-# hc               — every child in its own interactive terminal via hc
-#                    (references/runners/hc.md).
-# A child that must run in a different harness from yours always uses hc,
-# whatever this says.
-#
+# native (default): the harness's subagent tool | hc: a terminal per child.
 # runner: native
 
-# ── Default harness for children ───────────────────────────────────
-#
-# current (default) — the harness you run /orchestrate in.
-# claude | codex | opencode | cursor-agent — run children there instead.
-# Any harness other than the current one goes through hc.
-#
+# current (default) | claude | codex | opencode | cursor-agent
 # harness: current
 
-# ── Tiers ──────────────────────────────────────────────────────────
-#
-# Four tiers: bulk, scoped, multi-step, judgment. An omitted tier, or an
-# omitted key inside one, keeps the built-in value. Keys per tier:
-#
-#   models  — preference order. Short names resolve through each harness's
-#             alias table (references/harnesses/<x>.md); the first one the
-#             target harness supports wins. Your list replaces the built-in
-#             list, it is not appended. A raw model ID (e.g.
-#             openai/gpt-6.1-sol for opencode) is passed verbatim — only use
-#             one together with `harness`.
-#   effort  — low | medium | high | xhigh. Each harness translates it.
-#   harness — pin the tier to one harness (hc when it isn't the current one).
-#
-# Built-ins, for reference.
-#   bulk:       haiku  → gpt-6-luna  → gemini-3.5-flash-lite            low
-#   scoped:     sonnet → gpt-6.1-sol → gemini-4-hydrogen → grok-4.7     medium
-#   multi-step: opus   → gpt-6.1-sol → gemini-4-neon     → grok-4.7     xhigh
-#   judgment:   fable  → gpt-6-astra → gemini-4-carbon   → grok-4.7     medium
-#               (xhigh only for the hardest calls, never high)
-#
+# Per tier (bulk, scoped, multi-step, judgment; built-ins in SKILL.md):
+# models (replaces the built-in list; raw IDs only together with harness),
+# effort (low | medium | high | xhigh), harness (pins the tier).
 # tiers:
 #   bulk:
 #     effort: low
 #   judgment:
 #     models: [fable, gemini-4-carbon]
 #   multi-step:
-#     harness: codex          # every multi-step child runs in Codex, via hc
+#     harness: codex          # via hc
 #     models: [gpt-6.1-sol]
 
-# ── Routes ─────────────────────────────────────────────────────────
-#
-# Named kinds of task → tier and/or harness. The parent uses a route only
-# when a chunk clearly is that kind of task. A route's harness beats the
-# tier's harness and the top-level `harness`.
-#
+# Kind of task → tier and/or harness; used only when a chunk clearly fits.
 # routes:
 #   code-review:
 #     tier: judgment
@@ -78,24 +28,13 @@
 #   web-research:
 #     tier: scoped
 
-# ── hc ─────────────────────────────────────────────────────────────
-#
-# Labels added to every hc child (`hc run --label key=value`).
-# herdr.space and herdr.tab are what make a child show up in herdr-app.
-# Plain strings only: no spaces, quotes or shell metacharacters.
-#
+# Labels on every hc child (plain strings); herdr.space + herdr.tab show it in herdr-app.
 # hc:
 #   labels:
 #     herdr.space: skills
 #     herdr.tab: orchestrate
 
-# ── Protocol ───────────────────────────────────────────────────────
-#
-# Extra rules appended after the built-in hard rules (user file first,
-# then repo file). They may only tighten: add a limit, a check, a ban.
-# A rule that would loosen a built-in rule is ignored and the parent says
-# so. Rules that apply to children are copied into every child brief.
-#
+# Extra rules after the built-ins; may only tighten. Rules for children go into briefs.
 # protocol:
 #   - Children never run git push and never open pull requests.
 #   - A child that edits code runs the repo's test command before reporting.
