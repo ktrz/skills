@@ -26,7 +26,7 @@ Two forms (local help). `<opencode>` is the path the Detect line found (`opencod
 <opencode> mini --model <provider/model> --prompt "Read <brief path> and do it."
 ```
 
-Prefer the first unless the tier's model matters more than unattended running and the permissions config covers the task. A request that names a model always takes the `mini` form; if the permissions config doesn't cover the task, tell the user the requested model can't run unattended here, then fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
+Prefer the first unless the tier's model matters more than unattended running and the permissions config covers the task. The first form sets neither model nor effort (effort rides on the model ID as `#<variant>`), so its child runs opencode's configured defaults and its report says so. A request that names a model or an effort always takes the `mini` form. If the permissions config doesn't cover the task, or `mini` rejects the `#<variant>`, tell the user the request can't be met unattended here, then fall back as SKILL.md says. The docs don't mention `--prompt` or `--auto`; local help does. `mini --agent <name>` picks a configured agent (which may pin a model and permissions; UNVERIFIED). Banned for children: `opencode run` (scripts and CI). `--standalone` runs a private server so env and config apply; the default uses a shared background service.
 
 ## Model aliases
 

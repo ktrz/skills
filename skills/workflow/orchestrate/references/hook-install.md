@@ -24,7 +24,9 @@ disarm phrases are prefix-anchored — they must start the prompt to match.
   turned off — the flag file is not garbage-collected at session end. It lasts
   only as long as that file: the OS may clean `TMPDIR` or `/tmp` (on reboot,
   for example), which silently turns the mode off. Point
-  `ORCHESTRATE_STATE_DIR` at a persistent directory to avoid that.
+  `ORCHESTRATE_STATE_DIR` at a persistent directory to avoid that. Set it
+  before arming and keep it the same when resuming: an armed session's flag
+  stays in the old directory, so after changing it, run `/orchestrate` again.
 
 ## Install
 
