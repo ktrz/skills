@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-11-20
+
+- **Rule 7 sizes children by their inputs** - before each dispatch the parent estimates what the child must take in: docs, skills it loads, code nobody has mapped. Building in unmapped code goes to a scout + implementer pair by default. "Mapped" means checked against the current code in this run (a scout map, or files and line ranges the user gave): a plan's file list is not a map, since plans go stale and miss callers. The scout (scoped tier) writes a short map of files, line ranges, conventions and commands, and the implementer (multi-step tier) works from it. Nothing finer: worktree, stack, tests, commit and PR stay with the implementer. Mapped work stays one child.
+- **Briefs inline what the child needs** - conventions, decisions and the relevant lines of a long doc go in the brief, with exact line ranges. No more "read <doc> in full", and a skill is named only when the child must run its workflow. The brief template drops "This task is sized for you to finish": a child whose inputs turn out much larger than its brief implies writes a map of what it found and what is left, then stops.
+- **Multi-step defaults to medium effort** - xhigh is kept for the hardest single calls, as on the judgment tier.
+- **The hook reminder names sizing** - the `ORCHESTRATE ACTIVE` line now shows multi-step at medium and adds the scout + implementer and inline-conventions hint.
+
 ## 0.3.0 - 2026-11-19
 
 - **Works across harnesses** - children can run in claude, codex, opencode or cursor-agent. They default to the current harness, which the agent knows from its system prompt, so there is no detect step. SKILL.md is now harness-neutral: the Claude-only mechanics (Agent tool, `model` and `effort` params, `run_in_background`) moved to `references/harnesses/claude-code.md`.
