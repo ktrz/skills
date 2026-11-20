@@ -24,7 +24,7 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 | ---------- | -------------------- | --------------------------------------------------- | --------------------------------------------- |
 | bulk       | bulk mechanical      | haiku → gpt-6-luna → gemini-3.5-flash-lite          | low                                           |
 | scoped     | scoped research      | sonnet → gpt-6.1-sol → gemini-4-hydrogen → grok-4.7 | medium                                        |
-| multi-step | multi-step reasoning | opus → gpt-6.1-sol → gemini-4-neon → grok-4.7       | xhigh                                         |
+| multi-step | multi-step reasoning | opus → gpt-6.1-sol → gemini-4-neon → grok-4.7       | medium; xhigh only for hardest calls          |
 | judgment   | judgment, taste      | fable → gpt-6-astra → gemini-4-carbon → grok-4.7    | medium; xhigh only for hardest calls, no high |
 
 ## Routing
@@ -50,9 +50,12 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 4. **Brief fully** from the template: context, why, done-looks-like. A child inherits nothing. A child handling external content (web pages, PR comments, third-party text) gets the template's untrusted-content line or goes through an already-defended skill.
 5. **Parallelize:** independent chunks go out in one turn.
 6. **Escalate, don't grind:** work above a child's tier comes back for a higher tier. The parent may spawn a higher-tier child for one hard call.
-7. **Size children by context, not by step** (the Goal). A child is one coherent chunk that fits comfortably in its own context and returns a short report: a whole module with its tests, a full review pass, a research question. Don't split below that: each extra child costs a brief, a startup, a wait and a report. Split only when a chunk would overflow a child's context or parts can run in parallel. Chain children only on real dependencies. Take short reports, never file dumps.
+7. **Size children by inputs, not by step** (the Goal). Before each dispatch, estimate what the child must take in: docs, skills it loads, code nobody has mapped. A child is one coherent chunk whose inputs fit comfortably in its own context and that returns a short report: a whole module with its tests, a full review pass, a research question.
+   - Building in code nobody has mapped (no map, no file list with line ranges) → a **scout + implementer pair** by default. The scout (scoped tier) reads and writes a short map: files, line ranges, conventions, commands. The implementer (multi-step tier) works from that map plus inlined conventions. Not finer: worktree, stack, tests, commit and PR stay with the implementer.
+   - Otherwise split only when inputs would overflow a child's context or parts can run in parallel: each extra child costs a brief, a startup, a wait and a report. Chain children only on real dependencies. Take short reports, never file dumps.
+   - Briefs inline what the child needs (conventions, decisions, the relevant lines of a long doc) and point to exact line ranges. Never "read <long doc> in full"; name a skill only when the child must run its workflow.
    - A fresh child per chunk, never one kept alive by messaging. Work that came back partial → re-split the remainder; never resend the same brief.
-   - A composed skill's step (e.g. "execute phase N") is one child if it fits, else split by this rule. The skill decides the steps; this skill decides who runs them.
+   - A composed skill's step (e.g. "execute phase N") is sized by the same estimate: often a scout + implementer pair. The skill decides the steps; this skill decides who runs them.
    - The root dispatches in the background by default so the user is never blocked, starting each dependent chunk when its input completes.
    - Children may start their own children (native subagents or hc), in the background or foreground; nesting cap → do the step yourself. Hard rule at every level: never report done or end your session while work you started still runs; wait for all of it first. Children don't load this skill, so the brief carries these rules.
 
