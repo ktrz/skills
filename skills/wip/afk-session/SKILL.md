@@ -1,6 +1,6 @@
 ---
 name: afk-session
-version: 0.1.0
+version: 0.1.1
 disable-model-invocation: true
 description: Run a task unattended while the user is away, after a five-minute intake — a few questions with proposed answers, one go, then 2–3 readings of the task, a thin prototype per reading, and a report that leads with each reading's return-test result. Invoked only via /afk-session [task].
 argument-hint: "<the task, in a line or a paragraph>"
