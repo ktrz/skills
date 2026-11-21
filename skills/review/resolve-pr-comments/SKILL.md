@@ -1,11 +1,13 @@
 ---
 name: resolve-pr-comments
-version: 1.10.2
+version: 1.10.3
 model: sonnet
-description: Walk through unresolved PR review comments one at a time, investigating each one and presenting options before asking the user what to do. Replies and thread resolution happen in bulk at the end. Also supports `--from-doc <file>` mode for processing only `[d]`-flagged items from a review handover document produced by `investigate-pr-comments`. Use this skill when the user says "resolve PR comments", "address review feedback", "handle PR review", "go through review comments", "fix PR comments", or references review feedback on a pull request. Also trigger when the user mentions a PR number with review-related intent.
+description: Use when the user asks to resolve existing PR review comments, address reviewer feedback, go through unresolved review threads, or discuss [d]-flagged handover items with --from-doc <file>. Do not use for a fresh review of a PR, branch, or diff, or for a PR number without a request to handle existing feedback.
 ---
 
 # Resolve PR Review Comments
+
+This workflow handles existing reviewer feedback or flagged handover items. A PR number or a request for a fresh code review alone does not select this skill.
 
 Walk through unresolved review comments on a GitHub PR in two phases: first collect the user's decisions on every comment (fast, interactive), then implement all changes in a batch (autonomous). Replies and thread resolution happen in bulk at the end.
 
@@ -176,6 +178,7 @@ Collapsed entries carry the full list of original thread IDs so Phase 6 can repl
 2. **Background prefetch.** As soon as you start questioning the user on batch K, spawn batch K+1's subagent in the background (`run_in_background: true`) — one subagent for the next B comments, not B subagents. Maintain a lookahead of at least one batch. If the user is unusually fast and catches up, await the in-flight subagent before presenting.
 
 3. **For each comment, in queue order:**
+
    - **Present** the subagent's condensed report: location, what the code does, what the reviewer wants, the option list with the recommended pick highlighted. Don't dump the raw subagent output — pick the headline and the options.
    - **Record the user's decision.** Accept shorthand: "fix" = take the recommended option, "reply" = post the drafted reply, "defer" = add to the running deferred bucket, "skip" = no action. Custom instructions ("fix but use approach X", "defer + Linear ticket") are recorded verbatim.
    - **Show running progress** (`Progress: 5/12 — 3 fix, 1 defer, 1 reply`).
@@ -245,6 +248,7 @@ After all changes are implemented:
    ```
 
    Build the mutation dynamically — for each thread, add a `replyN: addPullRequestReviewThreadReply(...)` alias if a reply is warranted, and a `resolveN: resolveReviewThread(...)` alias if the thread should be resolved. Use the thread `id` from the fetch query (step 2) directly — these are the same GraphQL node IDs needed by both mutations.
+
    - Skipped comments are left unresolved and unreplied unless the user says otherwise.
    - For review-body items (which aren't threads), post a single PR comment summarizing what was addressed, using `gh pr comment`. Reference the review URL so the reviewer can find the response.
 
