@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-11-25
+
+- **Correct a running hc child with `hc send`** - one short message for a correction or new fact mid-task (a pointer, a scope change, a decision the child is waiting on), in any harness, instead of restarting or killing the child. The text queues and the child reads it when its current step ends (checked live on claude and opencode). Still banned: handing over a new task by message (new task = new child with a full brief), `hc keys`, `hc interrupt`, and `--force` into a dialog. Rule 7 and the brief template say the same.
+- **The brief is the prompt** - hc children start as a bare TUI and get the brief by one `hc send`, read into a variable with `IFS= read -r -d '' brief <<'BRIEF'`. No more "Read <brief file> and do it." A file is only for context that doesn't fit a prompt. `hc send` waits for the TUI itself and keeps multi-line text as one message. The `"$(cat <<'BRIEF' …)"` form is banned: macOS bash 3.2 mis-parses apostrophes in the body and runs backticked text as commands.
+- **Launch never blocks the session** - launch, send and wait run as one command in the harness's background mode. The 45 s `hc wait --output "<busy marker>"` submit check is gone (hc documents `--output` as for programs, not agents), so harness launch lines lose the prompt argument.
+- **Shipped waiter `scripts/hc-wait-child.sh`** - ends only when the report's last line is `END` (exit 0), the child exits (2), is unknown (3), blocks (4), errors (5), or a max-seconds limit passes (124). Status is never treated as completion: a fresh child is `idle` at turn 0, a child that backgrounds work ends its turn `done` before reporting, and opencode reports no status. Reads `hc get --json` with jq (`.state`, `.status.state`), never grep. Tests: `tests/orchestrate/hc-wait-child.test.mjs`.
+- **Notes don't replace the waiter** - `hc.md` says plainly that relying on hc notes once left an unattended run idle for ~8 h. Never end a turn trusting notes while children run.
+- **The reminder names hc** - when the effective `runner:` in `orchestrate.yaml` is `hc` (the repo file beats the user file), the `ORCHESTRATE ACTIVE` line adds the hc launch, correction and wait rules, so long sessions stop drifting back to native subagents.
+- **Harness facts** - opencode `mini` launched, briefed and corrected via hc (free model). claude shows `idle` before its first turn.
+
 ## 0.4.0 - 2026-11-20
 
 - **Rule 7 sizes children by their inputs** - before each dispatch the parent estimates what the child must take in: docs, skills it loads, code nobody has mapped. Building in unmapped code goes to a scout + implementer pair by default. "Mapped" means checked against the current code in this run (a scout map, or files and line ranges the user gave): a plan's file list is not a map, since plans go stale and miss callers. The scout (scoped tier) writes a short map of files, line ranges, conventions and commands, and the implementer (multi-step tier) works from it. Nothing finer: worktree, stack, tests, commit and PR stay with the implementer. Mapped work stays one child.
