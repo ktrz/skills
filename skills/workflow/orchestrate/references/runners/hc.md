@@ -8,15 +8,16 @@ Each child runs in its own interactive terminal, in the target harness's TUI. `h
 2. Start the bare TUI, send the brief as one prompt, then wait, all in one command run with the harness's background mode (claude: `run_in_background`), so the user's session is never blocked. Its completion notice is the child finishing; the exit code says how (Wait below).
 
 ```bash
-hc run --bg --name <name> --cwd <dir> --label <k>=<v> ... -- <harness launch line> \
-  && hc send <name> "$(cat <<'BRIEF'
+IFS= read -r -d '' brief <<'BRIEF'
 <brief from brief-template.md>
 BRIEF
-)" && <skill dir>/scripts/hc-wait-child.sh <name> <report path>
+hc run --bg --name <name> --cwd <dir> --label <k>=<v> ... -- <harness launch line> \
+  && hc send <name> "$brief" \
+  && <skill dir>/scripts/hc-wait-child.sh <name> <report path>
 ```
 
 - **The brief is the prompt.** A file only for context that doesn't fit a prompt (a long spec excerpt, logs): write it and name its path and line ranges in the brief. Never "Read <brief file> and do it."
-- `hc send` waits until the TUI takes input, pastes multi-line text as one message and submits it; the quoted heredoc (`<<'BRIEF'`) keeps quotes, backticks and `$` verbatim (claude and opencode checked 2026-11-25). JSON `started: true`, or `null` for a harness without status, = delivered.
+- `hc send` waits until the TUI takes input, pastes multi-line text as one message and submits it; the quoted heredoc read into a variable keeps quotes, backticks and `$` verbatim (claude and opencode checked 2026-11-25). Never put the heredoc inside `"$(cat <<'BRIEF' …)"`: bash 3.2 (macOS `/bin/bash`) mis-parses an apostrophe in the body and runs backticked text as commands (seen 2026-11-25). JSON `started: true`, or `null` for a harness without status, = delivered.
 - Launch line: the harness file's, with no prompt. Quote every value. One `--label` per config `hc.labels` entry. `--bg` returns at once.
 - Blocked on a trust or permission dialog (`hc send` refuses to type, or waiter exit 4) → tell the user (`hc attach <t>`) and run the waiter again on that child; no replacement while it can resume. User declines → no pre-trust, no replacement in that harness: current harness, native, if the step doesn't need what was declined, else report it blocked. Pre-trust only with the user's OK.
 - Idle with the brief still in the input box → it never started: leave it, tell the user to close it, start a fresh child.
@@ -26,10 +27,10 @@ BRIEF
 Any harness: one short `hc send` for a correction or a new fact mid-task, instead of restarting or killing the child (it keeps its context). The text queues and the child reads it when its current step ends (claude, opencode checked 2026-11-25; codex, cursor-agent untested: `hc read <t>` after sending).
 
 ```bash
-hc send orch-spike-1 "From the parent: the repo already ships @nx/oxlint/boundaries-plugin; evaluate that, drop the ESLint route."
+hc send orch-spike-1 'From the parent: the repo already ships @nx/oxlint/boundaries-plugin; evaluate that, drop the ESLint route.'
 ```
 
-- For: a pointer, a scope change, a decision the child is waiting on. The running waiter covers it; don't start another.
+- For: a pointer, a scope change, a decision the child is waiting on. Single quotes; text with an apostrophe or backticks goes through `read` like the brief. The running waiter covers it; don't start another.
 - Never: a new task by `hc send` (new task = new child with a full brief), `hc keys`, `hc interrupt`, `hc send --force` into a dialog.
 
 ## Wait and results
