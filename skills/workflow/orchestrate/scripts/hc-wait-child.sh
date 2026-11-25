@@ -13,12 +13,15 @@
 # stdout: one line `hc-wait-child: <child> <result> ...`
 # exit: 0 done (report ends in END) | 2 child exited, no END | 3 child unknown
 #       | 4 blocked (dialog: tell the user, `hc attach <child>`) | 5 error status
-#       | 124 max-seconds passed | 64 usage or jq missing
+#       | 124 max-seconds passed (default 1800, 0 = none) | 64 usage or jq missing
+#
+# A child whose turn ended on a question has status done and no END: only
+# max-seconds wakes the parent for it, so keep a limit.
 set -uo pipefail
 
 child=${1:-}
 report=${2:-}
-max=${3:-0}
+max=${3:-1800}
 poll=${HC_WAIT_POLL:-10}
 
 if [[ -z "$child" || -z "$report" || ! "$max" =~ ^[0-9]+$ ]]; then
@@ -53,7 +56,7 @@ while :; do
   esac
 
   if (( max > 0 && SECONDS - start >= max )); then
-    finish "still running after ${max}s (status=$status turn=$turn)" 124
+    finish "no END after ${max}s (status=$status turn=$turn); hc read $child --lines 40" 124
   fi
 
   if [[ "$status" == working ]]; then
