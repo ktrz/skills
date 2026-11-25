@@ -63,7 +63,23 @@ case "$prompt_lc" in
 esac
 
 if [[ -f "$flag" || "${active_now:-}" == 1 ]]; then
-  echo 'ORCHESTRATE ACTIVE — delegate per tier: bulk(low) / scoped(med) / multi-step(med) / judgment(med), xhigh only for hardest calls, models per the skill tier table and orchestrate.yaml. Size by inputs: unmapped code → scout + implementer; briefs inline conventions with line ranges, never "read in full". Parent only decomposes, briefs, judges, synthesizes. "/orchestrate off" to stop.'
+  # Effective top-level `runner:` from orchestrate.yaml: repo file beats user file.
+  # Long sessions drift back to native subagents unless every prompt names hc.
+  runner_of() {
+    [[ -f "$1" ]] || return 0
+    sed -n "s/^runner:[[:space:]]*[\"']\{0,1\}\([a-z]*\).*/\1/p" "$1" 2>/dev/null | tail -n 1
+  }
+  cwd=$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null)
+  repo=""
+  [[ -n "$cwd" ]] && repo=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)
+  runner=""
+  [[ -n "$repo" ]] && runner=$(runner_of "$repo/.claude/orchestrate.yaml")
+  [[ -z "$runner" && -n "${HOME:-}" ]] && runner=$(runner_of "$HOME/.claude/orchestrate.yaml")
+  hc_clause=""
+  if [[ "$runner" == hc ]]; then
+    hc_clause=' Runner hc: every child via hc, never the Agent tool — bare `hc run --bg`, brief as one `hc send`, scripts/hc-wait-child.sh in the background; mid-task correction = one `hc send`, not a restart.'
+  fi
+  echo 'ORCHESTRATE ACTIVE — delegate per tier: bulk(low) / scoped(med) / multi-step(med) / judgment(med), xhigh only for hardest calls, models per the skill tier table and orchestrate.yaml. Size by inputs: unmapped code → scout + implementer; briefs inline conventions with line ranges, never "read in full". Parent only decomposes, briefs, judges, synthesizes.'"$hc_clause"' "/orchestrate off" to stop.'
 fi
 
 exit 0
