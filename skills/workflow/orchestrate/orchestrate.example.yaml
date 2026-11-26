@@ -5,7 +5,7 @@
 # native (default): the harness's subagent tool | hc: a terminal per child.
 # runner: native
 
-# current (default) | claude | codex | opencode | cursor-agent
+# current (default) | claude | codex | opencode | cursor-agent | agy
 # harness: current
 
 # Per tier (bulk, scoped, multi-step, judgment; built-ins in SKILL.md):

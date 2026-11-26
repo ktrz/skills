@@ -1,11 +1,11 @@
 ---
 name: orchestrate
-version: 0.5.0
+version: 0.5.1
 disable-model-invocation: true
 description: >
   Delegation-heavy execution mode, invoked only via the /orchestrate slash command:
   decompose, push work to child agents by model tier in the current harness or
-  another one (claude, codex, opencode, cursor-agent), parent keeps judgment only.
+  another one (claude, codex, opencode, cursor-agent, agy), parent keeps judgment only.
 argument-hint: "<task> | <task> using /<other-skill> | off"
 ---
 
@@ -32,7 +32,7 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 - **Precedence** (the only statement of it): a request naming a harness, model or effort beats config; config beats these defaults.
 - **Harness:** the current one (known from the system prompt). Overrides, strongest first: request, matching config route, the tier's pinned harness, config `harness`.
 - **Runner:** `native` (the harness's subagent tool). `hc` when config sets `runner: hc` or the child's harness isn't yours.
-- **Model:** the first tier entry the target harness's alias table supports. A requested model the target can't run → the first installed harness (claude, codex, opencode, cursor-agent) that has it.
+- **Model:** the first tier entry the target harness's alias table supports. A requested model the target can't run → the first installed harness (claude, codex, opencode, cursor-agent, agy) that has it.
 - **Effort:** the tier word, translated by the harness file. Unsupported level → the nearest supported one, reported.
 - **Fallbacks**, named in the child's report: no model matches → the harness default model; target harness or `hc` missing → current harness, native, next tier model it supports.
 
