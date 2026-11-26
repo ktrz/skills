@@ -17,6 +17,8 @@ claude --model <id> --effort <level> --permission-mode auto
 
 Banned for children: `-p`/`--print`, `--bg`.
 
+Root session (runner file): `-n "<name>"` names the session.
+
 | Short name                               | claude ID                      |
 | ---------------------------------------- | ------------------------------ |
 | haiku                                    | `haiku` (`claude-haiku-5-5`)   |
