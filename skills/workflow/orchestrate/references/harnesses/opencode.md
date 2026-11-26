@@ -8,7 +8,7 @@ As of 2026-11-19, opencode v2.3.0; local help beats the docs (which describe V2)
 ## hc launch
 
 ```bash
-# <opencode> = the path Detect found. mini: TUI stays alive, brief via hc send.
+# <opencode> = the path Detect found.
 <opencode> mini --model <provider/model>#<variant>   # default
 <opencode> --auto <directory>                        # go-ahead only, untested
 ```
@@ -30,6 +30,6 @@ IDs are `provider/model`; only the haiku and sonnet IDs appear in the docs. `ope
 | grok-4.7                             | `xai/grok-4.7` (UNVERIFIED)               |
 
 - **Effort:** append `#<variant>` (`openai/gpt-6.1-sol#high`): low `#low`, medium no suffix (or `#medium` if the default is higher), high `#high`, xhigh `#xhigh`. A variant the model's catalog doesn't list → the nearest listed one, or no suffix if it lists none; report the effort that applied. TUI: `ctrl+t` cycles.
-- **Permissions:** `permissions` config allow / deny / ask; `deny` always enforced. Trust prompt: unknown. **Status:** none reported to hc (`null`), so `hc wait` ends only on exit; the waiter polls the report. Busy text `esc interrupt`.
+- **Permissions:** `permissions` config allow / deny / ask; `deny` always enforced. Trust prompt: unknown. **Status to hc:** none (`null`). Busy text `esc interrupt`.
 - **Skills:** `~/.config/opencode/skills`, `~/.claude/skills`, `~/.agents/skills`, and per project (walking up) `.opencode/skills`, `.claude/skills`, `.agents/skills`, so the usual symlink works. Reads CLAUDE.md when AGENTS.md is absent. `disable-model-invocation` and `/orchestrate`: unknown.
 - **Hook:** a plugin's session `prompt` hook (edits text, can't reject; signature unknown) in `.opencode/plugins/` or `~/.config/opencode/plugins/` (S).

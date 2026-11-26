@@ -16,6 +16,6 @@ Banned for children: `-p`/`--print`. **Go-ahead first:** `--force` (`--yolo`) ru
 - **Models:** no tier model has a documented ID. Before routing here, run `agent models` (or `agent --list-models`) once and map each short name to its listed ID; unlisted = unsupported.
 - **Effort:** no flag; it rides on the model ID. Nearest listed variant: low and medium → the bare ID; high and xhigh → the `-high` variant if listed, else bare. Report every mismatch. Whether `--model` takes `[effort=…]`: unknown. Native: `<id>[effort=<word>]` in the frontmatter `model`.
 - **Permissions:** `approvalMode` `allowlist|auto-review|unrestricted` in `~/.cursor/cli-config.json`; project `.cursor/cli.json` holds `permissions.allow` / `deny` only. `--approve-mcps` approves MCP servers.
-- **Trust prompt:** `--trust` is headless-only; an interactive prompt: unknown. **Status to hc:** unknown; the waiter works either way.
+- **Trust prompt:** `--trust` is headless-only; an interactive prompt: unknown. **Status to hc:** unknown.
 - **Skills:** `.agents/skills`, `.cursor/skills`, `.claude/skills`, `.codex/skills` and their `~/` versions, so the `~/.claude/skills/orchestrate` symlink works. `disable-model-invocation` and `/orchestrate`: unknown.
 - **Hook:** `beforeSubmitPrompt` in `.cursor/hooks.json` or `~/.cursor/hooks.json`; whether the CLI runs it: unknown.

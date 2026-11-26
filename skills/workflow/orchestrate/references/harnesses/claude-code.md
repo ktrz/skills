@@ -27,5 +27,5 @@ Banned for children: `-p`/`--print`, `--bg`.
 
 - **Permissions:** `--permission-mode auto` (classifier; every tier model qualifies; pass the flag, `auto` in project settings doesn't apply). `--dangerously-skip-permissions`: sandboxes only.
 - **Trust prompt:** on new directories, fresh worktrees included; no skip flag, text unknown. Seen in `hc read <t>` → ask the user, don't answer it.
-- **Status:** reports it to hc (`idle` at turn 0 within a second of launch, before any brief). Busy text `esc to interrupt`.
+- **Status to hc:** reported (`idle` before its first turn). Busy text `esc to interrupt`.
 - **Skills:** `~/.claude/skills/`, `.claude/skills/`, plugin `skills/`. **Hook:** `UserPromptSubmit`, built for this harness only ([`../hook-install.md`](../hook-install.md)).
