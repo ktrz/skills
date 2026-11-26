@@ -1,6 +1,6 @@
 # Sticky reminder hook
 
-Claude Code only. `scripts/orchestrate-reminder.sh` (UserPromptSubmit) keeps a one-line `ORCHESTRATE ACTIVE` reminder on every prompt while the mode is on.
+Claude Code only. `scripts/orchestrate-reminder.sh` (UserPromptSubmit) keeps a one-line `ORCHESTRATE ACTIVE` reminder on every prompt while the mode is on. With `runner: hc` (repo `.claude/orchestrate.yaml` beats `~/.claude/orchestrate.yaml`) it adds the hc rules, so long sessions don't drift back to native subagents.
 
 - **Arm:** a prompt starting with the exact `/orchestrate` command touches a flag keyed by session id under `${ORCHESTRATE_STATE_DIR:-${TMPDIR:-/tmp}}`. **Disarm:** a prompt starting with `/orchestrate off` or "stop orchestrat…" (case-insensitive).
 - Off, it prints nothing. It never blocks: every failure (no `jq`, malformed stdin, missing or path-unsafe session id) exits 0 with empty stdout; flag write or delete failures may log one stderr line.

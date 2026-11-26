@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-version: 0.4.0
+version: 0.5.0
 disable-model-invocation: true
 description: >
   Delegation-heavy execution mode, invoked only via the /orchestrate slash command:
@@ -54,7 +54,7 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
    - Building in code nobody has mapped → a **scout + implementer pair** by default. Mapped means checked against the current code in this run (a scout map, or files and line ranges the user gave for this task); a plan's file list is not a map, plans go stale and miss callers. The scout (scoped tier) reads and writes a short map: files, line ranges, conventions, commands. The implementer (multi-step tier) works from that map plus inlined conventions. Not finer: worktree, stack, tests, commit and PR stay with the implementer.
    - Otherwise split only when inputs would overflow a child's context or parts can run in parallel: each extra child costs a brief, a startup, a wait and a report. Chain children only on real dependencies. Take short reports, never file dumps.
    - Briefs inline what the child needs (conventions, decisions, the relevant lines of a long doc) and point to exact line ranges. Never "read <long doc> in full"; name a skill only when the child must run its workflow.
-   - A fresh child per chunk, never one kept alive by messaging. Work that came back partial → re-split the remainder; never resend the same brief.
+   - A fresh child per chunk; a message to a running child carries only a short correction or new fact (runner file), never a new task. Work that came back partial → re-split the remainder; never resend the same brief.
    - A composed skill's step (e.g. "execute phase N") is sized by the same estimate: often a scout + implementer pair. The skill decides the steps; this skill decides who runs them.
    - The root dispatches in the background by default so the user is never blocked, starting each dependent chunk when its input completes.
    - Children may start their own children (native subagents or hc), in the background or foreground; nesting cap → do the step yourself. Hard rule at every level: never report done or end your session while work you started still runs; wait for all of it first. Children don't load this skill, so the brief carries these rules.

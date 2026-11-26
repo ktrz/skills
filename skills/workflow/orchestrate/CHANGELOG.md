@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 - 2026-11-25
+
+- **Brief by `hc send`** - hc children start as a bare TUI and get the brief as one `hc send`; no brief file unless the context doesn't fit a prompt. Launch, send and wait run as one backgrounded command. Harness launch lines lose the prompt, and the busy-marker submit check is gone.
+- **Corrections by `hc send`** - one short message to a running child, any harness, instead of a restart. Never a new task. A brief refused at a trust dialog is resent once the user answers; after the waiter returns, the parent checks the report reflects late corrections.
+- **Waiter `scripts/hc-wait-child.sh`** - done only when the report's last line is `END`, never on child status or hc notes. Exits 2 (exited), 3 (unknown), 4 (blocked), 5 (error), 124 (limit, default 30 min, so a child stuck on a question can't idle the parent).
+- **Reminder names hc** - with `runner: hc` (repo file beats user file; invalid values fall through), the `ORCHESTRATE ACTIVE` line adds the hc rules.
+- **Fix:** the `"$(cat <<'BRIEF' …)"` form ran backticked brief text as commands under macOS bash 3.2; briefs are read with `IFS= read -r -d ''`.
+
 ## 0.4.0 - 2026-11-20
 
 - **Rule 7 sizes children by their inputs** - before each dispatch the parent estimates what the child must take in: docs, skills it loads, code nobody has mapped. Building in unmapped code goes to a scout + implementer pair by default. "Mapped" means checked against the current code in this run (a scout map, or files and line ranges the user gave): a plan's file list is not a map, since plans go stale and miss callers. The scout (scoped tier) writes a short map of files, line ranges, conventions and commands, and the implementer (multi-step tier) works from it. Nothing finer: worktree, stack, tests, commit and PR stay with the implementer. Mapped work stays one child.

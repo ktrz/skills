@@ -314,3 +314,88 @@ test("without ORCHESTRATE_STATE_DIR the flag is created under TMPDIR", () => {
   });
   assert.ok(existsSync(flagPath(dir, "s1")), "flag should be created under TMPDIR");
 });
+
+// ---- runner hc in the reminder ------------------------------------------------
+// Long sessions drift back to native subagents unless every prompt names hc.
+// The hook reads the effective top-level `runner:` (repo .claude/orchestrate.yaml
+// beats ~/.claude/orchestrate.yaml) and adds an hc clause only for `runner: hc`.
+
+function runnerSetup({ user, repo } = {}) {
+  const home = mkdtempSync(path.join(os.tmpdir(), "orchestrate-home-"));
+  const work = mkdtempSync(path.join(os.tmpdir(), "orchestrate-repo-"));
+  execFileSync("git", ["init", "-q", work]);
+  if (user !== undefined) {
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(path.join(home, ".claude", "orchestrate.yaml"), user);
+  }
+  if (repo !== undefined) {
+    mkdirSync(path.join(work, ".claude"), { recursive: true });
+    writeFileSync(path.join(work, ".claude", "orchestrate.yaml"), repo);
+  }
+  const sub = path.join(work, "pkg");
+  mkdirSync(sub);
+  return (text = "/orchestrate build X") =>
+    execFileSync("bash", [script], {
+      input: JSON.stringify({ prompt: text, session_id: "s1", cwd: sub }),
+      encoding: "utf8",
+      env: { ...process.env, HOME: home, ORCHESTRATE_STATE_DIR: freshStateDir() },
+    });
+}
+const HC = /Runner hc: every child via hc/;
+
+test("user config runner: hc → reminder names hc", () => {
+  const out = runnerSetup({ user: "runner: hc\n" })();
+  assert.match(out, ACTIVE);
+  assert.match(out, HC);
+  assert.equal(out.trim().split("\n").length, 1);
+});
+
+test("no config → reminder does not mention hc", () => {
+  const out = runnerSetup()();
+  assert.match(out, ACTIVE);
+  assert.doesNotMatch(out, /\bhc\b/);
+});
+
+test("runner: native → no hc clause", () => {
+  assert.doesNotMatch(runnerSetup({ user: "runner: native\n" })(), HC);
+});
+
+test("commented-out runner: hc (example file) → no hc clause", () => {
+  assert.doesNotMatch(runnerSetup({ user: "# runner: hc\n" })(), HC);
+});
+
+test("quoted value and trailing comment still read", () => {
+  assert.match(runnerSetup({ user: 'runner: "hc"  # terminals\n' })(), HC);
+});
+
+test("repo runner: native beats user runner: hc", () => {
+  assert.doesNotMatch(runnerSetup({ user: "runner: hc\n", repo: "runner: native\n" })(), HC);
+});
+
+test("repo runner: hc applies when the user file sets none", () => {
+  assert.match(runnerSetup({ user: "harness: current\n", repo: "runner: hc\n" })(), HC);
+});
+
+test("invalid repo runner (hc-preview) is not read as hc; user native applies", () => {
+  assert.doesNotMatch(runnerSetup({ user: "runner: native\n", repo: "runner: hc-preview\n" })(), HC);
+});
+
+test("invalid repo runner falls back to user runner: hc", () => {
+  assert.match(runnerSetup({ user: "runner: hc\n", repo: "runner: invalid\n" })(), HC);
+});
+
+test("nested hc: block keys are not read as runner", () => {
+  assert.doesNotMatch(runnerSetup({ user: "hc:\n  labels:\n    runner: hc\n" })(), HC);
+});
+
+test("payload without cwd falls back to the user file", () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), "orchestrate-home-"));
+  mkdirSync(path.join(home, ".claude"));
+  writeFileSync(path.join(home, ".claude", "orchestrate.yaml"), "runner: hc\n");
+  const out = execFileSync("bash", [script], {
+    input: JSON.stringify({ prompt: "/orchestrate x", session_id: "s1" }),
+    encoding: "utf8",
+    env: { ...process.env, HOME: home, ORCHESTRATE_STATE_DIR: freshStateDir() },
+  });
+  assert.match(out, HC);
+});

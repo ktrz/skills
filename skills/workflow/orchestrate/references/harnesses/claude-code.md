@@ -12,7 +12,7 @@ As of 2026-11-19, Claude Code 2.1.328. Native tool, CLI flags and hc launch line
 ## hc launch
 
 ```bash
-claude --model <id> --effort <level> --permission-mode auto "Read <brief path> and do it."
+claude --model <id> --effort <level> --permission-mode auto
 ```
 
 Banned for children: `-p`/`--print`, `--bg`.
@@ -27,5 +27,5 @@ Banned for children: `-p`/`--print`, `--bg`.
 
 - **Permissions:** `--permission-mode auto` (classifier; every tier model qualifies; pass the flag, `auto` in project settings doesn't apply). `--dangerously-skip-permissions`: sandboxes only.
 - **Trust prompt:** on new directories, fresh worktrees included; no skip flag, text unknown. Seen in `hc read <t>` → ask the user, don't answer it.
-- **Busy marker:** `esc to interrupt` (seen 2026-11-19).
+- **Status to hc:** reported (`idle` before its first turn). Busy text `esc to interrupt`.
 - **Skills:** `~/.claude/skills/`, `.claude/skills/`, plugin `skills/`. **Hook:** `UserPromptSubmit`, built for this harness only ([`../hook-install.md`](../hook-install.md)).
