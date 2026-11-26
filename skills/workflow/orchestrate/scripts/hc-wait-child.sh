@@ -71,7 +71,9 @@ while :; do
 
   if [[ "$status" == working ]]; then
     # Returns when the child stops working; the loop then re-checks the report.
-    hc wait "$child" --timeout "$(capped 180)" >/dev/null 2>&1 || sleep "$(capped "$poll")"
+    # A failed wait falls back to a sleep, skipped once the deadline has passed.
+    hc wait "$child" --timeout "$(capped 180)" >/dev/null 2>&1 ||
+      { (( max > 0 && SECONDS - start >= max )) || sleep "$(capped "$poll")"; }
   else
     # idle/done/null: hc wait would return at once (or, for null, only on exit).
     sleep "$(capped "$poll")"

@@ -16,7 +16,7 @@ hc run --bg --name <name> --cwd <dir> --label <k>=<v> ... -- <harness launch lin
 ```
 
 - The brief is the prompt. A file only for context too big for it (spec excerpt, logs), named in the brief with line ranges.
-- Keep the `read` form: `"$(cat <<'BRIEF' …)"` runs backticked brief text as commands under macOS bash 3.2.
+- Keep the `read` form: `"$(cat <<'BRIEF' …)"` runs backticked brief text as commands under macOS bash 3.2. The delimiter must not appear as a line anywhere in the brief (pasted logs or specs included), or the rest runs as commands: pick another word if it does.
 - Launch line: the harness file's, with no prompt. Quote every value. One `--label` per config `hc.labels` entry.
 - Trust or permission dialog → tell the user (`hc attach <t>`); no replacement, no pre-trust without their OK. Once answered: `hc send` refused → send the brief again, then start the waiter; waiter exit 4 → start it again. User declines → current harness, native, if the step doesn't need what was declined, else report it blocked.
 - Idle with the brief still in its input box → never started: tell the user to close it, start a fresh child.
@@ -29,9 +29,9 @@ One short `hc send` for a correction or new fact; the child reads it after its c
 hc send orch-spike-1 'From the parent: the repo already ships @nx/oxlint/boundaries-plugin; evaluate that, drop the ESLint route.'
 ```
 
-- Single quotes; text with an apostrophe or backticks goes through `read`.
+- Single quotes; text with an apostrophe or backticks goes through `read`, delimiter rule as above.
 - One waiter per child. None running (after exit 4 or 124) → start it again after sending.
-- After exit 0, check the report reflects each correction (a child can finish before reading a late one); if not, a one-line reminder and wait again.
+- After exit 0, check the report reflects each correction (a child can finish before reading a late one). If not, the reminder names a new report path (`<report>.2`) for the update, and the waiter runs on that path: the old report's `END` would end it at once.
 - Never: a new task by send (new task = new child), `hc keys`, `hc interrupt`, `--force`.
 
 ## Wait and results

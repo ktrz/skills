@@ -36,6 +36,7 @@ case "$1" in
   wait)
     echo wait >> "$d/waits"
     # FAKE_WAIT_BLOCK=1: a child that keeps working; block for the full --timeout.
+    [[ "\${FAKE_WAIT_FAIL:-}" == 1 ]] && exit 1
     if [[ "\${FAKE_WAIT_BLOCK:-}" == 1 ]]; then
       while [[ $# -gt 0 && "$1" != --timeout ]]; do shift; done
       sleep "\${2:-0}"
@@ -136,6 +137,13 @@ test("polling sleep is capped by the remaining max-seconds", () => {
   const r = run([live("idle", 1)], { max: "2", env: { HC_WAIT_POLL: "60" } });
   assert.equal(r.code, 124, r.out + r.err);
   assert.ok(Date.now() - t0 < 6000, `took ${Date.now() - t0} ms`);
+});
+
+test("failing hc wait falls back to a capped sleep and stops at max-seconds", () => {
+  const t0 = Date.now();
+  const r = run([live("working", 0)], { max: "2", env: { FAKE_WAIT_FAIL: "1", HC_WAIT_POLL: "60" } });
+  assert.equal(r.code, 124, r.out + r.err);
+  assert.ok(Date.now() - t0 < 3500, `took ${Date.now() - t0} ms`);
 });
 
 test("missing args → exit 64", () => {
