@@ -2,7 +2,7 @@
 
 ## 0.5.1 - 2026-11-26
 
-- **agy (Antigravity CLI) as a child harness** - `references/harnesses/agy.md`, checked live on agy 1.5.18 via hc: launch with a bare model ID plus `--effort` (a suffixed ID with `--effort` silently falls back to the default model), status reported to hc, trust is exact-path (no globs, no subfolders), so the launch line trusts the child's cwd for that session via `--settings`, which makes worktrees work without touching the user's config; writes outside the workspace need the user's settings. `harness: agy` in config.
+- **agy (Antigravity CLI) as a child harness** - `references/harnesses/agy.md`, checked live on agy 1.5.18 via hc: launch with a bare model ID plus `--effort` (a suffixed ID with `--effort` silently falls back to the default model, so a raw config ID loses its effort suffix), status reported to hc, trust is exact-path (no globs, no subfolders), so the launch line trusts the child's cwd (JSON-encoded with `jq`) for that session via `--settings`, which makes worktrees work without touching the user's config; writes outside the workspace need the user's settings. `harness: agy` in config.
 
 ## 0.5.0 - 2026-11-25
 
