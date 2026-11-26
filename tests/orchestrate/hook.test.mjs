@@ -376,6 +376,14 @@ test("repo runner: hc applies when the user file sets none", () => {
   assert.match(runnerSetup({ user: "harness: current\n", repo: "runner: hc\n" })(), HC);
 });
 
+test("invalid repo runner (hc-preview) is not read as hc; user native applies", () => {
+  assert.doesNotMatch(runnerSetup({ user: "runner: native\n", repo: "runner: hc-preview\n" })(), HC);
+});
+
+test("invalid repo runner falls back to user runner: hc", () => {
+  assert.match(runnerSetup({ user: "runner: hc\n", repo: "runner: invalid\n" })(), HC);
+});
+
 test("nested hc: block keys are not read as runner", () => {
   assert.doesNotMatch(runnerSetup({ user: "hc:\n  labels:\n    runner: hc\n" })(), HC);
 });

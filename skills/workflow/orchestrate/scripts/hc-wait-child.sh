@@ -32,6 +32,16 @@ command -v jq >/dev/null 2>&1 || { echo "hc-wait-child: jq not found" >&2; exit 
 
 start=$SECONDS
 finish() { echo "hc-wait-child: $child $1"; exit "$2"; }
+# Cap a blocking duration by the seconds left before max (max=0: no cap).
+capped() {
+  local want=$1 left
+  if (( max > 0 )); then
+    left=$(( max - (SECONDS - start) ))
+    (( left < 1 )) && left=1
+    (( want > left )) && want=$left
+  fi
+  echo "$want"
+}
 has_end() { [[ -f "$report" ]] && [[ "$(tail -n 1 "$report" | tr -d '[:space:]')" == END ]]; }
 
 while :; do
@@ -61,9 +71,9 @@ while :; do
 
   if [[ "$status" == working ]]; then
     # Returns when the child stops working; the loop then re-checks the report.
-    hc wait "$child" --timeout 180 >/dev/null 2>&1 || sleep "$poll"
+    hc wait "$child" --timeout "$(capped 180)" >/dev/null 2>&1 || sleep "$(capped "$poll")"
   else
     # idle/done/null: hc wait would return at once (or, for null, only on exit).
-    sleep "$poll"
+    sleep "$(capped "$poll")"
   fi
 done

@@ -33,12 +33,19 @@ case "$1" in
     if [[ "$line" == *'"_report":true'* ]]; then printf 'did it\\nEND\\n' > "$d/report.md"; fi
     echo "$line"
     ;;
-  wait) echo wait >> "$d/waits" ;;
+  wait)
+    echo wait >> "$d/waits"
+    # FAKE_WAIT_BLOCK=1: a child that keeps working; block for the full --timeout.
+    if [[ "\${FAKE_WAIT_BLOCK:-}" == 1 ]]; then
+      while [[ $# -gt 0 && "$1" != --timeout ]]; do shift; done
+      sleep "\${2:-0}"
+    fi
+    ;;
   *) exit 1 ;;
 esac
 `;
 
-function run(seq, { max = "20", prewrite } = {}) {
+function run(seq, { max = "20", prewrite, env = {} } = {}) {
   const dir = mkdtempSync(path.join(os.tmpdir(), "hc-wait-child-test-"));
   writeFileSync(path.join(dir, "hc"), FAKE_HC);
   chmodSync(path.join(dir, "hc"), 0o755);
@@ -46,7 +53,7 @@ function run(seq, { max = "20", prewrite } = {}) {
   if (prewrite !== undefined) writeFileSync(path.join(dir, "report.md"), prewrite);
   const r = spawnSync("bash", [script, "kid", path.join(dir, "report.md"), max], {
     encoding: "utf8",
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, FAKE_HC_DIR: dir, HC_WAIT_POLL: "0" },
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, FAKE_HC_DIR: dir, HC_WAIT_POLL: "0", ...env },
     timeout: 15000,
   });
   return { code: r.status, out: r.stdout, err: r.stderr, dir };
@@ -115,6 +122,20 @@ test("working uses hc wait, not polling", () => {
   const r = run([live("working", 0), live("done", 1, { _report: true })]);
   assert.equal(r.code, 0);
   assert.ok(require_waits(r.dir) >= 1);
+});
+
+test("blocking hc wait is capped by the remaining max-seconds", () => {
+  const t0 = Date.now();
+  const r = run([live("working", 0)], { max: "2", env: { FAKE_WAIT_BLOCK: "1" } });
+  assert.equal(r.code, 124, r.out + r.err);
+  assert.ok(Date.now() - t0 < 6000, `took ${Date.now() - t0} ms`);
+});
+
+test("polling sleep is capped by the remaining max-seconds", () => {
+  const t0 = Date.now();
+  const r = run([live("idle", 1)], { max: "2", env: { HC_WAIT_POLL: "60" } });
+  assert.equal(r.code, 124, r.out + r.err);
+  assert.ok(Date.now() - t0 < 6000, `took ${Date.now() - t0} ms`);
 });
 
 test("missing args → exit 64", () => {

@@ -65,9 +65,12 @@ esac
 if [[ -f "$flag" || "${active_now:-}" == 1 ]]; then
   # Effective top-level `runner:` from orchestrate.yaml: repo file beats user file.
   # Long sessions drift back to native subagents unless every prompt names hc.
+  # Only a complete `native` or `hc` (optionally quoted, optional trailing
+  # comment) counts; any other value prints nothing so the next layer applies.
   runner_of() {
     [[ -f "$1" ]] || return 0
-    sed -n "s/^runner:[[:space:]]*[\"']\{0,1\}\([a-z]*\).*/\1/p" "$1" 2>/dev/null | tail -n 1
+    grep '^runner:' "$1" 2>/dev/null | tail -n 1 |
+      sed -nE "s/^runner:[[:space:]]*(\"(native|hc)\"|'(native|hc)'|(native|hc))[[:space:]]*(#.*)?$/\2\3\4/p"
   }
   cwd=$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null)
   repo=""
