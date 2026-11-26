@@ -27,13 +27,15 @@ Only when the user asks for a root session: a top-level session they drive, show
 
 ```bash
 herdr-app ls    # spaces > tabs > terminals; read-only
-herdr-app do tab.new --space <space id> --name "<name>" --folder <dir> \
-  --argv '<harness launch as a JSON array>' --task "<first message>" --focus false
+herdr-app do tab.new --space '<space id>' --name '<name>' --folder '<dir>' \
+  --argv '<harness launch as a JSON array>' --task '<first message>' --focus false
 ```
 
+- Single quotes around every value, never double: inside double quotes the shell runs backticks and `$(…)` and expands `$VAR`, so the session would get a changed message. A task with an apostrophe goes through `IFS= read -r -d '' task <<'TASK'` as in Launch (same delimiter rule), then `--task "${task%$'\n'}"`.
+
 - **Space:** the existing one for that work. Match the repo or project name against space names in `herdr-app ls`; only if no name matches, against space folders. No match, or several → ask the user, start nothing. A new space only when the user asks for one.
-- **Name:** recognizable in the tab strip, in the style of that space's named tabs (`ENG-123 fix login`); never unnamed. The session gets the same name where the harness can name one (claude: `--argv '["claude","-n","<name>"]'`). Model, effort and permission flags only if the user named them.
-- **Folder:** that work's worktree if it has one, else the repo's main checkout. **Task:** what the user wants that session to do, self-contained: it inherits nothing from you.
+- **Name:** recognizable in the tab strip, in the style of that space's named tabs (`ENG-123 fix login`); never unnamed; no quotes, backticks, `$` or backslashes in it (it also goes into the JSON argv). The session gets the same name where the harness can name one (claude: `--argv '["claude","-n","<name>"]'`). Model, effort and permission flags only if the user named them.
+- **Folder:** that work's worktree if it has one, else the repo's main checkout. **Task:** what the user asked that session to do, in their words. It is the session's first message. Start it with `/orchestrate` only if the user asks for that. The session inherits nothing from you: add only facts it cannot work without (ticket key, paths), never instructions of your own.
 - `--focus false` unless the user asked to be taken there. It prints the new tab and terminal ids. Then `herdr-app ls` to confirm one new named tab in that space, and tell the user its name and space. Nothing to wait on: it is the user's session.
 - Never `herd-tab` (even `--help` opens an unnamed tab). Never run a window command to learn what it does: `herdr-app commands` and `herdr-app --skill` are the read-only docs.
 - A root's own children are still hc children (Launch above): named, parented, no tab each.
