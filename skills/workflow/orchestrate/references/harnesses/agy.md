@@ -2,7 +2,7 @@
 
 As of 2026-11-26, agy 1.5.18. hc launch in a worktree, brief, correction, status, trust and writes checked live; native subagents untested.
 
-- **Detect:** `command -v agy`; `agy --version`.
+- **Detect:** `command -v agy && command -v jq` (the launch line builds its trust JSON with `jq`); `agy --version`. `jq` missing (install: `brew install jq`) → treated like agy missing, reported.
 - **Native:** subagents exist (built-ins `self`, `browser`, `research`, `deepagent`, `review-agent`; custom ones are agent files with `subagent: true`). Per-call model and effort, foreground switch, nesting limit: unknown. Orchestrate runs agy children via hc.
 
 ## hc launch
