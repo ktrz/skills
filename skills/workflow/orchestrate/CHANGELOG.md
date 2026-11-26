@@ -8,7 +8,7 @@
 - **Shipped waiter `scripts/hc-wait-child.sh`** - ends only when the report's last line is `END` (exit 0), the child exits (2), is unknown (3), blocks (4), errors (5), or a max-seconds limit passes (124, default 30 min: a child that ends its turn on a question never writes `END`, so the parent reads the screen and answers by `hc send`). Status is never treated as completion: a fresh child is `idle` at turn 0, a child that backgrounds work ends its turn `done` before reporting, and opencode reports no status. No single `hc wait` or poll sleep runs past the limit. Reads `hc get --json` with jq (`.state`, `.status.state`), never grep. Tests: `tests/orchestrate/hc-wait-child.test.mjs`.
 - **Notes don't replace the waiter** - `hc.md` says plainly that relying on hc notes once left an unattended run idle for ~8 h. Never end a turn trusting notes while children run.
 - **The reminder names hc** - when the effective `runner:` in `orchestrate.yaml` is `hc` (the repo file beats the user file; only a complete `native` or `hc` counts, anything else falls through to the next layer), the `ORCHESTRATE ACTIVE` line adds the hc launch, correction and wait rules, so long sessions stop drifting back to native subagents.
-- **Harness facts** - opencode `mini` launched, briefed and corrected via hc (free model). claude shows `idle` before its first turn.
+- **Harness facts** - opencode `mini` launched, briefed and corrected via hc. claude shows `idle` before its first turn.
 
 ## 0.4.0 - 2026-11-20
 

@@ -1,6 +1,6 @@
 # opencode
 
-As of 2026-11-19, opencode v2.3.0; local help beats the docs (which describe V2). `mini` child launched and corrected via hc 2026-11-25 (free model `opencode/deepseek-v4.1-flash-free`); `--auto` and first-run prompts untested.
+As of 2026-11-19, opencode v2.3.0; local help beats the docs (which describe V2). `mini` launched, briefed and corrected via hc (checked 2026-11-25); `--auto` and first-run prompts untested.
 
 - **Detect:** `command -v opencode || test -x ~/.opencode/bin/opencode` (the installer's dir, often off PATH: then launch by full path). `opencode --version`.
 - **Native:** tool `subagent`; subagents `general`, `explore`; primaries `build`, `plan`. `experimental.subagent_depth` defaults to 1, so a child usually does grandchild steps itself. Per-call model undocumented; agent config may pin one (UNVERIFIED), else the session model, reported. Foreground switch: unknown.
