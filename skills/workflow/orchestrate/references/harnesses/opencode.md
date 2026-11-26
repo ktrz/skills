@@ -26,7 +26,7 @@ IDs are `provider/model`; only the haiku and sonnet IDs appear in the docs. `ope
 | opus                                 | `anthropic/claude-opus-5-5` (UNVERIFIED)  |
 | fable                                | `anthropic/claude-fable-5-2` (UNVERIFIED) |
 | gpt-6-luna, gpt-6.1-sol, gpt-6-astra | `openai/<short name>` (UNVERIFIED)        |
-| gemini-3.5-flash-lite, gemini-4-*    | `google/<short name>` (UNVERIFIED)        |
+| gemini-4-*                           | `google/<short name>` (UNVERIFIED)        |
 | grok-4.7                             | `xai/grok-4.7` (UNVERIFIED)               |
 
 - **Effort:** append `#<variant>` (`openai/gpt-6.1-sol#high`): low `#low`, medium no suffix (or `#medium` if the default is higher), high `#high`, xhigh `#xhigh`. A variant the model's catalog doesn't list → the nearest listed one, or no suffix if it lists none; report the effort that applied. TUI: `ctrl+t` cycles.

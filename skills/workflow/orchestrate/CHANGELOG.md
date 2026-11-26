@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 - 2026-11-26
+
+- **agy (Antigravity CLI) as a child harness** - `references/harnesses/agy.md`, checked live on agy 1.5.18 via hc: launch with a bare model ID plus `--effort` (a suffixed ID with `--effort` silently falls back to the default model, so a raw config ID loses its effort suffix), status reported to hc, trust is exact-path (no globs, no subfolders), so the launch line trusts the child's cwd (JSON-encoded with `jq`) for that session via `--settings`, which makes worktrees work without touching the user's config; writes outside the workspace need the user's settings. `harness: agy` in config.
+- **Gemini 4 tier ladder** - bulk now `gemini-4-hydrogen` (cheapest, fastest; replaces the old `gemini-3.5-flash-lite`, which agy doesn't offer), scoped `gemini-4-neon` (best price for intelligence), multi-step `gemini-4-neon`, judgment `gemini-4-carbon` (hardest long-horizon work). `gemini-4-argon`, the legacy model, stays out.
+
 ## 0.5.0 - 2026-11-25
 
 - **Brief by `hc send`** - hc children start as a bare TUI and get the brief as one `hc send`; no brief file unless the context doesn't fit a prompt. Launch, send and wait run as one backgrounded command. Harness launch lines lose the prompt, and the busy-marker submit check is gone.
