@@ -31,7 +31,7 @@ herdr-app do tab.new --space '<space id>' --name '<name>' --folder '<dir>' \
   --argv '<harness launch as a JSON array>' --task '<first message>' --focus false
 ```
 
-- Single quotes around every value, never double: inside double quotes the shell runs backticks and `$(…)` and expands `$VAR`, so the session would get a changed message. A task with an apostrophe goes through `IFS= read -r -d '' task <<'TASK'` as in Launch (same delimiter rule), then `--task "${task%$'\n'}"`.
+- Single quotes around every value; never paste a value inside double quotes: there the shell runs backticks and `$(…)` and expands `$VAR`, so the session would get a changed message. A task or folder with an apostrophe goes into a variable first, through `IFS= read -r -d '' task <<'TASK'` as in Launch (same delimiter rule), then `--task "${task%$'\n'}"` or `--folder "${dir%$'\n'}"`: the shell does not expand a variable's contents again.
 
 - **Space:** the existing one for that work. Match the repo or project name against space names in `herdr-app ls`; only if no name matches, against space folders. No match, or several → ask the user, start nothing. A new space only when the user asks for one.
 - **Name:** recognizable in the tab strip, in the style of that space's named tabs (`ENG-123 fix login`); never unnamed; no quotes, backticks, `$` or backslashes in it (it also goes into the JSON argv). The session gets the same name where the harness can name one (claude: `--argv '["claude","-n","<name>"]'`). Model, effort and permission flags only if the user named them.
