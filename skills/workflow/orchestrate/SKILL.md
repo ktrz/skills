@@ -20,12 +20,12 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 
 ## Tiers
 
-| Tier       | Best for             | Models, in preference order                         | Effort                                        |
-| ---------- | -------------------- | --------------------------------------------------- | --------------------------------------------- |
-| bulk       | bulk mechanical      | haiku → gpt-6-luna → gemini-3.5-flash-lite          | low                                           |
-| scoped     | scoped research      | sonnet → gpt-6.1-sol → gemini-4-hydrogen → grok-4.7 | medium                                        |
-| multi-step | multi-step reasoning | opus → gpt-6.1-sol → gemini-4-neon → grok-4.7       | medium; xhigh only for hardest calls          |
-| judgment   | judgment, taste      | fable → gpt-6-astra → gemini-4-carbon → grok-4.7    | medium; xhigh only for hardest calls, no high |
+| Tier       | Best for             | Models, in preference order                      | Effort                                        |
+| ---------- | -------------------- | ------------------------------------------------ | --------------------------------------------- |
+| bulk       | bulk mechanical      | haiku → gpt-6-luna → gemini-4-hydrogen           | low                                           |
+| scoped     | scoped research      | sonnet → gpt-6.1-sol → gemini-4-neon → grok-4.7  | medium                                        |
+| multi-step | multi-step reasoning | opus → gpt-6.1-sol → gemini-4-neon → grok-4.7    | medium; xhigh only for hardest calls          |
+| judgment   | judgment, taste      | fable → gpt-6-astra → gemini-4-carbon → grok-4.7 | medium; xhigh only for hardest calls, no high |
 
 ## Routing
 
