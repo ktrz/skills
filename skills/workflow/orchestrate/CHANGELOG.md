@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2 - 2026-11-26
+
+- **Fix: a root session is a named tab in the existing space** - asked for a "root session", the parent used to guess: `hc run` parented to itself, `hc run --no-parent` (hidden from the app), `herd-tab --help` (opens an unnamed tab), a new space. `references/runners/hc.md` now says how: find the space for that work in `herdr-app ls`, then one `herdr-app do tab.new --space … --name … --folder … --argv … --task … --focus false`, the session named too (claude `-n`). No new space unless asked, never `herd-tab`, no brief or waiter. Children of a root stay hc children.
+
 ## 0.5.1 - 2026-11-26
 
 - **agy (Antigravity CLI) as a child harness** - `references/harnesses/agy.md`, checked live on agy 1.5.18 via hc: launch with a bare model ID plus `--effort` (a suffixed ID with `--effort` silently falls back to the default model, so a raw config ID loses its effort suffix), status reported to hc, trust is exact-path (no globs, no subfolders), so the launch line trusts the child's cwd (JSON-encoded with `jq`) for that session via `--settings`, which makes worktrees work without touching the user's config; writes outside the workspace need the user's settings. `harness: agy` in config.

@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-version: 0.5.1
+version: 0.5.2
 disable-model-invocation: true
 description: >
   Delegation-heavy execution mode, invoked only via the /orchestrate slash command:
@@ -34,12 +34,14 @@ Every rule below serves this. Where no rule covers a case, choose what keeps the
 - **Runner:** `native` (the harness's subagent tool). `hc` when config sets `runner: hc` or the child's harness isn't yours.
 - **Model:** the first tier entry the target harness's alias table supports. A requested model the target can't run → the first installed harness (claude, codex, opencode, cursor-agent, agy) that has it.
 - **Effort:** the tier word, translated by the harness file. Unsupported level → the nearest supported one, reported.
+- **Root session** (the user asks for one: "root session", "root Herdr session"): not a child, so no runner, tier, brief or waiter. One named tab in the existing space for that work, made with `herdr-app`: `references/runners/hc.md`, Root session. Its own children stay ordinary children.
 - **Fallbacks**, named in the child's report: no model matches → the harness default model; target harness or `hc` missing → current harness, native, next tier model it supports.
 
 ## Load
 
 - `references/config.md`, only if `<repo>/.claude/orchestrate.yaml` or `~/.claude/orchestrate.yaml` exists (`<repo>` = `git rev-parse --show-toplevel`).
 - Per child: `references/runners/<runner>.md` and `references/harnesses/<target>.md` (claude → `claude-code.md`). `references/brief-template.md` on the first dispatch.
+- A root session: the Root session section of `references/runners/hc.md`, and the target's harness file.
 - Claude Code only: the optional sticky-reminder hook, `references/hook-install.md`. Elsewhere there is no per-prompt reinforcement.
 
 ## Delegation protocol
