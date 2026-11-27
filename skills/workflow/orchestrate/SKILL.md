@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-version: 0.5.2
+version: 0.5.3
 disable-model-invocation: true
 description: >
   Delegation-heavy execution mode, invoked only via the /orchestrate slash command:
