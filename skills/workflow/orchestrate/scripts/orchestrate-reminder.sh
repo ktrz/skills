@@ -80,7 +80,7 @@ if [[ -f "$flag" || "${active_now:-}" == 1 ]]; then
   [[ -z "$runner" && -n "${HOME:-}" ]] && runner=$(runner_of "$HOME/.claude/orchestrate.yaml")
   hc_clause=""
   if [[ "$runner" == hc ]]; then
-    hc_clause=' Runner hc: every child via hc (Agent tool only if hc is missing): `hc run --bg`, brief by `hc send`, scripts/hc-wait-child.sh in the background; corrections by `hc send`, no restart.'
+    hc_clause=' Runner hc: every child via hc (Agent tool only if hc is missing): `hc run --bg`, brief by `hc send`, scripts/hc-wait-child.sh in the background; corrections by `hc send`, no restart; close each child (`hc kill`, `hc rm`) once its report is verified.'
   fi
   echo 'ORCHESTRATE ACTIVE — delegate per tier: bulk(low) / scoped(med) / multi-step(med) / judgment(med), xhigh only for hardest calls, models per the skill tier table and orchestrate.yaml. Size by inputs: unmapped code → scout + implementer; briefs inline conventions with line ranges, never "read in full". Parent only decomposes, briefs, judges, synthesizes.'"$hc_clause"' "/orchestrate off" to stop.'
 fi

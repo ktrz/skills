@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3 - 2026-11-27
+
+- **Fix: finished hc children are closed** - `references/runners/hc.md` said "never `hc kill` or `hc rm` one unasked", so every finished child stayed open as an idle terminal until the user asked again. Now the parent closes a child (`hc kill <t>; hc rm <t>`) in the same turn it reads and verifies the report, and closes an incomplete one once its state is captured and the remainder dispatched. It never closes a child still working, a root session, or a terminal it did not start. The `ORCHESTRATE ACTIVE` hc clause says the same, and the config protocol guard now bans killing a child that is still working instead of killing children unasked.
+
 ## 0.5.2 - 2026-11-26
 
 - **Fix: a root session is a named tab in the existing space** - asked for a "root session", the parent used to guess: `hc run` parented to itself, `hc run --no-parent` (hidden from the app), `herd-tab --help` (opens an unnamed tab), a new space. `references/runners/hc.md` now says how: find the space for that work in `herdr-app ls`, then one `herdr-app do tab.new --space … --name … --folder … --argv … --task … --focus false`, the session named too (claude `-n`). No new space unless asked, never `herd-tab`, no brief or waiter. Children of a root stay hc children.
