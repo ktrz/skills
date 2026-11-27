@@ -1,0 +1,790 @@
+# walkthrough.json schema (v1)
+
+Normative schema for `walkthrough.json`, the doc-as-data artifact `narrate-pr`
+synthesizes from a pull request. This file is the single source of truth for
+the document shape: the synthesizing model, `render.mjs`, and `validate.mjs`
+all follow it. Where this doc and any other narrate-pr file disagree, this
+doc wins.
+
+The document is **doc-as-data**: every claim-bearing node carries a stable,
+human-readable `id` and at least one receipt pointing back to evidence. The
+renderer never invents content and never reflows a `depmap`'s `layout`
+block — see "Design notes" at the end.
+
+All examples on this page use invented, generic content: a toy PR adding a
+"notifications" feature to a generic web app with packages `core`, `api`,
+and `web`. Any resemblance to a real repo or PR is coincidental.
+
+## Contents
+
+- [Top-level fields](#top-level-fields)
+  - [`pr`](#pr)
+  - [`stats`](#stats)
+  - [`packages`](#packages)
+- [thesis](#thesis)
+- [architecture](#architecture)
+  - [`architecture.prose[]`](#architectureprose)
+  - [`architecture.channels[]`](#architecturechannels)
+  - [`architecture.boundaries[]`](#architectureboundaries)
+- [components](#components)
+  - [`components[].invariants[]`](#componentsinvariants)
+- [reviewOrder](#revieworder)
+- [attentionSpots](#attentionspots)
+- [tests](#tests)
+- [qa](#qa)
+- [prComments](#prcomments)
+- [Receipts](#receipts)
+- [Diagram union](#diagram-union)
+  - [`lane`](#lane)
+  - [`sequence`](#sequence)
+  - [`depmap`](#depmap)
+  - [Edge label conventions](#edge-label-conventions)
+- [Validation rules](#validation-rules)
+- [Status rendering](#status-rendering)
+  - [Legend](#legend)
+  - [Accessibility](#accessibility)
+- [Design notes](#design-notes)
+
+## Top-level fields
+
+| Field            | Type    | Required | Meaning                                                                                                                                                                                           |
+| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`        | integer | yes      | Schema version. `1` for this spec.                                                                                                                                                                |
+| `pr`             | object  | yes      | PR identity — see below.                                                                                                                                                                          |
+| `sha`            | string  | yes      | 40-hex commit SHA of the PR head at build time. All code receipts resolve against this SHA.                                                                                                       |
+| `baseSha`        | string  | no       | 40-character lowercase hex commit SHA of the PR's effective base at build time — the merge base of the head and the base branch, not the base branch tip. Required when any `code-base` receipt is present anywhere in the document. All `code-base` receipts resolve against this SHA. |
+| `generatedAt`    | string  | yes      | ISO 8601 timestamp of the build.                                                                                                                                                                  |
+| `packages`       | array   | yes      | Palette source for color-coding. May be empty for a single-package repo.                                                                                                                          |
+| `thesis`         | object  | yes      | One-paragraph statement of what the PR does and why.                                                                                                                                              |
+| `stats`          | object  | yes      | Diff stats — files/additions/deletions/commits.                                                                                                                                                   |
+| `architecture`   | object  | yes      | Prose, diagrams, channels, and boundaries describing the system shape.                                                                                                                            |
+| `components`     | array   | yes      | The units of code the PR touches or introduces.                                                                                                                                                   |
+| `reviewOrder`    | array   | yes      | Suggested dependency-ordered review path.                                                                                                                                                         |
+| `attentionSpots` | array   | yes      | Bounded set of "look closely here" locations.                                                                                                                                                     |
+| `tests`          | array   | yes      | Test coverage summary per area.                                                                                                                                                                   |
+| `qa`             | array   | yes      | Q&A entries. Empty at build; fills via the edit → re-render path.                                                                                                                                 |
+| `prComments`     | array   | yes      | PR review comments, rendered inline. Empty at build — the build never generates these; a future consumer (e.g. review-pr) may populate this slot.                                                 |
+
+```json
+{
+  "version": 1,
+  "pr": {
+    "repo": "acme/webapp",
+    "number": 482,
+    "title": "Add in-app notifications",
+    "branch": "feat/notifications",
+    "base": "main"
+  },
+  "sha": "3f2a9c1d4e5b6a7c8d9e0f1a2b3c4d5e6f7a8b9c",
+  "generatedAt": "2026-07-12T09:00:00Z",
+  "packages": [
+    { "id": "core", "label": "@acme/core" },
+    { "id": "api", "label": "@acme/api" },
+    { "id": "web", "label": "@acme/web" }
+  ]
+}
+```
+
+### `pr`
+
+| Field    | Type    | Required | Meaning                         |
+| -------- | ------- | -------- | ------------------------------- |
+| `repo`   | string  | yes      | `owner/name`.                   |
+| `number` | integer | yes      | PR number.                      |
+| `title`  | string  | yes      | PR title.                       |
+| `branch` | string  | yes      | Head branch name.               |
+| `base`   | string  | yes      | Base branch name (e.g. `main`). |
+
+### `stats`
+
+| Field       | Type    | Required | Meaning                 |
+| ----------- | ------- | -------- | ----------------------- |
+| `files`     | integer | yes      | Count of files changed. |
+| `additions` | integer | yes      | Lines added.            |
+| `deletions` | integer | yes      | Lines deleted.          |
+| `commits`   | integer | yes      | Commit count on the PR. |
+
+### `packages`
+
+| Field   | Type   | Required | Meaning                                                  |
+| ------- | ------ | -------- | -------------------------------------------------------- |
+| `id`    | string | yes      | Short identifier, referenced by `pkg` fields elsewhere.  |
+| `label` | string | yes      | Display name (e.g. an npm package name or module label). |
+
+Every `pkg` reference elsewhere in the document (on components, diagram
+nodes/actors, boxes) MUST resolve to a `packages[].id`. `packages` is purely
+a palette source — the renderer assigns one color per entry and reuses it
+wherever that `id` appears as a `pkg` reference.
+
+`packages[].id` values are palette keys, a separate namespace from node
+ids: a plain lowercase token (e.g. `api`), unique within `packages[]`,
+not required to match the `type.slug` node-id pattern — validation
+rules 1 and 2 do not apply to them.
+
+## thesis
+
+A single claim node: what the PR does, in one paragraph.
+
+| Field      | Type   | Required | Meaning                                                |
+| ---------- | ------ | -------- | ------------------------------------------------------ |
+| `id`       | string | yes      | MUST be `thesis.main`.                                 |
+| `text`     | string | yes      | One-paragraph statement, plain text or short markdown. |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).                       |
+
+```json
+{
+  "id": "thesis.main",
+  "text": "Adds an in-app notifications feed: the API persists events and streams them to connected clients, and the web app renders a bell icon with an unread-count badge.",
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.ts:1-40" }]
+}
+```
+
+## architecture
+
+Free-form narrative and diagrams describing the system shape the PR
+introduces or changes. All four sub-arrays are required but may be empty.
+
+| Field        | Type  | Required | Meaning                                                                       |
+| ------------ | ----- | -------- | ----------------------------------------------------------------------------- |
+| `prose`      | array | yes      | Freeform markdown blocks, e.g. one per architectural theme.                   |
+| `diagrams`   | array | yes      | Diagrams — see the Diagram union section.                                     |
+| `channels`   | array | yes      | Named communication paths (e.g. "the persistence path", "the realtime path"). |
+| `boundaries` | array | yes      | Trust or ownership boundaries worth calling out.                              |
+
+### `architecture.prose[]`
+
+| Field      | Type   | Required | Meaning                                                  |
+| ---------- | ------ | -------- | -------------------------------------------------------- |
+| `id`       | string | yes      | `prose.<slug>`.                                          |
+| `md`       | string | yes      | Markdown body.                                           |
+| `receipts` | array  | no       | Prose is not claim-bearing by itself; receipts optional. |
+
+```json
+{
+  "id": "prose.delivery-path",
+  "md": "Notifications are written once by the API and fanned out over two channels: a WebSocket push for connected clients, and a poll-on-mount fallback for cold loads.",
+  "receipts": []
+}
+```
+
+### `architecture.channels[]`
+
+| Field      | Type   | Required | Meaning                                                  |
+| ---------- | ------ | -------- | -------------------------------------------------------- |
+| `id`       | string | yes      | `channel.<slug>`.                                        |
+| `tag`      | string | yes      | Short badge text, e.g. `"Strong · realtime path"`.       |
+| `title`    | string | yes      | Channel name.                                            |
+| `points`   | array  | yes      | List of short strings describing the channel's behavior. |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).                         |
+
+```json
+{
+  "id": "channel.realtime-push",
+  "tag": "Strong · realtime path",
+  "title": "WebSocket push",
+  "points": [
+    "Server pushes a notification event within one tick of persistence",
+    "Client reconciles unread count from the event payload, not a refetch"
+  ],
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/socket.ts:12-30" }]
+}
+```
+
+### `architecture.boundaries[]`
+
+| Field      | Type   | Required | Meaning                          |
+| ---------- | ------ | -------- | -------------------------------- |
+| `id`       | string | yes      | `boundary.<slug>`.               |
+| `text`     | string | yes      | Statement of the boundary.       |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node). |
+
+```json
+{
+  "id": "boundary.tenant-isolation",
+  "text": "Notification queries are always scoped by tenant id at the repository layer; no handler queries the notifications table directly.",
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/repo.ts:8-22" }]
+}
+```
+
+## components
+
+Units of code the PR touches or introduces (a module, a service, a UI
+surface). One entry per component.
+
+| Field        | Type   | Required | Meaning                                                                                                                                                                      |
+| ------------ | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string | yes      | `comp.<slug>`.                                                                                                                                                               |
+| `pkg`        | string | yes      | Must resolve to a `packages[].id`.                                                                                                                                           |
+| `title`      | string | yes      | Display name.                                                                                                                                                                |
+| `runtime`    | string | yes      | Free-form short string, e.g. `browser`, `server`, `shared`.                                                                                                                  |
+| `status`     | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the component, rolled up from its files. Absent makes no claim and renders exactly like `unchanged`. |
+| `files`      | array  | yes      | `{ path, role }` entries — the files that make up this component.                                                                                                            |
+| `summary`    | string | yes      | Markdown description of what the component does.                                                                                                                             |
+| `invariants` | array  | no       | Properties the component must maintain — see below.                                                                                                                          |
+| `receipts`   | array  | yes      | ≥1 receipt (claim-bearing node).                                                                                                                                             |
+
+```json
+{
+  "id": "comp.notification-service",
+  "pkg": "api",
+  "title": "Notification service",
+  "runtime": "server",
+  "status": "added",
+  "files": [
+    { "path": "packages/api/src/notifications/service.ts", "role": "write path" },
+    { "path": "packages/api/src/notifications/socket.ts", "role": "push path" }
+  ],
+  "summary": "Persists notification events and fans them out to connected clients over a WebSocket channel.",
+  "invariants": [
+    {
+      "id": "inv.persist-before-push",
+      "text": "An event is always durably persisted before it is pushed, so a reconnecting client can never miss one.",
+      "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.ts:22-27" }]
+    }
+  ],
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.ts:1-40" }]
+}
+```
+
+### `components[].invariants[]`
+
+| Field      | Type   | Required | Meaning                           |
+| ---------- | ------ | -------- | --------------------------------- |
+| `id`       | string | yes      | `inv.<slug>`.                     |
+| `text`     | string | yes      | The invariant, stated as a claim. |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).  |
+
+## reviewOrder
+
+A suggested, dependency-ordered path through the PR for a reviewer.
+
+| Field        | Type    | Required | Meaning                                                                                                                                  |
+| ------------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string  | yes      | `order.<slug>`.                                                                                                                          |
+| `step`       | integer | yes      | 1-based position in the suggested order. Across all entries, `step` values MUST form the contiguous set `1..N` — no gaps, no duplicates. |
+| `scope`      | string  | yes      | What to look at in this step (files, component, area).                                                                                   |
+| `timeboxMin` | integer | yes      | Suggested minutes to spend on this step.                                                                                                 |
+| `rationale`  | string  | yes      | Why this step comes here in the order.                                                                                                   |
+| `receipts`   | array   | yes      | ≥1 receipt (claim-bearing node).                                                                                                         |
+
+```json
+{
+  "id": "order.contracts",
+  "step": 1,
+  "scope": "packages/api/src/notifications/types.ts",
+  "timeboxMin": 10,
+  "rationale": "The event shape is the contract every other component depends on; reading it first makes the service and UI diffs legible.",
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/types.ts:1-18" }]
+}
+```
+
+## attentionSpots
+
+A bounded set of "look closely here" locations — places where a reviewer's
+attention pays off disproportionately.
+
+| Field      | Type   | Required | Meaning                                                                                    |
+| ---------- | ------ | -------- | ------------------------------------------------------------------------------------------ |
+| `id`       | string | yes      | `spot.<slug>`.                                                                             |
+| `loc`      | string | yes      | `path:line` — the location being flagged.                                                  |
+| `why`      | string | yes      | Why this location deserves attention.                                                      |
+| `group`    | string | yes      | Free-form grouping label (e.g. a scope or theme name), for clustering spots in the render. |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).                                                           |
+
+```json
+{
+  "id": "spot.unread-count-race",
+  "loc": "packages/web/src/notifications/useUnreadCount.ts:34",
+  "why": "The unread count is derived from local socket state, not refetched; a dropped socket message during reconnect could leave the badge stale until the next event.",
+  "group": "realtime path",
+  "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/useUnreadCount.ts:28-40" }]
+}
+```
+
+## tests
+
+Per-area test coverage summary.
+
+| Field      | Type   | Required | Meaning                                        |
+| ---------- | ------ | -------- | ---------------------------------------------- |
+| `id`       | string | yes      | `test.<slug>`.                                 |
+| `area`     | string | yes      | Name of the area covered (component or theme). |
+| `coverage` | string | yes      | Markdown summary of what is tested.            |
+| `gaps`     | string | no       | Markdown summary of what is not tested.        |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).               |
+
+```json
+{
+  "id": "test.notification-service",
+  "area": "Notification service",
+  "coverage": "Unit tests cover persist-then-push ordering and tenant-scoped queries.",
+  "gaps": "No test exercises a dropped-socket reconnect scenario.",
+  "receipts": [{ "kind": "code", "ref": "packages/api/src/notifications/service.test.ts:1-60" }]
+}
+```
+
+## qa
+
+Question/answer entries produced by the edit → re-render path. Empty
+(`[]`) at build time; a build MUST NOT populate this array.
+
+| Field       | Type   | Required | Meaning                                                                  |
+| ----------- | ------ | -------- | ------------------------------------------------------------------------ |
+| `id`        | string | yes      | `qa.<slug>`.                                                             |
+| `q`         | string | yes      | The question.                                                            |
+| `a`         | string | yes      | The answer.                                                              |
+| `receipts`  | array  | yes      | ≥1 receipt (claim-bearing node).                                         |
+| `revisedAt` | string | no       | ISO 8601 timestamp, set if the entry was edited after first being added. |
+
+```json
+{
+  "id": "qa.reconnect-behavior",
+  "q": "What happens to the unread badge if the WebSocket drops mid-session?",
+  "a": "It goes stale until the next push or a manual refresh; there is no automatic reconciliation on reconnect.",
+  "receipts": [{ "kind": "code", "ref": "packages/web/src/notifications/useUnreadCount.ts:28-40" }]
+}
+```
+
+## prComments
+
+Optional slot for PR review comments rendered inline alongside the
+walkthrough. A narrate-pr build MUST leave this `[]`; a future consumer
+(e.g. a review-pipeline integration) may populate it.
+
+| Field      | Type   | Required | Meaning                                     |
+| ---------- | ------ | -------- | ------------------------------------------- |
+| `id`       | string | yes      | `comment.<slug>`.                           |
+| `author`   | string | yes      | Commenter's display name or handle.         |
+| `loc`      | string | no       | `path:line` the comment anchors to, if any. |
+| `text`     | string | yes      | Comment body (markdown).                    |
+| `receipts` | array  | yes      | ≥1 receipt (claim-bearing node).            |
+
+```json
+{
+  "id": "comment.reconnect-followup",
+  "author": "reviewer-1",
+  "loc": "packages/web/src/notifications/useUnreadCount.ts:34",
+  "text": "Should we reconcile the unread count on reconnect instead of waiting for the next push?",
+  "receipts": [{ "kind": "url", "ref": "https://github.com/acme/webapp/pull/482#discussion_r1" }]
+}
+```
+
+## Receipts
+
+A receipt grounds a claim in evidence. Every claim-bearing node (see
+"Validation rules" below) MUST carry at least one.
+
+```json
+{ "kind": "code", "ref": "packages/api/src/notifications/service.ts:22-27", "note": "persist-before-push ordering" }
+```
+
+| Field  | Type   | Required | Meaning                                             |
+| ------ | ------ | -------- | --------------------------------------------------- |
+| `kind` | string | yes      | One of `code`, `code-base`, `doc`, `url`, `report`. |
+| `ref`  | string | yes      | Reference; shape depends on `kind` (below).         |
+| `note` | string | no       | Short human-readable annotation.                    |
+
+`ref` shape by `kind`:
+
+- **`code`** — `path:line` or `path:line-line`, relative to repo root, valid at the document's `sha`.
+- **`code-base`** — same shape as `code` (`path:line` or `path:line-line`, relative to repo root), but valid at the document's `baseSha` instead of its `sha`.
+- **`doc`** — `path:line` into an in-repo doc (README, ADR, etc.), relative to repo root.
+- **`url`** — an absolute URL.
+- **`report`** — `reports/<scope>.md#anchor`, pointing into a persisted research report.
+
+Use `code-base` for a claim about code this PR deleted — it no longer
+exists at the document's head `sha`, so a `code` receipt can't resolve.
+Everything else — code that still exists at the head sha, even if
+modified — keeps `code`.
+
+## Diagram union
+
+Every diagram, regardless of `type`, carries:
+
+| Field     | Type   | Required | Meaning                                   |
+| --------- | ------ | -------- | ----------------------------------------- |
+| `id`      | string | yes      | `diagram.<slug>`.                         |
+| `type`    | string | yes      | One of `lane`, `sequence`, `depmap`.      |
+| `title`   | string | yes      | Display title.                            |
+| `caption` | string | no       | Short caption rendered under the diagram. |
+
+Diagrams themselves are not claim-bearing (no `receipts` field) — they
+visualize structure already asserted (with receipts) elsewhere in the
+document, typically by components, channels, or prose.
+
+### `lane`
+
+Rows of boxes and arrows within labeled lanes. The renderer auto-lays-out
+lane rows with flexbox; there is no positional data to author.
+
+```json
+{
+  "id": "diagram.write-path",
+  "type": "lane",
+  "title": "Write path",
+  "caption": "A notification event moves from API to persisted state to client.",
+  "lanes": [
+    {
+      "id": "lane.api",
+      "label": "api",
+      "rows": [
+        [
+          { "id": "box.handler", "label": "createNotification()", "pkg": "api" },
+          { "arrow": "→" },
+          {
+            "id": "box.repo",
+            "label": "NotificationRepo.insert()",
+            "sub": "tenant-scoped",
+            "pkg": "api",
+            "status": "added"
+          }
+        ]
+      ]
+    }
+  ]
+}
+```
+
+| Field           | Type   | Required | Meaning                                                                                                                                                                              |
+| --------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lanes[].id`    | string | yes      | `lane.<slug>`.                                                                                                                                                                       |
+| `lanes[].label` | string | yes      | Lane display label.                                                                                                                                                                  |
+| `lanes[].rows`  | array  | yes      | Array of rows; each row is an array of cells.                                                                                                                                        |
+| cell (box)      | object | —        | `{ id, label, sub?, pkg?, status? }`.                                                                                                                                                |
+| cell (arrow)    | object | —        | `{ arrow: "→" \| "⇄" \| "↓", label?, status? }`.                                                                                                                                     |
+| cell `status`   | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the element. Absent makes no claim and renders exactly like `unchanged`. Valid on box and arrow cells alike. |
+
+### `sequence`
+
+Actors and ordered steps. The renderer auto-lays-out steps in a grid; there
+is no positional data to author.
+
+```json
+{
+  "id": "diagram.socket-push",
+  "type": "sequence",
+  "title": "Realtime push on new notification",
+  "actors": [
+    { "id": "actor.api", "label": "Notification service", "pkg": "api" },
+    { "id": "actor.socket", "label": "Socket gateway", "pkg": "api" },
+    { "id": "actor.web", "label": "Web client", "pkg": "web" }
+  ],
+  "steps": [
+    { "kind": "phase", "label": "Event persisted" },
+    { "kind": "msg", "from": "actor.api", "to": "actor.socket", "label": "publish(event)" },
+    { "kind": "msg", "from": "actor.socket", "to": "actor.web", "label": "notification:new", "status": "added" },
+    { "kind": "self", "actor": "actor.web", "label": "reconcile unread count" }
+  ]
+}
+```
+
+| Field               | Type   | Required | Meaning                                                                                                                                                                 |
+| ------------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actors[].id`       | string | yes      | `actor.<slug>`.                                                                                                                                                         |
+| `actors[].label`    | string | yes      | Actor display label.                                                                                                                                                    |
+| `actors[].sub`      | string | no       | Secondary label line.                                                                                                                                                   |
+| `actors[].pkg`      | string | no       | Must resolve to a `packages[].id` if present.                                                                                                                           |
+| `actors[].status`   | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the actor. Absent makes no claim and renders exactly like `unchanged`.                          |
+| `steps[].kind`      | string | yes      | One of `msg`, `self`, `phase`.                                                                                                                                          |
+| `steps[]` (`msg`)   | object | —        | `{ kind: "msg", from, to, label, muted?, status? }` — `from`/`to` are actor ids.                                                                                        |
+| `steps[]` (`self`)  | object | —        | `{ kind: "self", actor, label, status? }`.                                                                                                                              |
+| `steps[]` (`phase`) | object | —        | `{ kind: "phase", label, status? }` — a section divider, no actors involved.                                                                                            |
+| `steps[].status`    | string | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the step. Valid on every step kind. Absent makes no claim and renders exactly like `unchanged`. |
+
+### `depmap`
+
+A zoned dependency map: topology (`zones`, `nodes`, `edges`) plus a
+separate, strippable `layout` block.
+
+```json
+{
+  "id": "diagram.notification-depmap",
+  "type": "depmap",
+  "title": "Notification component dependencies",
+  "zones": [
+    { "id": "zone.api", "label": "api" },
+    { "id": "zone.web", "label": "web" }
+  ],
+  "nodes": [
+    {
+      "id": "node.service",
+      "zone": "zone.api",
+      "label": "NotificationService",
+      "sub": [],
+      "chips": ["write path"],
+      "pkg": "api"
+    },
+    {
+      "id": "node.socket",
+      "zone": "zone.api",
+      "label": "SocketGateway",
+      "sub": [],
+      "chips": ["push path"],
+      "pkg": "api"
+    },
+    { "id": "node.badge", "zone": "zone.web", "label": "UnreadBadge", "sub": [], "chips": [], "pkg": "web" }
+  ],
+  "edges": [
+    { "from": "node.service", "to": "node.socket", "label": "publish", "kind": "call" },
+    { "from": "node.socket", "to": "node.badge", "label": "notification:new", "kind": "net", "status": "added" }
+  ],
+  "layout": {
+    "cols": 2,
+    "nodes": {
+      "node.service": { "col": 1, "row": 1 },
+      "node.socket": { "col": 1, "row": 2 },
+      "node.badge": { "col": 2, "row": 2 }
+    }
+  }
+}
+```
+
+| Field            | Type    | Required | Meaning                                                                                                                                             |
+| ---------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `zones[].id`     | string  | yes      | `zone.<slug>`.                                                                                                                                      |
+| `zones[].label`  | string  | yes      | Zone display label.                                                                                                                                 |
+| `nodes[].id`     | string  | yes      | `node.<slug>`.                                                                                                                                      |
+| `nodes[].zone`   | string  | yes      | Must reference a `zones[].id`.                                                                                                                      |
+| `nodes[].label`  | string  | yes      | Node display label.                                                                                                                                 |
+| `nodes[].sub`    | array   | no       | Secondary label lines.                                                                                                                              |
+| `nodes[].chips`  | array   | no       | Short badge strings.                                                                                                                                |
+| `nodes[].pkg`    | string  | no       | Must resolve to a `packages[].id` if present.                                                                                                       |
+| `nodes[].status` | string  | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the node. Absent makes no claim and renders exactly like `unchanged`.       |
+| `edges[].from`   | string  | yes      | Must reference an existing `nodes[].id`.                                                                                                            |
+| `edges[].to`     | string  | yes      | Must reference an existing `nodes[].id`.                                                                                                            |
+| `edges[].label`  | string  | no       | Edge label.                                                                                                                                         |
+| `edges[].kind`   | string  | yes      | One of `call`, `net`, `type-only`.                                                                                                                  |
+| `edges[].status` | string  | no       | One of `added`, `removed`, `changed`, `unchanged` — what this PR did to the dependency. Absent makes no claim and renders exactly like `unchanged`. |
+| `layout.cols`    | integer | yes      | Grid column count.                                                                                                                                  |
+| `layout.nodes`   | object  | yes      | Map keyed by node id → `{ col, row, colSpan?, rowSpan? }`.                                                                                          |
+
+### Edge label conventions
+
+Every `depmap` edge label names exactly one mechanism, in words a reader can parse standalone.
+
+- **One edge, one mechanism.** The label names it in words a reader can parse standalone — an API/method name, an endpoint, a protocol string — ideally lifted verbatim from verified evidence (the edge-verification report), never re-summarized into invented shorthand.
+- **No glyph shorthand in labels.** No arrows (e.g. `⇄`) standing in for prose.
+- **Status lives in the `status` field, not the label.** An edge's
+  `status` is carried in the `status` field, never folded into its
+  `label` — do not append status words, arrows, or glyphs to a label
+  to signal what the PR did.
+- **Bidirectional relationships are two edges.** A genuinely bidirectional relationship MUST be modeled as two edges, each labeled with its own direction's mechanism — never one edge with a two-way label. The renderer draws reciprocal pairs as parallel lanes automatically.
+- **Arrow direction is data/control flow, not reference ownership.** The arrow points the way a reader should follow the flow, not which side holds the reference — e.g. an event-subscription edge points from emitter to consumer, labeled with the event mechanism, even though it's the consumer that registered the callback.
+- **One mechanism per edge.** If a relationship needs more than one mechanism named, split the edge or move the detail into the node's `sub` lines instead of compounding the label.
+
+`layout` is a hint/cache authored at synthesis time — **never load-bearing.**
+It is a distinct block, strippable without loss of topology: a renderer
+that ignores `layout` entirely must still be able to reconstruct full
+topology from `zones` + `nodes` + `edges` alone. The reference renderer
+draws SVG directly from `layout` (rects placed at each node's `col`/`row`,
+orthogonal edges with arrowheads, zone frames, labels) and never
+recomputes positions — a hand-authored or model-authored `layout` is
+rendered exactly as given.
+
+## Validation rules
+
+`validate.mjs` implements these rules normatively; a document that
+violates any of them is invalid.
+
+1. **Id uniqueness.** Every node `id` in the document is unique
+   document-wide. Applies to node ids only: `packages[].id` is a separate
+   palette-key namespace (a plain lowercase token, unique within
+   `packages[]`), and `layout.nodes` map keys are references checked by
+   rule 6, not id declarations.
+2. **Id pattern.** Every node `id` matches `^[a-z]+\.[a-z0-9-]+$` — a
+   lowercase type prefix, a literal `.`, then a lowercase-kebab-case
+   slug. Slugs MUST be human-readable (e.g. `comp.notification-service`),
+   never positional/numeric (e.g. not `comp.001`). Applies to node ids
+   only — `packages[].id` palette keys are not required to match this
+   pattern.
+3. **Receipts on claim-bearing nodes.** Each of the following node kinds
+   requires at least one receipt: `thesis`, `architecture.channels[]`,
+   `architecture.boundaries[]`, `components[]`, `components[].invariants[]`,
+   `reviewOrder[]`, `attentionSpots[]`, `tests[]`, `qa[]` entries,
+   `prComments[]` entries.
+4. **`sha` format.** `sha` is exactly 40 lowercase hex characters.
+5. **Depmap edge references.** Every `depmap` edge's `from` and `to` value
+   references an existing node id within that same diagram's `nodes[]`.
+6. **Depmap layout node coverage.** A `depmap`'s `layout.nodes` maps
+   exactly one positioned entry to each of that diagram's `nodes[].id`:
+   every layout key must be a real node id (no dangling entries), and
+   every node id must have a layout entry (an unplaced node has no
+   position and would go undrawn by the reference renderer).
+7. **Package references resolve.** Every `pkg` field anywhere in the
+   document (components, diagram actors/nodes/boxes) resolves to a
+   `packages[].id`.
+8. **Code receipt ref shape.** Every receipt with `"kind": "code"` or
+   `"kind": "code-base"` has a `ref` matching `path:line` or
+   `path:line-line` — a repo-relative path (no leading `/`, no `..`
+   segments, not a URL), a colon, a positive integer line, optionally a
+   hyphen and a second integer line no smaller than the first. Both
+   kinds share this rule; they differ only in which sha the ref
+   resolves against.
+9. **Depmap zone references.** Every depmap node's `zone` value
+   references an existing `zones[].id` within that same diagram.
+10. **Sequence actor references.** Every sequence step of kind `msg` has
+    `from`/`to` referencing existing `actors[].id` within that same
+    diagram; every `self` step's `actor` likewise.
+11. **Doc receipt ref shape.** Every receipt with `"kind": "doc"` has a
+    `ref` satisfying the same `path:line` / `path:line-line` constraints
+    as rule 8.
+12. **URL receipt ref shape.** Every receipt with `"kind": "url"` has
+    an absolute `http(s)` URL as its `ref`.
+13. **Report receipt ref shape.** Every receipt with `"kind": "report"`
+    has a `ref` matching `reports/<name>.md`, optionally followed by
+    `#anchor`.
+14. **Depmap layout bounds.** `layout.cols` is an integer ≥ 1; every
+    `layout.nodes` entry's `col` and `row` (and `colSpan`/`rowSpan` when
+    present) are positive integers, `col + colSpan − 1 ≤ cols` so no
+    node overflows the grid, and `row + rowSpan − 1 ≤ 100`.
+15. **Required ids present.** Every node kind whose field table marks
+    `id` as required carries a non-empty `id` bearing that kind's
+    documented type prefix (e.g. `comp.`, `spot.`, `order.`).
+16. **Review-order step contiguity.** The `reviewOrder[].step` values
+    are exactly the contiguous set `1..N` for `N` entries — no gaps, no
+    duplicates.
+17. **Element status enum.** Every `status` field at a site that supports
+    one — `components[]`, `lane` box cells, `lane` arrow cells, `sequence`
+    actors, `sequence` steps, `depmap` nodes, and `depmap` edges — is one
+    of `added`, `removed`, `changed`, `unchanged`. The field is optional
+    at every one of those sites. An absent `status` is not an assertion of
+    `unchanged` — it is the document declining to state what the PR did to
+    that element — but it is treated identically to `unchanged` everywhere
+    downstream: the validator has nothing to check, and the renderer draws
+    no colour, no badge, and no legend entry (see "Status rendering").
+    Values come from the PR's diff — the
+    element's state at the base ref compared with its state at the
+    document's head `sha` — never inferred at synthesis time from the
+    shape of the code alone; only the enum is machine-checked here, so the
+    derivation is an authoring obligation. A `status` written on any other
+    node is deliberately **not** validated and carries no meaning: this
+    validator does no unknown-field checking anywhere, so rejecting one
+    stray field while every other unknown field passes silently would be
+    inconsistent.
+18. **Base sha format.** `baseSha`, when present, is exactly 40 lowercase
+    hex characters.
+19. **Base sha required for base receipts.** If any receipt in the
+    document has `"kind": "code-base"`, the document must have a
+    `baseSha`. `baseSha` is otherwise optional.
+
+## Status rendering
+
+Rule 17 fixes the `status` enum and the sites it is valid on. This section
+describes the reference renderer's treatment of a validated `status` value
+— descriptive, not an additional constraint on the document.
+
+An absent `status` and an explicit `"unchanged"` render identically:
+neither produces a badge, a colour, or a legend entry. `unchanged` is a
+purely nominal member of the enum — no rendered site ever visibly
+distinguishes "not stated" from "stated as unchanged".
+
+| Site                                     | Treatment                                                                                                                                                                                                                  |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lane` box cell                          | A colour bar down the left edge, plus a text badge; `removed` is additionally struck through.                                                                                                                              |
+| `lane` arrow cell                        | The same colour bar down the left edge, plus a text badge; unlike every other struck-through site, `removed` never strikes an arrow — a struck-through arrow glyph would read as a rendering fault rather than a deletion. |
+| `sequence` actor                         | A colour bar down the left edge, plus a text badge; `removed` is struck through.                                                                                                                                           |
+| `sequence` step (`msg`, `self`, `phase`) | The same colour bar down the left edge; `removed` is struck through. On a `msg` step the bar composes with the existing `muted` modifier — the two are independent axes.                                                   |
+| `depmap` node                            | Stroke colour only — no badge, no chip.                                                                                                                                                                                    |
+| `depmap` edge                            | Stroke colour only. The edge's `kind` keeps its own dash pattern and arrowhead, so colour and kind are drawn on independent axes and never collide.                                                                        |
+| `components[]` entry                     | A text badge in the component header, beside the package badge.                                                                                                                                                            |
+
+The colour bar is a thin inset mark along the left edge rather than a
+border, deliberately: a border would reflow the element it marks, and on
+a `lane` box the top border already carries the package colour.
+
+`depmap` nodes and edges are colour-only by design: a depmap's geometry is
+computed from character counts in `layout` (see "Strippable layout"
+below), and a badge or chip would perturb that computation. Colour is the
+only treatment that costs no layout width.
+
+### Legend
+
+A legend block renders below each diagram that has one — depmap included
+— as HTML placed outside the diagram's `<svg>`, so it never affects a
+`depmap`'s `viewBox` extents.
+
+- The legend appears only when its diagram contains at least one element
+  with a non-`unchanged` status.
+- It lists only the statuses actually present in that diagram, in the
+  fixed order `added`, `removed`, `changed` — never the order in which
+  they happen to appear in the document.
+- `unchanged` is never listed.
+- A diagram with no `status` anywhere, or with only `unchanged`, gets no
+  legend.
+
+The legend is scoped to diagrams. A `components[]` entry's `status`
+produces a badge in the component header but contributes no legend of its
+own.
+
+### Accessibility
+
+Every element type's aria-label or `<desc>` text gets the status appended
+as a trailing bracketed marker, after the element's own description —
+including sites that already carry a visible badge:
+
+```text
+NotificationService → NotificationRepo: insert (calls) [added]
+```
+
+An `unchanged` (or absent) status adds no marker.
+
+## Design notes
+
+**Doc-as-data.** `walkthrough.json` is the source of truth; HTML is a
+deterministic projection of it (`render.mjs`), never hand-edited. This
+means the walkthrough can be revised (fold in a Q&A answer, fix a receipt,
+add an attention spot) by editing JSON and re-rendering, without the model
+re-deriving prose it already wrote correctly.
+
+**Stable ids.** Every meaningful node has a human-readable, doc-unique id
+(`comp.notification-service`, not `comp.3`). Stable ids let external
+references (a Q&A answer citing an invariant, a future PR-comment linking
+to an attention spot) survive re-renders and partial edits, and let a
+diff between two versions of the same walkthrough be computed structurally
+rather than by prose-matching.
+
+**Strippable layout.** The `depmap.layout` block is deliberately
+separated from `depmap` topology (`zones`/`nodes`/`edges`). Topology is
+the fact of the document; `layout` is a rendering hint authored once at
+synthesis time. Keeping it a separate, optional-in-spirit block means a
+future renderer (or a different diagram engine entirely) can recompute
+its own layout from topology alone if `layout` is stripped or ignored —
+today's renderer simply chooses not to, and instead trusts the
+synthesis-time placement verbatim.
+
+**Status derivation.** Rule 17 fixes the `status` enum and where it's
+valid; it doesn't say where the value comes from. That value is
+computed from diff evidence at synthesis time, never invented or
+guessed from the shape of the code:
+
+- A `components[]` entry's status rolls up from its files' `A`/`M`/`D`
+  diff markers (the exhaustive post-normalization vocabulary — any
+  other marker git emits, e.g. `T`, is folded into `M` before this
+  point; see goal `pr-walkthrough`, diff listing), quantified over **all** of the
+  component's files and not only the diff-listed ones — a file the
+  diff never mentions counts as unchanged. Every file added is
+  `added`; every file deleted is `removed`; otherwise any file added,
+  modified, or deleted is `changed`; else `unchanged`. So `added`
+  means no file of the component existed at the base ref _under its
+  current path_, and `removed` that none of it survives at head; a
+  component that predates the PR at those same paths never rolls up to
+  `added`. Status is a claim about paths, not about lineage: the file
+  listing is taken with `--no-renames`, so a renamed component
+  legitimately reads as `added` while its old path reads as `removed`
+  — that trade of rename lineage for an exhaustive `A`/`M`/`D`
+  vocabulary is deliberate. `added` and `removed` quantify over the
+  whole set and therefore require it to be established; a synthesis
+  that cannot establish a component's full file set writes `changed`.
+- A `depmap` edge's status comes from the edge-verification
+  subagent's reported status token for that edge; an edge that pass
+  reported without a status token is left with no `status` at all,
+  never defaulted to `unchanged` — absent claims nothing, which is the
+  honest record of an edge nobody could check at both commits.
+- A `depmap` node's status derives from the file-level diff markers
+  of the files that node covers, coarsened to the matching
+  `components[]` entry's status only when the node and component
+  cover exactly the same files — a node whose only file was deleted
+  is `removed` even when its parent component, spanning other files
+  that were merely changed, is `changed`.
+- `lane` box/arrow cells and `sequence` actors/steps derive from the
+  diff evidence for the code they represent.
