@@ -2,7 +2,7 @@
 
 Personal collection of [Claude Code](https://docs.claude.com/en/docs/claude-code) skills for ticket-driven development: plan a day, plan a feature, ship it, review it, resolve review comments.
 
-Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline they belong to: `delivery/` (plan → build → PR), `review/` (review → resolve), and `workflow/` (day planning, session hygiene, delegation). `skills/wip/` holds work-in-progress variants and newborn primitives that are excluded from this index until they graduate (see [`skills/wip/README.md`](skills/wip/README.md)). The index below lists model-invocable skills only; skills marked `disable-model-invocation: true` (slash-command-only, e.g. `narrate-pr`) are omitted, as are WIP variants. Each skill directory is self-contained (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
+Skills live under `skills/<group>/<skill>/`, grouped by the multi-skill pipeline they belong to: `delivery/` (plan → build → PR), `review/` (review → resolve), and `workflow/` (day planning, session hygiene, delegation). `skills/wip/` holds work-in-progress variants and newborn primitives that are excluded from this index until they graduate (see [`skills/wip/README.md`](skills/wip/README.md)). `skills/experimental/` holds experimental paradigms (currently charter goal/rule skills under `skills/experimental/charter/{goals,rules}/<name>/`) and is likewise excluded from the index. The index below lists model-invocable skills only; skills marked `disable-model-invocation: true` (slash-command-only, e.g. `narrate-pr`) are omitted, as are WIP variants. Each skill directory is self-contained (`SKILL.md` + optional `references/`, `scripts/`, `assets/`).
 
 ## Skills
 
